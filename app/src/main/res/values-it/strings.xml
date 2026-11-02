@@ -123,7 +123,7 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
     <string name="ghost_working">Sto generando…</string>
     <string name="ghost_done">Chiave di prova creata.\nControllo con la chiave creata qui: %1$s\nSostituisce la chiave di prova precedente.</string>
     <string name="ghost_failed">Non riesco a creare la chiave: %1$s</string>
-    <string name="ghost_copy">Copia certificato</string>
+    <string name="ghost_copy">Copia chiave completa</string>
     <string name="dev_disk">Spazio disco per i contenuti di rete</string>
     <string name="dev_threads">Thread in background</string>
     <string name="dev_copy_log">Copia il registro</string>
@@ -141,4 +141,5 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
         <item>8</item>
         <item>16</item>
     </string-array>
+    <string name="ghost_copied">Chiave copiata. Contiene la parte segreta: non condividerla.</string>
 </resources>
