@@ -12,44 +12,46 @@
     <Button
         android:id="@+id/about_button"
         style="@style/Widget.AppCompat.Button.Borderless"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
         android:background="@drawable/ic_baseline_info_24"
         android:contentDescription="@string/title_activity_about"
+        app:backgroundTint="@color/colorTextSecondary"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/settings_button"
         style="@style/Widget.AppCompat.Button.Borderless"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
         android:background="@drawable/ic_baseline_settings_24"
         android:contentDescription="@string/title_activity_settings"
+        app:backgroundTint="@color/colorTextSecondary"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
         android:id="@+id/imageView"
-        android:layout_width="150dp"
-        android:layout_height="100dp"
-        android:layout_marginTop="28dp"
+        android:layout_width="84dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="48dp"
         android:contentDescription="@string/freenet"
         android:src="@drawable/ic_freenet_logo"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/about_button" />
+        app:layout_constraintTop_toBottomOf="@+id/about_button"
+        app:tint="?attr/colorAccent" />
 
     <TextView
         android:id="@+id/textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:fontFamily="sans-serif-medium"
-        android:letterSpacing="0.02"
+        android:fontFamily="sans-serif-light"
         android:text="@string/freenet"
         android:textColor="@android:color/white"
-        android:textSize="30sp"
+        android:textSize="24sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/imageView" />
@@ -58,24 +60,22 @@
         android:id="@+id/status_card"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="28dp"
-        android:background="@drawable/fondo_scheda"
+        android:layout_marginTop="36dp"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:padding="24dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView">
 
         <FrameLayout
-            android:layout_width="88dp"
-            android:layout_height="88dp"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
             android:background="@drawable/fondo_avvio">
 
             <ToggleButton
                 android:id="@+id/control_button"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:layout_gravity="center"
                 android:background="@drawable/ic_baseline_power_settings_new_24"
                 android:checked="false"
@@ -89,27 +89,26 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:fontFamily="sans-serif-medium"
             android:gravity="center"
             android:textColor="@android:color/white"
-            android:textSize="18sp" />
+            android:textSize="15sp" />
 
         <TextView
             android:id="@+id/node_status_detail"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="4dp"
             android:gravity="center"
             android:textColor="@color/colorTextSecondary"
             android:textIsSelectable="false"
-            android:textSize="14sp" />
+            android:textSize="13sp" />
     </LinearLayout>
 
     <LinearLayout
         android:id="@+id/extra_buttons"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="8dp"
         android:orientation="horizontal"
         app:layout_constraintBottom_toTopOf="@+id/web_button"
         app:layout_constraintEnd_toEndOf="parent"
@@ -117,44 +116,54 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/river_button"
+            android:insetLeft="0dp"
+            android:paddingStart="2dp"
+            android:paddingEnd="2dp"
+            android:textSize="13sp"
             style="@style/AppTheme.Button.Tonal"
             android:layout_width="0dp"
-            android:layout_height="52dp"
-            android:layout_marginEnd="6dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="4dp"
             android:layout_weight="1"
             android:enabled="false"
             android:text="@string/river_chat" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/ghostkey_button"
+            android:insetLeft="0dp"
+            android:paddingStart="2dp"
+            android:paddingEnd="2dp"
+            android:textSize="13sp"
             style="@style/AppTheme.Button.Tonal"
             android:layout_width="0dp"
-            android:layout_height="52dp"
-            android:layout_marginStart="6dp"
-            android:layout_marginEnd="6dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
             android:layout_weight="1"
             android:text="@string/ghost_key" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/pc_button"
+            android:insetLeft="0dp"
+            android:paddingStart="2dp"
+            android:paddingEnd="2dp"
+            android:textSize="13sp"
             style="@style/AppTheme.Button.Tonal"
             android:layout_width="0dp"
-            android:layout_height="52dp"
-            android:layout_marginStart="6dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="4dp"
             android:layout_weight="1"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp"
             android:text="@string/use_from_pc" />
     </LinearLayout>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/web_button"
         android:layout_width="0dp"
-        android:layout_height="56dp"
-        android:layout_marginBottom="12dp"
+        android:layout_height="48dp"
+        android:layout_marginBottom="8dp"
         android:enabled="false"
         android:text="@string/open_freenet"
-        android:textSize="16sp"
+        android:textSize="15sp"
         app:layout_constraintBottom_toTopOf="@+id/sites_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
@@ -163,9 +172,9 @@
         android:id="@+id/sites_button"
         style="@style/AppTheme.Button.Tonal"
         android:layout_width="0dp"
-        android:layout_height="56dp"
+        android:layout_height="48dp"
         android:text="@string/sites_title"
-        android:textSize="16sp"
+        android:textSize="15sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

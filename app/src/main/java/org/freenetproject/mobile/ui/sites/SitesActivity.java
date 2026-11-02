@@ -183,7 +183,9 @@ public class SitesActivity extends AppCompatActivity {
         button.setInsetBottom(0);
         button.setOnClickListener(listener);
         if (text != R.string.sites_publish) {
-            button.setBackgroundTintList(ColorStateList.valueOf(getColor(R.color.colorSurface)));
+            button.setBackgroundTintList(ColorStateList.valueOf(Color.TRANSPARENT));
+            button.setStrokeColor(ColorStateList.valueOf(getColor(R.color.colorLine)));
+            button.setStrokeWidth(Math.round(getResources().getDisplayMetrics().density));
             button.setTextColor(Color.WHITE);
         }
         return button;
