@@ -143,7 +143,6 @@ public class MainFragment extends Fragment {
         updateSettings(manager, view);
         updateAbout(manager, view);
         view.findViewById(R.id.pc_button).setOnClickListener(v -> showPcHelp());
-        view.findViewById(R.id.space_sound_button).setOnClickListener(v -> SpaceSound.play());
         updateUptime(Manager.getInstance(), view);
         applyAppearance(view);
 
@@ -347,22 +346,37 @@ public class MainFragment extends Fragment {
         // Logo style
         ImageView logo = view.findViewById(R.id.imageView);
         String logoStyle = prefs.getString("logo_style", "freenet");
+        logo.setVisibility(View.VISIBLE);
         switch (logoStyle) {
-            case "galaxy":  logo.setImageResource(R.drawable.ic_logo_galaxy); logo.setVisibility(View.VISIBLE); break;
-            case "shield":  logo.setImageResource(R.drawable.ic_logo_shield); logo.setVisibility(View.VISIBLE); break;
-            case "star":    logo.setImageResource(R.drawable.ic_baseline_star_24); logo.setVisibility(View.VISIBLE); break;
+            case "galaxy":  logo.setImageResource(R.drawable.ic_logo_galaxy); break;
+            case "shield":  logo.setImageResource(R.drawable.ic_logo_shield); break;
+            case "star":    logo.setImageResource(R.drawable.ic_baseline_star_24); break;
             case "none":    logo.setVisibility(View.GONE); break;
             case "custom": {
                 String path = prefs.getString(
                         org.freenetproject.mobile.ui.settings.activity.SettingsActivity.PREF_LOGO_CUSTOM_PATH, "");
                 if (path != null && !path.isEmpty()) {
                     Bitmap bmp = BitmapFactory.decodeFile(path);
-                    if (bmp != null) { logo.setImageBitmap(bmp); logo.setVisibility(View.VISIBLE); break; }
+                    if (bmp != null) { logo.setImageBitmap(bmp); break; }
                 }
-                logo.setImageResource(R.drawable.ic_freenet_logo); logo.setVisibility(View.VISIBLE); break;
+                logo.setImageResource(R.drawable.ic_freenet_logo); break;
             }
-            default:        logo.setImageResource(R.drawable.ic_freenet_logo); logo.setVisibility(View.VISIBLE); break;
+            default: logo.setImageResource(R.drawable.ic_freenet_logo); break;
         }
+
+        // Logo size from settings (dp)
+        int logoSizeDp;
+        switch (prefs.getString("logo_size", "medium")) {
+            case "small":  logoSizeDp = 56;  break;
+            case "large":  logoSizeDp = 120; break;
+            case "xlarge": logoSizeDp = 160; break;
+            default:       logoSizeDp = 84;  break;
+        }
+        int logoSizePx = Math.round(logoSizeDp * getResources().getDisplayMetrics().density);
+        android.view.ViewGroup.LayoutParams lp = logo.getLayoutParams();
+        lp.width = logoSizePx;
+        lp.height = Math.round(logoSizeDp * 0.57f * getResources().getDisplayMetrics().density);
+        logo.setLayoutParams(lp);
 
         // Custom app name (shown in the title TextView)
         TextView titleText = view.findViewById(R.id.textView);
