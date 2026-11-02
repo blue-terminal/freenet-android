@@ -6,6 +6,9 @@ import android.os.Build;
 import android.os.Bundle;
 
 import android.content.SharedPreferences;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
@@ -18,8 +21,17 @@ import org.freenetproject.mobile.R;
 import org.freenetproject.mobile.update.Updater;
 
 public class MainActivity extends AppCompatActivity {
+    private static final Set<String> APPEARANCE_KEYS = new HashSet<>(Arrays.asList(
+            "logo_style", "timer_color", "show_version",
+            "btn_river", "btn_pc", "btn_web", "btn_sites"));
     private String shownColor;
     private boolean shownLed;
+    private final SharedPreferences.OnSharedPreferenceChangeListener appearanceListener =
+            (prefs, key) -> {
+                if (APPEARANCE_KEYS.contains(key)) {
+                    recreate();
+                }
+            };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         shownColor = prefs.getString(App.KEY_COLOR, "blue");
         shownLed = prefs.getBoolean(App.KEY_LED, false);
+        prefs.registerOnSharedPreferenceChangeListener(appearanceListener);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
@@ -55,6 +68,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onStop() {
         super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .unregisterOnSharedPreferenceChangeListener(appearanceListener);
+        super.onDestroy();
     }
 
     @Override
