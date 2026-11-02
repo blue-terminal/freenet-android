@@ -34,6 +34,7 @@ import org.freenetproject.mobile.services.node.Manager;
 import org.freenetproject.mobile.ui.bootstrap.activity.BootstrapActivity;
 import org.freenetproject.mobile.ui.ghostkey.GhostKeyActivity;
 import org.freenetproject.mobile.ui.main.activity.MainFragment;
+import org.freenetproject.mobile.ui.sites.SitesActivity;
 import org.freenetproject.mobile.update.UpdateWorker;
 import org.freenetproject.mobile.update.Updater;
 
@@ -143,6 +144,13 @@ public class SettingsActivity extends AppCompatActivity {
                     return true;
                 });
             }
+            Preference video = findPreference("video_site");
+            if (video != null) {
+                video.setOnPreferenceClickListener(preference -> {
+                    startActivity(new Intent(requireContext(), SitesActivity.class));
+                    return true;
+                });
+            }
             Preference address = findPreference("host_address");
             if (address != null) {
                 address.setOnPreferenceClickListener(preference -> {
@@ -155,8 +163,7 @@ public class SettingsActivity extends AppCompatActivity {
                 tor.setOnPreferenceChangeListener((preference, value) -> {
                     Tor.setEnabled((Boolean) value);
                     if ((Boolean) value) {
-                        Toast.makeText(requireContext(), R.string.tor_mode_on,
-                                Toast.LENGTH_LONG).show();
+                        checkOrbot();
                     }
                     return true;
                 });
@@ -250,6 +257,51 @@ public class SettingsActivity extends AppCompatActivity {
             } catch (ActivityNotFoundException missing) {
                 // Some phones hide that screen: the general battery settings are the fallback.
                 startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+            }
+        }
+
+        /**
+         * Tor only works while Orbot is running on the phone: nothing else provides the
+         * SOCKS port. The check runs off the main thread and, when nothing answers, offers
+         * to open Orbot instead of leaving the setting on with every request failing.
+         */
+        private void checkOrbot() {
+            new Thread(() -> {
+                boolean ready = Tor.available();
+                if (!isAdded()) {
+                    return;
+                }
+                requireActivity().runOnUiThread(() -> {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    if (ready) {
+                        Toast.makeText(requireContext(), R.string.tor_mode_on,
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle(R.string.tor_mode)
+                            .setMessage(R.string.tor_no_orbot)
+                            .setNegativeButton(android.R.string.ok, null)
+                            .setPositiveButton(R.string.tor_open_orbot, (dialog, which) -> openOrbot())
+                            .show();
+                });
+            }, "tor-check").start();
+        }
+
+        /** Orbot itself when it is installed, otherwise its page in the store. */
+        private void openOrbot() {
+            Intent app = requireContext().getPackageManager().getLaunchIntentForPackage(Tor.ORBOT);
+            if (app != null) {
+                startActivity(app);
+                return;
+            }
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW,
+                        Uri.parse("https://play.google.com/store/apps/details?id=" + Tor.ORBOT)));
+            } catch (ActivityNotFoundException noBrowser) {
+                Toast.makeText(requireContext(), R.string.tor_no_orbot, Toast.LENGTH_LONG).show();
             }
         }
 
