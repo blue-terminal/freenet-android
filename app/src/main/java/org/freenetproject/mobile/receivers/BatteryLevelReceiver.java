@@ -7,13 +7,10 @@ import android.util.Log;
 
 import org.freenetproject.mobile.services.node.Manager;
 
-public class BatteryLevelReceiver extends BroadcastReceiver
-{
+public class BatteryLevelReceiver extends BroadcastReceiver {
     @Override
-    public void onReceive(Context context, Intent intent)
-    {
+    public void onReceive(Context context, Intent intent) {
         Log.i("Freenet", "Stopping service from low battery level");
         Manager.getInstance().stopService(context);
     }
 }
-

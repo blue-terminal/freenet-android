@@ -14,8 +14,6 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.google.common.collect.ImmutableMap;
-
 import org.freenetproject.mobile.BuildConfig;
 import org.freenetproject.mobile.R;
 import org.freenetproject.mobile.services.node.Manager;
@@ -24,18 +22,21 @@ import org.freenetproject.mobile.ui.bootstrap.activity.BootstrapActivity;
 import org.freenetproject.mobile.ui.acknowledgement.activity.AcknowledgementActivity;
 import org.freenetproject.mobile.ui.acknowledgement.activity.AcknowledgementFragment;
 import org.freenetproject.mobile.ui.main.viewmodel.MainViewModel;
-import org.freenetproject.mobile.ui.notification.Notification;
 import org.freenetproject.mobile.ui.settings.activity.SettingsActivity;
-
-import java.util.Map;
+import org.freenetproject.mobile.ui.sites.SitesActivity;
 
 public class MainFragment extends Fragment {
-    static final Map<Integer, Integer> STATUS_ACTION_MAP = ImmutableMap.<Integer, Integer>builder()
-            .put(Manager.Status.STARTED.ordinal(), R.drawable.ic_baseline_power_settings_new_24)
-            .put(Manager.Status.PAUSED.ordinal(), R.drawable.ic_baseline_power_settings_new_24)
-            .put(Manager.Status.STOPPED.ordinal(), R.drawable.ic_baseline_play_circle_outline_24)
-            .put(Manager.Status.ERROR.ordinal(), R.drawable.ic_baseline_replay_24)
-            .build();
+    private static int actionIcon(Manager.Status status) {
+        switch (status) {
+            case STARTED:
+            case PAUSED:
+                return R.drawable.ic_baseline_power_settings_new_24;
+            case ERROR:
+                return R.drawable.ic_baseline_replay_24;
+            default:
+                return R.drawable.ic_baseline_play_circle_outline_24;
+        }
+    }
 
     @Override
     public View onCreateView(
@@ -62,6 +63,8 @@ public class MainFragment extends Fragment {
         updateSharedPreferences(manager, view);
         updateSettings(manager, view);
         updateAbout(manager, view);
+        view.findViewById(R.id.sites_button).setOnClickListener(v ->
+                startActivity(new Intent(getActivity(), SitesActivity.class)));
         updateControls(manager, view);
         updateStatus(manager, view);
         updateStatusDetail(manager, view);
@@ -70,36 +73,26 @@ public class MainFragment extends Fragment {
     private void updateControls(Manager m, View view) {
         Button controlButton = view.findViewById(R.id.control_button);
         controlButton.setOnClickListener(view1 -> {
-            new Thread(() -> {
-                // Return right aways if for some reason it is still working (either
-                // starting up or stopping).
-                if (m.isTransitioning()) {
-                    return;
-                }
+            // Nothing to do while it is still starting up or stopping.
+            if (m.isTransitioning()) {
+                return;
+            }
 
-                // When running or paused the node can be shutdown,but it can not
-                // be paused or started.
-                if (m.isStopped()) {
-                    m.startService(view.getContext());
-                } else if (m.isRunning() || m.isPaused()) {
-                    m.restartService(view.getContext());
-                } else if (m.hasError()) {
-                    m.resetService(view.getContext());
+            if (m.isRunning() || m.isPaused()) {
+                m.stopService(view.getContext());
+            } else {
+                // After an error the service is still up, so it would not start the node again.
+                m.startService(view.getContext());
+                if (m.hasError()) {
+                    Context appContext = view.getContext().getApplicationContext();
+                    new Thread(() -> m.startNode(appContext), "freenet-start").start();
                 }
-            }).start();
+            }
         });
 
         m.getStatus().observe(getViewLifecycleOwner(), status -> {
-            controlButton
-                .setEnabled(
-                    !m.isTransitioning()
-                );
-
-            controlButton.setBackgroundResource(
-                STATUS_ACTION_MAP.containsKey(m.getStatus().getValue().ordinal()) ?
-                    STATUS_ACTION_MAP.get(m.getStatus().getValue().ordinal()) :
-                    R.drawable.ic_baseline_play_circle_outline_24
-                );
+            controlButton.setEnabled(!m.isTransitioning());
+            controlButton.setBackgroundResource(actionIcon(status));
         });
     }
 
@@ -135,8 +128,13 @@ public class MainFragment extends Fragment {
                 });
             } else if (status.equals(Manager.Status.STARTING_UP)) {
                 detailText.setText(R.string.may_take_a_while);
+            } else if (status.equals(Manager.Status.PAUSED)) {
+                detailText.setText(R.string.paused_detail);
             } else if (status.equals(Manager.Status.ERROR)) {
-                detailText.setText(R.string.error_detail);
+                String reason = m.lastLogLine();
+                detailText.setText(reason.isEmpty()
+                        ? getString(R.string.error_detail)
+                        : getString(R.string.error_detail) + "\n" + reason);
             } else {
                 detailText.setText("");
             }
@@ -148,7 +146,7 @@ public class MainFragment extends Fragment {
         SharedPreferences.Editor editor = sharedPref.edit();
 
         m.getStatus().observe(getViewLifecycleOwner(), status -> {
-            editor.putInt("status", m.getStatus().getValue().ordinal());
+            editor.putInt("status", status.ordinal());
             editor.apply();
         });
     }

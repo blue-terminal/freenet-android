@@ -2,33 +2,37 @@ package org.freenetproject.mobile.services.node;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Resources;
 import android.os.Build;
 import android.util.Log;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import com.jakewharton.processphoenix.ProcessPhoenix;
-
-import org.freenetproject.mobile.R;
-import org.freenetproject.mobile.ui.main.activity.MainActivity;
-
-import java.io.FileNotFoundException;
-import java.util.HashMap;
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.util.EnumMap;
 import java.util.Map;
-
-import org.freenetproject.mobile.Runner;
-import org.freenetproject.mobile.Installer;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Class responsible for exposing data to the UI. It also exposes methods for the UI to interact with,
- * such as startService and stopService.
+ * Starts and stops the Freenet node, a native program shipped as libfreenet.so, and
+ * exposes its state to the UI.
  */
 public class Manager {
+    public static final int WEB_PORT = 7509;
+    public static final String WEB_URL = "http://127.0.0.1:" + WEB_PORT + "/";
+
+    private static final String TAG = "Freenet";
+    private static final int STARTUP_TIMEOUT_SECONDS = 180;
+    private static final int STOP_TIMEOUT_SECONDS = 10;
+    private static final int LOG_TAIL_BYTES = 4096;
+    private static final int BLOCKED_BY_ANDROID_CODE = 128 + 31; // SIGSYS
 
     private static Manager instance = null;
-    private final Runner runner = Runner.getInstance();
 
     public enum Status {
         STARTING_UP,
@@ -36,245 +40,235 @@ public class Manager {
         STOPPING,
         STOPPED,
         ERROR,
-        INSTALLING,
-        PAUSED,
-        PAUSING // when adding a new state that has transitions be sure to update isTransitioning method
+        PAUSED
     }
 
-    public static final String CONTEXT_NETWORK = "network";
-    public static final String CONTEXT_BATTERY = "battery";
+    /** Why the node should not run right now. It resumes when none of these is left. */
+    public enum PauseReason {
+        NETWORK,
+        BATTERY
+    }
 
-    private Map<String, Boolean> contextRunFlag = new HashMap<String, Boolean>() {{
-        put(CONTEXT_NETWORK, true);
-        put(CONTEXT_BATTERY, true);
-    }};
+    private final Map<PauseReason, Boolean> pauses = new EnumMap<>(PauseReason.class);
+    private final MutableLiveData<Status> statusData = new MutableLiveData<>(Status.STOPPED);
+    private volatile Status status = Status.STOPPED;
+    private Process process = null;
+    private File logFile = null;
+    private volatile String lastProblem = "";
 
-    private MutableLiveData<Status> status = new MutableLiveData<Status>();
     private Manager() {
-        status.postValue(
-            runner.isStarted() ? Status.STARTED : Status.STOPPED
-        );
     }
 
-    public static Manager getInstance() {
+    public static synchronized Manager getInstance() {
         if (instance == null) {
             instance = new Manager();
         }
-
         return instance;
     }
 
     public LiveData<Status> getStatus() {
-        return status;
+        return statusData;
     }
 
-    /**
-     * Start the service through the Runner class. Also install the node if it's not already installed.
-     *
-     * On one hand it starts the actual node through the Runner class and on the other hand it starts
-     * the Services.Node.Service service to be able to keep running on the background.
-     *
-     * Checks if the node is installed and install it otherwise.
-     *
-     * @param context Application context.
-     * @return
-     */
-    public int startService(Context context) {
-        if (!Installer.getInstance().isInstalled()) {
-            status.postValue(Status.INSTALLING);
-            try {
-                Resources res = context.getResources();
-                Installer.getInstance().install(
-                        context.getDir("data", Context.MODE_PRIVATE).getAbsolutePath(),
-                        res.openRawResource(R.raw.seednodes),
-                        res.openRawResource(R.raw.freenet),
-                        res.openRawResource(R.raw.bookmarks),
-                        res.getConfiguration().locale.getDisplayLanguage()
-                );
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-        }
+    private void setStatus(Status value) {
+        status = value;
+        statusData.postValue(value);
+    }
 
-        int ret = startNode();
-        if (ret == 0) {
-            Intent serviceIntent = new Intent(context, Service.class);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(serviceIntent);
-            } else {
-                context.startService(serviceIntent);
-            }
+    /** Starts the foreground service, which keeps the node alive in the background. */
+    public void startService(Context context) {
+        Intent intent = new Intent(context, Service.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent);
         } else {
-            Log.e("Freenet", "Error starting freenet (" + ret + ")");
-            status.postValue(Status.ERROR);
+            context.startService(intent);
         }
-
-        return 0;
     }
 
-    private int startNode() {
-        status.postValue(Status.STARTING_UP);
-        int ret = -1;
+    public void stopService(Context context) {
+        setStatus(Status.STOPPING);
+        context.stopService(new Intent(context, Service.class));
+    }
+
+    /** Runs on a background thread: it waits for the node to open its web port. */
+    public synchronized void startNode(Context context) {
+        if (process != null && process.isAlive()) {
+            return;
+        }
+        if (!pauses.isEmpty()) {
+            setStatus(Status.PAUSED);
+            return;
+        }
+        setStatus(Status.STARTING_UP);
         try {
-            ret = runner.start(new String[]{Installer.getInstance().getFreenetIniPath()});
-            if (ret == 0) {
-                status.postValue(Status.STARTED);
-            } else if (ret == -1) {
-                // Already running
-                status.postValue(Status.STARTED);
-            } else {
-                status.postValue(Status.ERROR);
+            logFile = new File(context.getFilesDir(), "freenet.log");
+            lastProblem = "";
+            ProcessBuilder builder = buildProcess(context);
+            Gateways.prepare(new File(configHome(context), "freenet"),
+                    new File(context.getFilesDir(), "home/.local/share/freenet/secrets"));
+            process = builder.start();
+        } catch (IOException e) {
+            Log.e(TAG, "Cannot start the node", e);
+            lastProblem = String.valueOf(e.getMessage());
+            setStatus(Status.ERROR);
+            return;
+        }
+        Process started = process;
+        new Thread(() -> waitForPort(started), "freenet-wait-port").start();
+        new Thread(() -> watch(started), "freenet-watch").start();
+    }
+
+    private ProcessBuilder buildProcess(Context context) throws IOException {
+        String program = context.getApplicationInfo().nativeLibraryDir + "/libfreenet.so";
+        // The APK ships one version: the node must not try to replace itself.
+        ProcessBuilder builder = new ProcessBuilder(
+                program, "network", "--disable-auto-update", "--skip-load-from-network");
+        Map<String, String> env = builder.environment();
+        applyEnvironment(context, env);
+        // Upstream sends telemetry unless told otherwise.
+        env.put("FREENET_TELEMETRY_ENABLED", "false");
+        // Only the phone itself can reach the node's web interface and its keys.
+        env.put("FREENET_WS_API_ADDRESS", "127.0.0.1");
+        env.put("LOG_LEVEL", "warn");
+        builder.redirectErrorStream(true);
+        builder.redirectOutput(logFile);
+        builder.directory(new File(env.get("HOME")));
+        return builder;
+    }
+
+    public static File configHome(Context context) {
+        return new File(context.getFilesDir(), "home/.config");
+    }
+
+    /** Freenet's programs expect a Linux home: everything stays in the app's private folder. */
+    public static void applyEnvironment(Context context, Map<String, String> env) throws IOException {
+        File home = new File(context.getFilesDir(), "home");
+        File tmp = new File(context.getCacheDir(), "tmp");
+        if (!home.isDirectory() && !home.mkdirs() || !tmp.isDirectory() && !tmp.mkdirs()) {
+            throw new IOException("Cannot create the node folders");
+        }
+        env.put("HOME", home.getAbsolutePath());
+        env.put("XDG_CONFIG_HOME", configHome(context).getAbsolutePath());
+        env.put("XDG_DATA_HOME", new File(home, ".local/share").getAbsolutePath());
+        env.put("XDG_CACHE_HOME", new File(home, ".cache").getAbsolutePath());
+        env.put("TMPDIR", tmp.getAbsolutePath());
+    }
+
+    private void waitForPort(Process started) {
+        for (int i = 0; i < STARTUP_TIMEOUT_SECONDS && started.isAlive(); i++) {
+            try (Socket socket = new Socket()) {
+                socket.connect(new InetSocketAddress("127.0.0.1", WEB_PORT), 1000);
+                synchronized (this) {
+                    if (process == started && status == Status.STARTING_UP) {
+                        setStatus(Status.STARTED);
+                    }
+                }
+                return;
+            } catch (IOException notReady) {
+                try {
+                    TimeUnit.SECONDS.sleep(1);
+                } catch (InterruptedException e) {
+                    return;
+                }
             }
-        } catch (Exception e) {
-            status.postValue(Status.ERROR);
         }
-        return ret;
-    }
-
-    /**
-     * Stops the service through the Runner class. Also stops the Services.Node.Service.
-     *
-     * @param context Application context.
-     * @return
-     */
-    public int stopService(Context context) {
-        Intent serviceIntent = new Intent(context, Service.class);
-        context.stopService(serviceIntent);
-
-        try {
-            if (runner.stop() != 0) {
-                status.postValue(Status.ERROR);
+        synchronized (this) {
+            if (process == started && status == Status.STARTING_UP) {
+                Log.e(TAG, "The web port did not open in time");
+                started.destroy();
             }
-
-            status.postValue(Status.STOPPED);
-
-
-        } catch (Exception e) {
-            status.postValue(Status.ERROR);
         }
-
-        return 0;
     }
 
-    /**
-     * Stop the node and restart the application.
-     *
-     * @param context
-     * @return
-     */
-    public int restartService(Context context) {
-        stopService(context);
-
-        Log.i("Freenet", "Calling rebirth");
-        ProcessPhoenix.triggerRebirth(
-                context,
-                new Intent(
-                        context,
-                        MainActivity.class
-                )
-        );
-
-        return 0;
-    }
-
-    /**
-     * Pauses the node running on the device while maintaining the service running on foreground.
-     *
-     * @param context
-     * @return
-     */
-    public int pauseService(Context context, String serviceContext) {
-        if (isPaused()) {
-            return -1;
-        }
-        contextRunFlag.put(serviceContext, false);
-
-        status.postValue(Status.PAUSING);
+    private void watch(Process started) {
+        int code = -1;
         try {
-            if (runner.pause() == 0) {
-                status.postValue(Status.PAUSED);
-            } else {
-                status.postValue(Status.ERROR);
-
+            code = started.waitFor();
+        } catch (InterruptedException ignored) {
+        }
+        synchronized (this) {
+            if (process != started) {
+                return; // already replaced or stopped on purpose
             }
-        } catch (Exception e) {
-            status.postValue(Status.ERROR);
+            process = null;
+            Log.e(TAG, "The node stopped by itself with code " + code);
+            lastProblem = "Exit code " + code + (code == BLOCKED_BY_ANDROID_CODE
+                    ? ": Android blocked a system call the node needs" : "");
+            setStatus(Status.ERROR);
         }
-
-        return 0;
     }
 
-    /**
-     * Starts up or resume a service.
-     *
-     * @param context
-     * @return
-     */
-    public int resumeService(Context context, String serviceContext) {
-        if (!isPaused()) {
-            return -2;
-        }
-        contextRunFlag.put(serviceContext, true);
-
-        for (Boolean value : contextRunFlag.values()) {
-           if (!value)
-               return -3; // a given context has flagged not to run
-        }
-
-        status.postValue(Status.STARTING_UP);
-        try {
-            if (runner.resume() == 0) {
-                status.postValue(Status.STARTED);
-            } else {
-                status.postValue(Status.ERROR);
+    public synchronized void stopNode(boolean paused) {
+        Process running = process;
+        process = null;
+        if (running != null && running.isAlive()) {
+            setStatus(Status.STOPPING);
+            running.destroy();
+            try {
+                if (!running.waitFor(STOP_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                    running.destroyForcibly();
+                }
+            } catch (InterruptedException e) {
+                running.destroyForcibly();
             }
-        } catch (Exception e) {
-            status.postValue(Status.ERROR);
         }
-
-        return 0;
+        setStatus(paused ? Status.PAUSED : Status.STOPPED);
     }
 
-    public Boolean resetService(Context context) {
-        Intent serviceIntent = new Intent(context, Service.class);
-        context.stopService(serviceIntent);
-
-        try {
-            runner.stop();
-        } catch (Exception e) {
-            Log.e("Freenet", "Error stopping node: " + e.getMessage());
+    public synchronized void pause(PauseReason reason) {
+        pauses.put(reason, true);
+        if (status != Status.STOPPED) {
+            stopNode(true);
         }
+    }
 
-        Log.i("Freenet", "Calling rebirth");
-        ProcessPhoenix.triggerRebirth(
-                context,
-                new Intent(
-                        context,
-                        MainActivity.class
-                )
-        );
-        return true;
+    public synchronized void resume(Context context, PauseReason reason) {
+        pauses.remove(reason);
+        if (pauses.isEmpty() && status == Status.PAUSED) {
+            startNode(context);
+        }
+    }
+
+    public synchronized void clearPauses() {
+        pauses.clear();
+    }
+
+    /** The last line of the node's log, to explain an error. */
+    public String lastLogLine() {
+        File file = logFile;
+        if (file == null || !file.isFile() || file.length() == 0) {
+            return lastProblem;
+        }
+        try (RandomAccessFile tail = new RandomAccessFile(file, "r")) {
+            long start = Math.max(0, tail.length() - LOG_TAIL_BYTES);
+            byte[] bytes = new byte[(int) (tail.length() - start)];
+            tail.seek(start);
+            tail.readFully(bytes);
+            String[] lines = new String(bytes, StandardCharsets.UTF_8).trim().split("\n");
+            return lines[lines.length - 1].trim();
+        } catch (IOException e) {
+            Log.w(TAG, "Cannot read the log", e);
+        }
+        return lastProblem;
     }
 
     public Boolean isStopped() {
-        return status.getValue().equals(Status.STOPPED);
+        return status == Status.STOPPED;
     }
+
     public Boolean isPaused() {
-        return status.getValue().equals(Status.PAUSED);
+        return status == Status.PAUSED;
     }
 
     public Boolean isRunning() {
-        return status.getValue().equals(Status.STARTED);
+        return status == Status.STARTED;
     }
 
     public Boolean hasError() {
-        return status.getValue().equals(Status.ERROR);
+        return status == Status.ERROR;
     }
 
     public Boolean isTransitioning() {
-        Status value = status.getValue();
-        return !value.equals(Status.STARTED)
-                && !value.equals(Status.STOPPED)
-                && !value.equals(Status.PAUSED);
+        return status == Status.STARTING_UP || status == Status.STOPPING;
     }
 }
