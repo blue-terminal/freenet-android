@@ -46,7 +46,7 @@
         <ListPreference
             app:key="logo_size"
             app:title="@string/logo_size"
-            app:defaultValue="medium"
+            app:defaultValue="large"
             app:entries="@array/logo_size_names"
             app:entryValues="@array/logo_size_values"
             app:useSimpleSummaryProvider="true"
