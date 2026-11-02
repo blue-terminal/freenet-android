@@ -385,14 +385,6 @@ public class MainFragment extends Fragment {
             titleText.setText(customName.isEmpty() ? getString(R.string.freenet) : customName);
         }
 
-        // Version always visible
-        TextView versionText = view.findViewById(R.id.version_always);
-        if (versionText != null) {
-            versionText.setVisibility(prefs.getBoolean("show_version", false)
-                    ? View.VISIBLE : View.GONE);
-            versionText.setText(BuildConfig.VERSION_NAME);
-        }
-
         // Button visibility
         applyBtnVisibility(view, R.id.river_button, prefs.getBoolean("btn_river", true));
         applyBtnVisibility(view, R.id.pc_button, prefs.getBoolean("btn_pc", true));
