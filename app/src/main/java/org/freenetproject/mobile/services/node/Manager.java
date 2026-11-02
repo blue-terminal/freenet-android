@@ -2,11 +2,13 @@ package org.freenetproject.mobile.services.node;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.util.Log;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.preference.PreferenceManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,7 +16,10 @@ import java.io.RandomAccessFile;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -30,6 +35,7 @@ public class Manager {
     private static final int STARTUP_TIMEOUT_SECONDS = 180;
     private static final int STOP_TIMEOUT_SECONDS = 10;
     private static final int LOG_TAIL_BYTES = 4096;
+    private static final String MIN_CONNECTIONS_WHEN_LIMITED = "5";
     private static final int BLOCKED_BY_ANDROID_CODE = 128 + 31; // SIGSYS
 
     private static Manager instance = null;
@@ -121,15 +127,27 @@ public class Manager {
     private ProcessBuilder buildProcess(Context context) throws IOException {
         String program = context.getApplicationInfo().nativeLibraryDir + "/libfreenet.so";
         // The APK ships one version: the node must not try to replace itself.
-        ProcessBuilder builder = new ProcessBuilder(
-                program, "network", "--disable-auto-update", "--skip-load-from-network");
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        List<String> command = new ArrayList<>(Arrays.asList(
+                program, "network", "--disable-auto-update", "--skip-load-from-network"));
+        String bandwidth = preferences.getString("dev_bandwidth", "");
+        if (!bandwidth.isEmpty()) {
+            command.add("--total-bandwidth-limit");
+            command.add(bandwidth);
+        }
+        ProcessBuilder builder = new ProcessBuilder(command);
         Map<String, String> env = builder.environment();
+        String connections = preferences.getString("dev_connections", "");
+        if (!connections.isEmpty()) {
+            env.put("MAX_NUMBER_OF_CONNECTIONS", connections);
+            env.put("MIN_NUMBER_OF_CONNECTIONS", MIN_CONNECTIONS_WHEN_LIMITED);
+        }
         applyEnvironment(context, env);
         // Upstream sends telemetry unless told otherwise.
         env.put("FREENET_TELEMETRY_ENABLED", "false");
         // Only the phone itself can reach the node's web interface and its keys.
         env.put("FREENET_WS_API_ADDRESS", "127.0.0.1");
-        env.put("LOG_LEVEL", "warn");
+        env.put("LOG_LEVEL", preferences.getString("dev_log", "warn"));
         builder.redirectErrorStream(true);
         builder.redirectOutput(logFile);
         builder.directory(new File(env.get("HOME")));

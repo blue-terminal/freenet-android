@@ -59,10 +59,10 @@
     </style>
 
     <style name="Accent.Blue" parent="">
-        <item name="colorPrimary">#3B82F6</item>
-        <item name="colorPrimaryVariant">#3B82F6</item>
-        <item name="colorSecondary">#3B82F6</item>
-        <item name="colorAccent">#3B82F6</item>
+        <item name="colorPrimary">#93C5FD</item>
+        <item name="colorPrimaryVariant">#93C5FD</item>
+        <item name="colorSecondary">#93C5FD</item>
+        <item name="colorAccent">#93C5FD</item>
     </style>
 
     <style name="Accent.Violet" parent="">

@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.view.WindowManager;
 
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.os.LocaleListCompat;
@@ -57,6 +58,13 @@ public class App extends Application {
             String color = PreferenceManager.getDefaultSharedPreferences(activity)
                     .getString(KEY_COLOR, "blue");
             activity.getTheme().applyStyle(colorStyle(color), true);
+            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activity);
+            if (preferences.getBoolean("dev_block_screenshots", false)) {
+                activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+            }
+            if (!preferences.getBoolean("dev_animations", true)) {
+                activity.getWindow().setWindowAnimations(0);
+            }
         }
 
         @Override

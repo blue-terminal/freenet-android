@@ -63,8 +63,7 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
     <string name="sites_importing">Copio la cartella…</string>
     <string name="sites_imported">Cartella importata come sito: %1$s</string>
     <string name="sites_too_large">Cartella troppo grande: il limite è 200 MB.</string>
-    <string name="ghost_key">Ghost Key</string>
-    <string name="river_chat">Chat River</string>
+    <string name="river_chat">Room chat</string>
     <string name="sites_copy_link">Copia link</string>
     <string name="sites_link_copied">Link copiato:\n%1$s</string>
     <string name="river_joining">Entro nella stanza, può volerci un momento…</string>
@@ -89,4 +88,31 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
     <string name="use_from_pc">Usa dal PC</string>
     <string name="pc_copy">Copia comando</string>
     <string name="pc_help">Il telefono resta il server e usi Freenet nel browser del PC.\n\n1. Avvia Freenet qui.\n2. Collega il telefono con il cavo USB e attiva il debug USB.\n3. Sul PC lancia:\n%1$s\n4. Nel browser del PC apri:\n%2$s\n\nFunziona solo con il cavo USB: il nodo non ha password, e via rete chiunque potrebbe arrivare ai tuoi dati e alle tue chiavi.</string>
+    <string name="developer">Impostazioni sviluppatore</string>
+    <string name="build_number">Numero build</string>
+    <string name="developer_on">Impostazioni sviluppatore attive</string>
+    <string name="developer_off">Impostazioni sviluppatore disattivate</string>
+    <string name="dev_bandwidth">Banda totale</string>
+    <string name="dev_connections">Connessioni massime</string>
+    <string name="dev_log">Dettaglio del registro</string>
+    <string name="dev_block_screenshots">Blocca gli screenshot</string>
+    <string name="dev_block_screenshots_summary">Nasconde l\'app dagli screenshot e dall\'anteprima delle app recenti.</string>
+    <string name="dev_animations">Animazioni</string>
+    <string-array name="dev_bandwidth_names">
+        <item>Nessun limite</item>
+        <item>250 KB/s</item>
+        <item>1 MB/s</item>
+        <item>5 MB/s</item>
+    </string-array>
+    <string-array name="dev_connections_names">
+        <item>Predefinito di Freenet</item>
+        <item>10</item>
+        <item>20</item>
+        <item>40</item>
+    </string-array>
+    <string-array name="dev_log_names">
+        <item>Solo avvisi</item>
+        <item>Normale</item>
+        <item>Dettagliato</item>
+    </string-array>
 </resources>

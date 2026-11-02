@@ -13,4 +13,21 @@
         <item>pink</item>
         <item>green</item>
     </string-array>
+    <string-array name="dev_bandwidth_values" translatable="false">
+        <item></item>
+        <item>250000</item>
+        <item>1000000</item>
+        <item>5000000</item>
+    </string-array>
+    <string-array name="dev_connections_values" translatable="false">
+        <item></item>
+        <item>10</item>
+        <item>20</item>
+        <item>40</item>
+    </string-array>
+    <string-array name="dev_log_values" translatable="false">
+        <item>warn</item>
+        <item>info</item>
+        <item>debug</item>
+    </string-array>
 </resources>
