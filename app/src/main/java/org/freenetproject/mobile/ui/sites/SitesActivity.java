@@ -19,6 +19,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -75,12 +76,22 @@ public class SitesActivity extends AppCompatActivity {
     private Button publishButton;
     private Button openButton;
     private File currentFile = null;
+    private Vault vault;
+    private Button copyButton;
     private String publishedUrl = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setTitle(R.string.sites_title);
+        try {
+            vault = new Vault(this);
+        } catch (IOException e) {
+            // Without the key nothing may be read or overwritten.
+            Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -120,8 +131,16 @@ public class SitesActivity extends AppCompatActivity {
         root.addView(message);
 
         openButton = button(R.string.sites_open, v -> openPublished());
+        copyButton = button(R.string.sites_copy_link, v -> {
+            copy(publishedUrl);
+            message.setText(getString(R.string.sites_link_copied, publishedUrl));
+        });
+        LinearLayout linkRow = new LinearLayout(this);
+        linkRow.addView(openButton, weight());
+        linkRow.addView(copyButton, weight());
         openButton.setVisibility(View.GONE);
-        root.addView(openButton);
+        copyButton.setVisibility(View.GONE);
+        root.addView(linkRow);
 
         setContentView(root);
 
@@ -208,7 +227,9 @@ public class SitesActivity extends AppCompatActivity {
     private void siteChanged() {
         save();
         currentFile = null;
-        showPublished(null);
+        String site = (String) siteSpinner.getSelectedItem();
+        showPublished(site == null ? null
+                : getPreferences(MODE_PRIVATE).getString("url_" + site, null));
         refreshPages(INDEX);
     }
 
@@ -234,7 +255,7 @@ public class SitesActivity extends AppCompatActivity {
         save();
         currentFile = selected;
         try {
-            editor.setText(new String(Files.readAllBytes(currentFile.toPath()), StandardCharsets.UTF_8));
+            editor.setText(new String(vault.readAll(currentFile), StandardCharsets.UTF_8));
         } catch (IOException e) {
             currentFile = null; // never overwrite a page that could not be read
             editor.setText("");
@@ -247,7 +268,7 @@ public class SitesActivity extends AppCompatActivity {
             return false;
         }
         try {
-            Files.write(currentFile.toPath(), editor.getText().toString().getBytes(StandardCharsets.UTF_8));
+            vault.writeAll(currentFile, editor.getText().toString().getBytes(StandardCharsets.UTF_8));
             return true;
         } catch (IOException e) {
             message.setText(e.getMessage());
@@ -259,7 +280,7 @@ public class SitesActivity extends AppCompatActivity {
         File dir = new File(sitesDir(), name);
         try {
             Files.createDirectories(dir.toPath());
-            Files.write(new File(dir, INDEX).toPath(), TEMPLATE.getBytes(StandardCharsets.UTF_8));
+            vault.writeAll(new File(dir, INDEX), TEMPLATE.getBytes(StandardCharsets.UTF_8));
             return true;
         } catch (IOException e) {
             message.setText(e.getMessage());
@@ -309,7 +330,7 @@ public class SitesActivity extends AppCompatActivity {
             }
             try {
                 save();
-                Files.write(file.toPath(), TEMPLATE.getBytes(StandardCharsets.UTF_8));
+                vault.writeAll(file, TEMPLATE.getBytes(StandardCharsets.UTF_8));
                 currentFile = null;
                 refreshPages(name);
             } catch (IOException e) {
@@ -369,15 +390,11 @@ public class SitesActivity extends AppCompatActivity {
                     if (in == null) {
                         throw new IOException("Cannot read " + childName);
                     }
-                    byte[] buffer = new byte[64 * 1024];
-                    int read;
-                    while ((read = in.read(buffer)) != -1) {
-                        total[0] += read;
-                        if (total[0] > MAX_IMPORT_BYTES) {
-                            throw new IOException(getString(R.string.sites_too_large));
-                        }
-                        out.write(buffer, 0, read);
+                    total[0] += Math.max(child.length(), 0);
+                    if (total[0] > MAX_IMPORT_BYTES) {
+                        throw new IOException(getString(R.string.sites_too_large));
                     }
+                    vault.encrypt(in, out);
                 }
             }
         }
@@ -437,6 +454,7 @@ public class SitesActivity extends AppCompatActivity {
                 publishButton.setEnabled(true);
                 if (published) {
                     message.setText(getString(R.string.sites_published, url.group()));
+                    getPreferences(MODE_PRIVATE).edit().putString("url_" + site, url.group()).apply();
                     showPublished(url.group());
                     copy(url.group());
                 } else {
@@ -447,12 +465,25 @@ public class SitesActivity extends AppCompatActivity {
     }
 
     private String runPublish(String site, File dir) throws IOException, InterruptedException {
+        // fdev only reads plain files: they exist in the private cache just for this moment.
+        File plain = new File(getCacheDir(), "publish/" + site);
         File key = new File(Manager.configHome(this), "freenet/website-keys/" + site + ".toml");
-        if (!key.exists()) {
-            run(Arrays.asList(fdev(), "website", "init", site));
+        Vault.deleteTree(plain);
+        try {
+            vault.decryptTree(dir, plain);
+            if (key.exists()) {
+                vault.writePlain(key);
+            } else {
+                run(Arrays.asList(fdev(), "website", "init", site));
+            }
+            return run(Arrays.asList(fdev(), "website", "publish", plain.getAbsolutePath(), "--key", site,
+                    "--timeout", String.valueOf(PUBLISH_TIMEOUT_SECONDS)));
+        } finally {
+            Vault.deleteTree(plain);
+            if (key.exists()) {
+                vault.writeAll(key, vault.readAll(key));
+            }
         }
-        return run(Arrays.asList(fdev(), "website", "publish", dir.getAbsolutePath(), "--key", site,
-                "--timeout", String.valueOf(PUBLISH_TIMEOUT_SECONDS)));
     }
 
     private String fdev() {
@@ -487,6 +518,7 @@ public class SitesActivity extends AppCompatActivity {
     private void showPublished(String url) {
         publishedUrl = url;
         openButton.setVisibility(url == null ? View.GONE : View.VISIBLE);
+        copyButton.setVisibility(url == null ? View.GONE : View.VISIBLE);
     }
 
     private void copy(String url) {

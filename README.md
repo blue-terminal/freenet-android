@@ -31,7 +31,7 @@ non sono nel repository: li scarica `prepara-freenet.sh`, che ne controlla le im
 ## Limiti noti
 
 - Non è un'app ufficiale di The Freenet Project e non è stata provata a lungo sui telefoni.
-- Le build usano una chiave di debug: gli aggiornamenti funzionano solo con APK firmati dalla stessa chiave, quindi vanno compilati sullo stesso PC. Per distribuirla serve una chiave di firma propria.
+- Gli aggiornamenti funzionano solo con APK firmati dalla stessa chiave, che resta fuori dal repository. Senza quella chiave la build usa la chiave di debug.
 - La chat River è stata segnalata come non funzionante. Dalla 0.4.1 c'è una correzione, ma non è stata verificata.
 - Sull'emulatore x86_64 il nodo non parte: Android blocca la chiamata di sistema `poll`.
 - Le altre app sullo stesso telefono possono raggiungere il nodo su `127.0.0.1:7509`.
