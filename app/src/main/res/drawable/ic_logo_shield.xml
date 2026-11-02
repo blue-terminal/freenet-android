@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="84dp"
+    android:height="48dp"
+    android:viewportWidth="84"
+    android:viewportHeight="48">
+    <!-- Shield shape -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M42,4 L62,12 L62,28 C62,37 53,43 42,46 C31,43 22,37 22,28 L22,12 Z" />
+    <!-- Lock inside shield -->
+    <path
+        android:fillColor="#1B3E7D"
+        android:pathData="M35,22 L35,20 C35,16.7 38,14 42,14 C46,14 49,16.7 49,20 L49,22 L51,22 L51,32 L33,32 L33,22 Z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M38,20 C38,18.3 39.8,17 42,17 C44.2,17 46,18.3 46,20 L46,22 L38,22 Z" />
+    <path
+        android:fillColor="#1B3E7D"
+        android:pathData="M40,25 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path
+        android:fillColor="#1B3E7D"
+        android:pathData="M41,27 L43,27 L43,30 L41,30 Z" />
+</vector>
