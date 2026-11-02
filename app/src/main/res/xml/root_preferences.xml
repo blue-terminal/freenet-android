@@ -27,6 +27,54 @@
             app:defaultValue="false"
             />
 
+        <ListPreference
+            app:key="logo_style"
+            app:title="@string/logo_style"
+            app:defaultValue="freenet"
+            app:entries="@array/logo_names"
+            app:entryValues="@array/logo_values"
+            app:useSimpleSummaryProvider="true"
+            />
+
+        <ListPreference
+            app:key="timer_color"
+            app:title="@string/timer_color"
+            app:defaultValue="secondary"
+            app:entries="@array/timer_color_names"
+            app:entryValues="@array/timer_color_values"
+            app:useSimpleSummaryProvider="true"
+            />
+
+        <SwitchPreferenceCompat
+            app:key="show_version"
+            app:title="@string/show_version"
+            app:defaultValue="false"
+            />
+
+        <SwitchPreferenceCompat
+            app:key="btn_river"
+            app:title="@string/btn_river_pref"
+            app:defaultValue="true"
+            />
+
+        <SwitchPreferenceCompat
+            app:key="btn_pc"
+            app:title="@string/btn_pc_pref"
+            app:defaultValue="true"
+            />
+
+        <SwitchPreferenceCompat
+            app:key="btn_web"
+            app:title="@string/btn_web_pref"
+            app:defaultValue="true"
+            />
+
+        <SwitchPreferenceCompat
+            app:key="btn_sites"
+            app:title="@string/btn_sites_pref"
+            app:defaultValue="true"
+            />
+
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/web_pages">

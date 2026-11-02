@@ -19,6 +19,9 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.graphics.Color;
+import android.widget.ImageView;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
@@ -135,6 +138,7 @@ public class MainFragment extends Fragment {
         view.findViewById(R.id.pc_button).setOnClickListener(v -> showPcHelp());
         view.findViewById(R.id.space_sound_button).setOnClickListener(v -> SpaceSound.play());
         updateUptime(Manager.getInstance(), view);
+        applyAppearance(view);
         Button river = view.findViewById(R.id.river_button);
         river.setOnClickListener(v -> openRiver(river));
         manager.getStatus().observe(getViewLifecycleOwner(), status ->
@@ -321,6 +325,44 @@ public class MainFragment extends Fragment {
         ring.setAlpha(1f);
     }
 
+    private void applyAppearance(View view) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
+
+        // Logo style
+        ImageView logo = view.findViewById(R.id.imageView);
+        switch (prefs.getString("logo_style", "freenet")) {
+            case "galaxy": logo.setImageResource(R.drawable.ic_logo_galaxy); break;
+            case "shield": logo.setImageResource(R.drawable.ic_logo_shield); break;
+            case "star":   logo.setImageResource(R.drawable.ic_baseline_star_24); break;
+            default:       logo.setImageResource(R.drawable.ic_freenet_logo); break;
+        }
+
+        // Version always visible
+        TextView versionText = view.findViewById(R.id.version_always);
+        if (versionText != null) {
+            versionText.setVisibility(prefs.getBoolean("show_version", false)
+                    ? View.VISIBLE : View.GONE);
+            versionText.setText(BuildConfig.VERSION_NAME);
+        }
+
+        // Button visibility
+        applyBtnVisibility(view, R.id.river_button, prefs.getBoolean("btn_river", true));
+        applyBtnVisibility(view, R.id.pc_button, prefs.getBoolean("btn_pc", true));
+        applyBtnVisibility(view, R.id.web_button, prefs.getBoolean("btn_web", true));
+        applyBtnVisibility(view, R.id.sites_button, prefs.getBoolean("btn_sites", true));
+
+        // Hide extra_buttons row if both buttons hidden
+        boolean riverVisible = prefs.getBoolean("btn_river", true);
+        boolean pcVisible = prefs.getBoolean("btn_pc", true);
+        view.findViewById(R.id.extra_buttons)
+                .setVisibility(riverVisible || pcVisible ? View.VISIBLE : View.GONE);
+    }
+
+    private static void applyBtnVisibility(View view, int id, boolean visible) {
+        View btn = view.findViewById(id);
+        if (btn != null) btn.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+
     private void updateUptime(Manager m, View view) {
         TextView uptimeView = view.findViewById(R.id.node_uptime);
         m.getStatus().observe(getViewLifecycleOwner(), status -> {
@@ -343,6 +385,7 @@ public class MainFragment extends Fragment {
                         long sec = s % 60;
                         uptimeView.setText(String.format(
                                 java.util.Locale.ROOT, "%02d:%02d:%02d", h, min, sec));
+                        uptimeView.setTextColor(timerColor());
                         uptimeView.setVisibility(View.VISIBLE);
                         uptimeHandler.postDelayed(this, 1000);
                     }
@@ -352,6 +395,23 @@ public class MainFragment extends Fragment {
                 uptimeView.setVisibility(View.GONE);
             }
         });
+    }
+
+    private int timerColor() {
+        String val = PreferenceManager.getDefaultSharedPreferences(requireContext())
+                .getString("timer_color", "secondary");
+        switch (val) {
+            case "white": return Color.WHITE;
+            case "cyan":  return Color.parseColor("#2DD4BF");
+            case "green": return Color.parseColor("#4ADE80");
+            case "pink":  return Color.parseColor("#F472B6");
+            default: {
+                TypedValue accent = new TypedValue();
+                requireContext().getTheme().resolveAttribute(
+                        androidx.appcompat.R.attr.colorAccent, accent, true);
+                return accent.data;
+            }
+        }
     }
 
     private void updateStatus(Manager m, View view) {
