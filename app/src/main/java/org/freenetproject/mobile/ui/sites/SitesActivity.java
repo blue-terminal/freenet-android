@@ -30,11 +30,14 @@ import androidx.documentfile.provider.DocumentFile;
 
 import com.google.android.material.button.MaterialButton;
 
+import org.json.JSONException;
+
 import org.freenetproject.mobile.R;
 import org.freenetproject.mobile.services.node.Manager;
 import org.freenetproject.mobile.ui.bootstrap.activity.BootstrapActivity;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -68,8 +71,12 @@ public class SitesActivity extends AppCompatActivity {
                     + "<title>Il mio sito</title>\n</head>\n<body>\n"
                     + "<h1>Benvenuto</h1>\n<p>Scrivi qui il tuo sito.</p>\n</body>\n</html>\n";
 
+    private static final long MAX_VIDEO_BYTES = 60L * 1024 * 1024;
+
     private final ActivityResultLauncher<Uri> folderPicker = registerForActivityResult(
             new ActivityResultContracts.OpenDocumentTree(), this::importFolder);
+    private final ActivityResultLauncher<String[]> videoPicker = registerForActivityResult(
+            new ActivityResultContracts.OpenDocument(), this::addVideo);
     private Spinner siteSpinner;
     private Spinner pageSpinner;
     private EditText editor;
@@ -110,6 +117,12 @@ public class SitesActivity extends AppCompatActivity {
         tools.addView(button(R.string.sites_open_folder, v -> folderPicker.launch(null)), weight());
         tools.addView(button(R.string.sites_delete, v -> askDeleteSite()), weight());
         root.addView(tools);
+
+        LinearLayout video = new LinearLayout(this);
+        video.addView(button(R.string.sites_video_site, v -> askNewVideoSite()), weight());
+        video.addView(button(R.string.sites_add_video,
+                v -> videoPicker.launch(new String[] {"video/*"})), weight());
+        root.addView(video);
 
         editor = new EditText(this);
         editor.setTypeface(Typeface.MONOSPACE);
@@ -335,6 +348,104 @@ public class SitesActivity extends AppCompatActivity {
             message.setText(e.getMessage());
             return false;
         }
+    }
+
+    /** A video site: the page, an empty list, and the folder the videos go in. */
+    private boolean createVideoSite(String name) {
+        File dir = new File(sitesDir(), name);
+        try {
+            Files.createDirectories(new File(dir, VideoSite.FOLDER).toPath());
+            vault.writeAll(new File(dir, INDEX),
+                    VideoSite.page(name).getBytes(StandardCharsets.UTF_8));
+            vault.writeAll(new File(dir, VideoSite.LIST), "[]".getBytes(StandardCharsets.UTF_8));
+            return true;
+        } catch (IOException e) {
+            message.setText(e.getMessage());
+            return false;
+        }
+    }
+
+    private void askNewVideoSite() {
+        askName(R.string.sites_video_site, SITE_NAME, "", name -> {
+            if (sites().contains(name)) {
+                message.setText(R.string.sites_exists);
+            } else if (createVideoSite(name)) {
+                refreshSites(name);
+            }
+        });
+    }
+
+    /** Copies the chosen video into the site and writes it down, with a title and a name. */
+    private void addVideo(Uri video) {
+        String site = (String) siteSpinner.getSelectedItem();
+        if (video == null || site == null) {
+            return;
+        }
+        File dir = new File(sitesDir(), site);
+        if (!new File(dir, VideoSite.LIST).isFile()) {
+            message.setText(R.string.sites_not_video_site);
+            return;
+        }
+        View fields = getLayoutInflater().inflate(R.layout.dialog_video, null);
+        EditText title = fields.findViewById(R.id.video_title);
+        EditText author = fields.findViewById(R.id.video_author);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.sites_add_video)
+                .setView(fields)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.sites_add_video, (d, w) -> saveVideo(site, dir, video,
+                        title.getText().toString().trim(), author.getText().toString().trim()))
+                .show();
+    }
+
+    private void saveVideo(String site, File dir, Uri video, String title, String author) {
+        if (title.isEmpty() || author.isEmpty()) {
+            message.setText(R.string.sites_video_needs_text);
+            return;
+        }
+        message.setText(R.string.sites_importing);
+        new Thread(() -> {
+            String shown;
+            try {
+                String name = "v" + System.currentTimeMillis() + extension(video);
+                File target = new File(new File(dir, VideoSite.FOLDER), name);
+                Files.createDirectories(target.getParentFile().toPath());
+                byte[] content = readVideo(video);
+                vault.writeAll(target, content);
+                VideoSite.record(vault, dir, new File(getFilesDir(), VideoSite.CATALOG),
+                        site, name, title, author);
+                shown = getString(R.string.sites_video_added, title);
+            } catch (IOException | JSONException | OutOfMemoryError e) {
+                shown = getString(R.string.sites_video_failed, String.valueOf(e.getMessage()));
+            }
+            String result = shown;
+            runOnUiThread(() -> message.setText(result));
+        }, "add-video").start();
+    }
+
+    private byte[] readVideo(Uri video) throws IOException {
+        try (InputStream in = getContentResolver().openInputStream(video)) {
+            if (in == null) {
+                throw new IOException(getString(R.string.sites_video_unreadable));
+            }
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] buffer = new byte[64 * 1024];
+            int read;
+            while ((read = in.read(buffer)) > 0) {
+                out.write(buffer, 0, read);
+                if (out.size() > MAX_VIDEO_BYTES) {
+                    throw new IOException(getString(R.string.sites_video_too_large));
+                }
+            }
+            return out.toByteArray();
+        }
+    }
+
+    private static String extension(Uri video) {
+        String path = String.valueOf(video.getLastPathSegment());
+        int dot = path.lastIndexOf('.');
+        String found = dot < 0 ? "" : path.substring(dot).toLowerCase(Locale.ROOT);
+        return found.matches("\\.[a-z0-9]{2,5}") ? found : ".mp4";
     }
 
     private void askName(int title, Pattern valid, String suffix, java.util.function.Consumer<String> done) {
