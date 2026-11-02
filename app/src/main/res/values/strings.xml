@@ -1,0 +1,53 @@
+<resources>
+    <string name="app_name">Freenet (non ufficiale)</string>
+    <string name="action_settings">Settings</string>
+    <string name="node_running">Freenet is running</string>
+    <string name="node_starting_up">Starting up</string>
+    <string name="node_shutting_down">Shutting down</string>
+    <string name="error_starting_up">Error starting Freenet</string>
+    <string name="tap_to_navigate">Tap here to Navigate</string>
+    <string name="may_take_a_while">This may take a while</string>
+    <string name="error_detail">Restart the application and try again.\nIf the error persists reinstall the application.</string>
+    <string name="connected_to_the_network">You\'re connected to the Freenet network</string>
+    <string name="start_label">Start</string>
+    <string name="shutdown_label">Shutdown</string>
+    <string name="freenet">Freenet</string>
+    <string name="title_activity_settings">Settings</string>
+    <string name="title_activity_about">App info</string>
+    <!-- Preference Titles -->
+    <string name="battery_and_data">Battery and data usage</string>
+    <!-- Battery and Data Preferences -->
+    <string name="preserve_data">Preserve data</string>
+    <string name="preserve_data_summary">Pause Freenet on mobile data. It runs only on Wi-Fi and other unmetered networks.</string>
+    <string name="preserve_battery">Preserve battery</string>
+    <string name="preserve_battery_summary">Pause Freenet when the phone is not charging. A nearly empty battery always stops it.</string>
+    <!-- Freenet Web Preferences -->
+    <string name="node_paused">Freenet is paused.</string>
+    <string name="app_version" translatable="false">v%1$s</string>
+
+    <string name="text_about"><![CDATA[
+<h3>Freenet mobile v%1$s</h3>
+<p>Runs <a href="https://freenet.org">Freenet</a> v%2$s on your phone. This is an unofficial build, not made by The Freenet Project.</p>
+<p>Telemetry and automatic updates are turned off. The web interface can only be reached from this phone.</p>
+<p>App code: GNU GPL v2, based on <a href="https://github.com/freenet-mobile/app">freenet-mobile/app</a>.<br>
+Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">freenet/freenet-core</a>.</p>
+]]></string>
+    <string name="acknowledgement_text"><![CDATA[I understand that this app connects my phone to a peer-to-peer network and shares data with other people. <a href="https://freenet.org">Learn more about Freenet</a>.]]></string>
+    <string name="paused_detail">It starts again by itself when Wi-Fi or the charger comes back. You can change this in the settings.</string>
+    <string name="sites_title">Create a website</string>
+    <string name="sites_new_site">New site</string>
+    <string name="sites_new_page">New page</string>
+    <string name="sites_save">Save</string>
+    <string name="sites_preview">Preview</string>
+    <string name="sites_publish">Publish</string>
+    <string name="sites_open">Open the site</string>
+    <string name="sites_saved">Saved.</string>
+    <string name="sites_name_hint">lowercase letters, numbers and -</string>
+    <string name="sites_bad_name">Invalid name: use lowercase letters, numbers and -.</string>
+    <string name="sites_exists">This name already exists.</string>
+    <string name="sites_node_off">Start Freenet first: the site is published through it.</string>
+    <string name="sites_publish_warning">The site becomes public. Other people may keep copies, and it may stay on the network even if you change it later. Do not publish personal data. The key to update the site stays on this phone: if you uninstall the app you can no longer update it.</string>
+    <string name="sites_publishing">Publishing, this can take a few minutes…</string>
+    <string name="sites_published">Published. Address copied:\n%1$s</string>
+    <string name="sites_publish_failed">Publishing failed: %1$s</string>
+</resources>

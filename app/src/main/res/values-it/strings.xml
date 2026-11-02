@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_settings">Impostazioni</string>
+    <string name="node_running">Freenet è attivo</string>
+    <string name="node_starting_up">Avvio in corso</string>
+    <string name="node_shutting_down">Arresto in corso</string>
+    <string name="error_starting_up">Errore nell\'avvio di Freenet</string>
+    <string name="tap_to_navigate">Tocca qui per aprire Freenet</string>
+    <string name="may_take_a_while">Può volerci un po\'</string>
+    <string name="error_detail">Riprova con il pulsante. Se l\'errore resta, reinstalla l\'app.</string>
+    <string name="connected_to_the_network">Collegato alla rete Freenet</string>
+    <string name="title_activity_settings">Impostazioni</string>
+    <string name="title_activity_about">Informazioni</string>
+    <string name="battery_and_data">Batteria e dati</string>
+    <string name="preserve_data">Risparmia dati</string>
+    <string name="preserve_data_summary">Mette Freenet in pausa con i dati mobili. Funziona solo in Wi-Fi e sulle altre reti senza limiti.</string>
+    <string name="preserve_battery">Risparmia batteria</string>
+    <string name="preserve_battery_summary">Mette Freenet in pausa quando il telefono non è in carica. Con la batteria quasi scarica si ferma sempre.</string>
+    <string name="node_paused">Freenet è in pausa</string>
+    <string name="paused_detail">Riparte da solo quando tornano il Wi-Fi o il caricatore. Puoi cambiarlo nelle impostazioni.</string>
+    <string name="acknowledgement_text"><![CDATA[Ho capito che questa app collega il telefono a una rete peer-to-peer e condivide dati con altre persone. <a href="https://freenet.org">Scopri di più su Freenet</a>.]]></string>
+    <string name="text_about"><![CDATA[
+<h3>Freenet mobile v%1$s</h3>
+<p>Fa girare <a href="https://freenet.org">Freenet</a> v%2$s sul telefono. È una versione non ufficiale, non fatta da The Freenet Project.</p>
+<p>Telemetria e aggiornamenti automatici sono spenti. L\'interfaccia web si raggiunge solo da questo telefono.</p>
+<p>Codice dell\'app: GNU GPL v2, basato su <a href="https://github.com/freenet-mobile/app">freenet-mobile/app</a>.<br>
+Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">freenet/freenet-core</a>.</p>
+]]></string>
+    <string name="sites_title">Crea un sito</string>
+    <string name="sites_new_site">Nuovo sito</string>
+    <string name="sites_new_page">Nuova pagina</string>
+    <string name="sites_save">Salva</string>
+    <string name="sites_preview">Anteprima</string>
+    <string name="sites_publish">Pubblica</string>
+    <string name="sites_open">Apri il sito</string>
+    <string name="sites_saved">Salvato.</string>
+    <string name="sites_name_hint">lettere minuscole, numeri e -</string>
+    <string name="sites_bad_name">Nome non valido: usa lettere minuscole, numeri e -.</string>
+    <string name="sites_exists">Questo nome esiste già.</string>
+    <string name="sites_node_off">Prima avvia Freenet: il sito si pubblica tramite il nodo.</string>
+    <string name="sites_publish_warning">Il sito diventa pubblico. Altre persone possono conservarne copie, e può restare in rete anche se poi lo cambi. Non pubblicare dati personali. La chiave per aggiornarlo resta su questo telefono: se disinstalli l\'app non puoi più aggiornarlo.</string>
+    <string name="sites_publishing">Pubblicazione in corso, può volerci qualche minuto…</string>
+    <string name="sites_published">Pubblicato. Indirizzo copiato:\n%1$s</string>
+    <string name="sites_publish_failed">Pubblicazione non riuscita: %1$s</string>
+</resources>
