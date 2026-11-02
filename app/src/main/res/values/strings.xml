@@ -35,7 +35,7 @@
 <p>App code: GNU GPL v3, based on <a href="https://github.com/freenet-mobile/app">freenet-mobile/app</a>.<br>
 Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">freenet/freenet-core</a>.</p>
 ]]></string>
-    <string name="acknowledgement_text"><![CDATA[I understand that this app connects my phone to a peer-to-peer network and shares data with other people. <a href="https://freenet.org">Learn more about Freenet</a>.]]></string>
+    <string name="acknowledgement_text"><![CDATA[I understand that this app connects my phone to a peer-to-peer network and shares data with other people, and that other apps on this phone can reach the node. <a href="https://freenet.org">Learn more about Freenet</a>.]]></string>
     <string name="paused_detail">It starts again by itself when Wi-Fi or the charger comes back. You can change this in the settings.</string>
     <string name="sites_title">Create a website</string>
     <string name="sites_new_site">New site</string>
@@ -93,7 +93,7 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
         <item>Pink</item>
         <item>Green</item>
     </string-array>
-    <string name="update_unreachable">Could not reach GitHub. Try again later.</string>
+    <string name="update_unreachable">Could not reach GitHub, try again later. Reason: %1$s</string>
     <string name="use_from_pc">Use from PC</string>
     <string name="pc_copy">Copy command</string>
     <string name="pc_help">The phone stays the server and you use Freenet in the PC browser.\n\n1. Start Freenet here.\n2. Connect the phone with a USB cable and turn on USB debugging.\n3. On the PC run:\n%1$s\n4. In the PC browser open:\n%2$s\n\nOnly the USB cable is supported: the node has no password, and over the network anyone could reach your data and keys.</string>
