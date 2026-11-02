@@ -355,6 +355,12 @@
             />
 
         <Preference
+            app:key="choose_version"
+            app:title="@string/choose_version"
+            app:summary="@string/choose_version_summary"
+            />
+
+        <Preference
             app:key="build_number"
             app:title="@string/build_number"
             />
