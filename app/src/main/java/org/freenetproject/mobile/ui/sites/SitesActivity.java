@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.Gravity;
@@ -19,8 +20,11 @@ import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.documentfile.provider.DocumentFile;
 
 import com.google.android.material.button.MaterialButton;
 
@@ -30,14 +34,18 @@ import org.freenetproject.mobile.ui.bootstrap.activity.BootstrapActivity;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -48,6 +56,8 @@ public class SitesActivity extends AppCompatActivity {
     private static final Pattern PAGE_NAME = Pattern.compile("[a-z0-9][a-z0-9-]{0,39}\\.html");
     private static final Pattern SITE_URL = Pattern.compile(
             "http://127\\.0\\.0\\.1:" + Manager.WEB_PORT + "/v1/contract/web/[A-Za-z0-9]+/");
+    private static final Pattern EDITABLE = Pattern.compile(".*\\.(html?|css|js)");
+    private static final long MAX_IMPORT_BYTES = 200L * 1024 * 1024;
     private static final int PUBLISH_TIMEOUT_SECONDS = 300;
     private static final String INDEX = "index.html";
     private static final String TEMPLATE =
@@ -56,6 +66,8 @@ public class SitesActivity extends AppCompatActivity {
                     + "<title>Il mio sito</title>\n</head>\n<body>\n"
                     + "<h1>Benvenuto</h1>\n<p>Scrivi qui il tuo sito.</p>\n</body>\n</html>\n";
 
+    private final ActivityResultLauncher<Uri> folderPicker = registerForActivityResult(
+            new ActivityResultContracts.OpenDocumentTree(), this::importFolder);
     private Spinner siteSpinner;
     private Spinner pageSpinner;
     private EditText editor;
@@ -80,6 +92,7 @@ public class SitesActivity extends AppCompatActivity {
         pageSpinner = new Spinner(this);
         root.addView(row(siteSpinner, button(R.string.sites_new_site, v -> askNewSite())));
         root.addView(row(pageSpinner, button(R.string.sites_new_page, v -> askNewPage())));
+        root.addView(button(R.string.sites_open_folder, v -> folderPicker.launch(null)));
 
         editor = new EditText(this);
         editor.setTypeface(Typeface.MONOSPACE);
@@ -166,7 +179,7 @@ public class SitesActivity extends AppCompatActivity {
     }
 
     private List<String> pages(String site) {
-        return list(new File(sitesDir(), site), f -> f.getName().endsWith(".html"));
+        return list(new File(sitesDir(), site), f -> f.isFile() && EDITABLE.matcher(f.getName()).matches());
     }
 
     private List<String> list(File dir, java.io.FileFilter filter) {
@@ -303,6 +316,71 @@ public class SitesActivity extends AppCompatActivity {
                 message.setText(e.getMessage());
             }
         });
+    }
+
+    private void importFolder(Uri tree) {
+        if (tree == null) {
+            return;
+        }
+        DocumentFile source = DocumentFile.fromTreeUri(this, tree);
+        if (source == null || source.findFile(INDEX) == null) {
+            message.setText(R.string.sites_no_index);
+            return;
+        }
+        String clean = String.valueOf(source.getName()).toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9-]+", "-").replaceAll("^-+|-+$", "");
+        String base = clean.isEmpty() ? "sito" : clean.substring(0, Math.min(clean.length(), 34));
+        String name = base;
+        for (int n = 2; sites().contains(name); n++) {
+            name = base + "-" + n;
+        }
+        String site = name;
+        message.setText(R.string.sites_importing);
+        new Thread(() -> {
+            File target = new File(sitesDir(), site);
+            try {
+                copyTree(source, target, new long[]{0});
+                runOnUiThread(() -> {
+                    save();
+                    refreshSites(site);
+                    message.setText(getString(R.string.sites_imported, site));
+                });
+            } catch (IOException | RuntimeException e) {
+                runOnUiThread(() -> message.setText(e.getMessage()));
+            }
+        }, "freenet-import").start();
+    }
+
+    private void copyTree(DocumentFile from, File to, long[] total) throws IOException {
+        Files.createDirectories(to.toPath());
+        for (DocumentFile child : from.listFiles()) {
+            String childName = child.getName();
+            // A folder provider chooses these names: none may step out of the site's folder.
+            if (childName == null || childName.isEmpty() || childName.contains("/")
+                    || childName.equals(".") || childName.equals("..")) {
+                continue;
+            }
+            File target = new File(to, childName);
+            if (child.isDirectory()) {
+                copyTree(child, target, total);
+            } else {
+                try (InputStream in = getContentResolver().openInputStream(child.getUri());
+                     OutputStream out = new FileOutputStream(target)) {
+                    if (in == null) {
+                        throw new IOException("Cannot read " + childName);
+                    }
+                    byte[] buffer = new byte[64 * 1024];
+                    int read;
+                    while ((read = in.read(buffer)) != -1) {
+                        total[0] += read;
+                        if (total[0] > MAX_IMPORT_BYTES) {
+                            throw new IOException(getString(R.string.sites_too_large));
+                        }
+                        out.write(buffer, 0, read);
+                    }
+                }
+            }
+        }
     }
 
     private void preview() {
