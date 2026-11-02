@@ -1,5 +1,9 @@
 package org.freenetproject.mobile.ui.settings.activity;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.SystemClock;
@@ -14,6 +18,8 @@ import androidx.preference.PreferenceManager;
 import org.freenetproject.mobile.App;
 import org.freenetproject.mobile.BuildConfig;
 import org.freenetproject.mobile.R;
+import org.freenetproject.mobile.services.node.Manager;
+import org.freenetproject.mobile.ui.ghostkey.GhostKeyActivity;
 import org.freenetproject.mobile.update.UpdateWorker;
 import org.freenetproject.mobile.update.Updater;
 
@@ -64,6 +70,23 @@ public class SettingsActivity extends AppCompatActivity {
                 });
             }
             setUpBuildNumber();
+            Preference copyLog = findPreference("dev_copy_log");
+            if (copyLog != null) {
+                copyLog.setOnPreferenceClickListener(preference -> {
+                    Context context = requireContext();
+                    context.getSystemService(ClipboardManager.class).setPrimaryClip(
+                            ClipData.newPlainText("Freenet", Manager.logTail(context)));
+                    Toast.makeText(context, R.string.dev_log_copied, Toast.LENGTH_SHORT).show();
+                    return true;
+                });
+            }
+            Preference generator = findPreference("ghost_generator");
+            if (generator != null) {
+                generator.setOnPreferenceClickListener(preference -> {
+                    startActivity(new Intent(requireContext(), GhostKeyActivity.class));
+                    return true;
+                });
+            }
             Preference automatic = findPreference("auto_update");
             if (automatic != null) {
                 automatic.setOnPreferenceChangeListener((preference, value) -> {

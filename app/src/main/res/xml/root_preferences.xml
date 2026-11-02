@@ -56,6 +56,16 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory app:title="@string/other_apps">
+
+        <Preference
+            app:key="ghost_generator"
+            app:title="@string/ghost_generator"
+            app:summary="@string/ghost_generator_summary"
+            />
+
+    </PreferenceCategory>
+
     <PreferenceCategory
         app:key="developer"
         app:isPreferenceVisible="false"
@@ -77,6 +87,30 @@
             app:entries="@array/dev_connections_names"
             app:entryValues="@array/dev_connections_values"
             app:useSimpleSummaryProvider="true"
+            />
+
+        <ListPreference
+            app:key="dev_disk"
+            app:title="@string/dev_disk"
+            app:defaultValue=""
+            app:entries="@array/dev_disk_names"
+            app:entryValues="@array/dev_disk_values"
+            app:useSimpleSummaryProvider="true"
+            />
+
+        <ListPreference
+            app:key="dev_threads"
+            app:title="@string/dev_threads"
+            app:defaultValue=""
+            app:entries="@array/dev_threads_names"
+            app:entryValues="@array/dev_threads_values"
+            app:useSimpleSummaryProvider="true"
+            />
+
+        <Preference
+            app:key="dev_copy_log"
+            app:title="@string/dev_copy_log"
+            app:summary="@string/dev_copy_log_summary"
             />
 
         <ListPreference

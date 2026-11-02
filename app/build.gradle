@@ -17,8 +17,8 @@ android {
         applicationId "local.freenet.mobile"
         minSdk 26
         targetSdk 34
-        versionCode 1005
-        versionName "1.0.5-freenet-$freenetVersion"
+        versionCode 1006
+        versionName "1.0.6-freenet-$freenetVersion"
         buildConfigField "String", "FREENET_VERSION", "\"$freenetVersion\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -38,7 +38,7 @@ android {
         jniLibs {
             // Android esegue solo programmi nella cartella delle librerie estratte
             useLegacyPackaging true
-            keepDebugSymbols += ['**/libfreenet.so', '**/libfdev.so']
+            keepDebugSymbols += ['**/libfreenet.so', '**/libfdev.so', '**/libghostkey.so']
         }
     }
 

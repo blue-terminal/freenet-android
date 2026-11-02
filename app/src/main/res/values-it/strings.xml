@@ -115,4 +115,30 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
         <item>Normale</item>
         <item>Dettagliato</item>
     </string-array>
+    <string name="other_apps">Altre app</string>
+    <string name="ghost_generator">Generatore di chiavi</string>
+    <string name="ghost_generator_summary">Crea Ghost Key di prova, valide solo in locale.</string>
+    <string name="ghost_warning">Sono chiavi di prova, create su questo telefono: Freenet le rifiuta. Una Ghost Key valida la firma Freenet dopo una donazione, su freenet.org/ghostkey.</string>
+    <string name="ghost_generate">Genera chiave di prova</string>
+    <string name="ghost_working">Sto generando…</string>
+    <string name="ghost_done">Chiave di prova creata.\nControllo con la chiave creata qui: %1$s\nSostituisce la chiave di prova precedente.</string>
+    <string name="ghost_failed">Non riesco a creare la chiave: %1$s</string>
+    <string name="ghost_copy">Copia certificato</string>
+    <string name="dev_disk">Spazio disco per i contenuti di rete</string>
+    <string name="dev_threads">Thread in background</string>
+    <string name="dev_copy_log">Copia il registro</string>
+    <string name="dev_copy_log_summary">Copia la parte finale del registro del nodo. Rileggilo prima di condividerlo.</string>
+    <string name="dev_log_copied">Registro copiato</string>
+    <string-array name="dev_disk_names">
+        <item>Predefinito di Freenet</item>
+        <item>2 GB</item>
+        <item>8 GB</item>
+        <item>16 GB</item>
+    </string-array>
+    <string-array name="dev_threads_names">
+        <item>Predefinito di Freenet</item>
+        <item>4</item>
+        <item>8</item>
+        <item>16</item>
+    </string-array>
 </resources>
