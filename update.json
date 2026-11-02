@@ -3,11 +3,11 @@
   "assets": {
     "arm64-v8a": {
       "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.2.1/freenet-mobile-v1.2.1-freenet-0.2.154-arm64-v8a-release.apk",
-      "sha256": "ea37ba7c3b01ee32ac8a83d5165238f984e3fca0c67cb174ec95ce2f8dbc1015"
+      "sha256": "956b2858b7704efada9e38254393da8f125206f475cfedf79db0a24540d93ecb"
     },
     "x86_64": {
       "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.2.1/freenet-mobile-v1.2.1-freenet-0.2.154-x86_64-release.apk",
-      "sha256": "8525ec73ae5cbbc3ffc73cd681b5508797d3f397b075bd1b11162b4f1cbd1578"
+      "sha256": "8b78f8a7f5836b8c603cdb15ba9f47f93fde61bf714a2e6c4ad6b5cf96d767ac"
     }
   }
 }
