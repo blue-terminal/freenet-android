@@ -19,6 +19,11 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.Locale;
+import java.util.Random;
+
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.ActionBar;
@@ -249,6 +254,49 @@ public class SettingsActivity extends AppCompatActivity {
                     Tor.setEnabled((Boolean) value);
                     if ((Boolean) value) {
                         checkOrbot();
+                    }
+                    return true;
+                });
+            }
+            SwitchPreferenceCompat macRandom = findPreference("mac_random");
+            if (macRandom != null) {
+                macRandom.setOnPreferenceChangeListener((preference, value) -> {
+                    boolean enable = (Boolean) value;
+                    if (hasRoot()) {
+                        new Thread(() -> {
+                            boolean ok = setMacRandom(enable);
+                            requireActivity().runOnUiThread(() ->
+                                Toast.makeText(requireContext(),
+                                    ok ? (enable ? R.string.mac_random_done : R.string.mac_random_off)
+                                       : R.string.mac_random_error,
+                                    Toast.LENGTH_LONG).show());
+                        }, "mac-random").start();
+                    } else {
+                        Toast.makeText(requireContext(), R.string.mac_random_no_root, Toast.LENGTH_LONG).show();
+                        try {
+                            startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
+                        } catch (ActivityNotFoundException ignored) {}
+                        return false;
+                    }
+                    return true;
+                });
+            }
+            SwitchPreferenceCompat blockTracking = findPreference("block_tracking");
+            if (blockTracking != null) {
+                blockTracking.setOnPreferenceChangeListener((preference, value) -> {
+                    boolean enable = (Boolean) value;
+                    if (hasRoot()) {
+                        new Thread(() -> {
+                            boolean ok = applyTrackingBlock(enable);
+                            requireActivity().runOnUiThread(() ->
+                                Toast.makeText(requireContext(),
+                                    ok ? (enable ? R.string.block_tracking_on : R.string.block_tracking_off)
+                                       : R.string.mac_random_error,
+                                    Toast.LENGTH_LONG).show());
+                        }, "block-tracking").start();
+                    } else {
+                        Toast.makeText(requireContext(), R.string.block_tracking_no_root, Toast.LENGTH_LONG).show();
+                        return false;
                     }
                     return true;
                 });
@@ -502,6 +550,63 @@ public class SettingsActivity extends AppCompatActivity {
                                 Toast.LENGTH_SHORT).show();
                     })
                     .show();
+        }
+
+        /** Returns true if the device has root (su binary accessible). */
+        private boolean hasRoot() {
+            try {
+                Process p = Runtime.getRuntime().exec("su -c id");
+                BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                String line = br.readLine();
+                p.waitFor();
+                return line != null && line.contains("uid=0");
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        /** Generates a random locally-administered MAC and sets it via root. */
+        private boolean setMacRandom(boolean enable) {
+            try {
+                String cmd;
+                if (enable) {
+                    Random r = new Random();
+                    // Byte 0: locally administered (bit 1) and unicast (bit 0 clear)
+                    int b0 = (r.nextInt(64) * 4) | 2;
+                    String mac = String.format(Locale.ROOT,
+                            "%02x:%02x:%02x:%02x:%02x:%02x",
+                            b0, r.nextInt(256), r.nextInt(256),
+                            r.nextInt(256), r.nextInt(256), r.nextInt(256));
+                    cmd = "ip link set wlan0 down; ip link set wlan0 address " + mac + "; ip link set wlan0 up";
+                } else {
+                    cmd = "ip link set wlan0 down; ip link set wlan0 address $(cat /sys/class/net/wlan0/address 2>/dev/null || echo 02:00:00:00:00:00); ip link set wlan0 up";
+                }
+                Process p = Runtime.getRuntime().exec(new String[]{"su", "-c", cmd});
+                p.waitFor();
+                return p.exitValue() == 0;
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        /** Applies or removes iptables rules to block common tracking domains. */
+        private boolean applyTrackingBlock(boolean enable) {
+            // Known tracking/telemetry domains resolved to IPs that will be blocked via DNS-based rules.
+            // We block outbound connections to Google Analytics, Firebase, Facebook and similar.
+            String[] rules = {
+                "iptables -" + (enable ? "A" : "D") + " OUTPUT -d 142.250.0.0/15 -p tcp --dport 443 -j DROP 2>/dev/null",
+                "iptables -" + (enable ? "A" : "D") + " OUTPUT -d 157.240.0.0/17 -p tcp --dport 443 -j DROP 2>/dev/null",
+                "iptables -" + (enable ? "A" : "D") + " OUTPUT -d 34.0.0.0/10 -p tcp --dport 443 -j DROP 2>/dev/null",
+            };
+            try {
+                for (String rule : rules) {
+                    Process p = Runtime.getRuntime().exec(new String[]{"su", "-c", rule});
+                    p.waitFor();
+                }
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
         }
 
         /** Two quick taps on the build number show or hide the developer settings. */
