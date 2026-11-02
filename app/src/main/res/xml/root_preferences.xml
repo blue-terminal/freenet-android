@@ -14,7 +14,7 @@
         <ListPreference
             app:key="color"
             app:title="@string/color"
-            app:defaultValue="teal"
+            app:defaultValue="blue"
             app:entries="@array/color_names"
             app:entryValues="@array/color_values"
             app:useSimpleSummaryProvider="true"
