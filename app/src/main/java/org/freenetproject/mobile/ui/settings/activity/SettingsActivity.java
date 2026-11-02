@@ -349,6 +349,13 @@ public class SettingsActivity extends AppCompatActivity {
                     return true;
                 });
             }
+            Preference chooseVersion = findPreference("choose_version");
+            if (chooseVersion != null) {
+                chooseVersion.setOnPreferenceClickListener(preference -> {
+                    showVersionPicker();
+                    return true;
+                });
+            }
             Preference background = findPreference("update_background");
             if (background != null) {
                 background.setOnPreferenceClickListener(preference -> {
@@ -550,6 +557,59 @@ public class SettingsActivity extends AppCompatActivity {
                                 Toast.LENGTH_SHORT).show();
                     })
                     .show();
+        }
+
+        /** Shows a dialog listing all GitHub releases; tapping one starts the download. */
+        private void showVersionPicker() {
+            Toast.makeText(requireContext(), R.string.choose_version_loading, Toast.LENGTH_SHORT).show();
+            new Thread(() -> {
+                try {
+                    java.util.List<org.freenetproject.mobile.update.Updater.Release> releases =
+                            org.freenetproject.mobile.update.Updater.allReleases();
+                    if (!isAdded()) return;
+                    requireActivity().runOnUiThread(() -> {
+                        if (!isAdded()) return;
+                        if (releases.isEmpty()) {
+                            Toast.makeText(requireContext(), R.string.choose_version_error, Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        String current = org.freenetproject.mobile.BuildConfig.VERSION_NAME;
+                        String[] labels = new String[releases.size()];
+                        for (int i = 0; i < releases.size(); i++) {
+                            String v = releases.get(i).version;
+                            boolean installed = current.startsWith(v.replace("v", ""))
+                                    || current.startsWith(v);
+                            labels[i] = v + (installed ? "  (" + getString(R.string.choose_version_installed) + ")" : "");
+                        }
+                        new AlertDialog.Builder(requireContext())
+                                .setTitle(R.string.choose_version)
+                                .setItems(labels, (d, which) -> {
+                                    org.freenetproject.mobile.update.Updater.Release r = releases.get(which);
+                                    String msg = requireContext().getString(R.string.update_available, r.version);
+                                    if (r.notes != null && !r.notes.isEmpty()) {
+                                        msg += "\n\n" + getString(R.string.update_notes_label) + "\n" + r.notes;
+                                    }
+                                    String finalMsg = msg;
+                                    new AlertDialog.Builder(requireContext())
+                                            .setTitle(r.version)
+                                            .setMessage(finalMsg)
+                                            .setNegativeButton(android.R.string.cancel, null)
+                                            .setPositiveButton(R.string.update_download, (d2, w2) -> {
+                                                Toast.makeText(requireContext(), R.string.update_downloading, Toast.LENGTH_SHORT).show();
+                                                new Thread(() -> org.freenetproject.mobile.update.Updater.downloadPublic(requireActivity(), r),
+                                                        "freenet-version-download").start();
+                                            })
+                                            .show();
+                                })
+                                .setNegativeButton(android.R.string.cancel, null)
+                                .show();
+                    });
+                } catch (Exception e) {
+                    if (!isAdded()) return;
+                    requireActivity().runOnUiThread(() ->
+                        Toast.makeText(requireContext(), R.string.choose_version_error, Toast.LENGTH_LONG).show());
+                }
+            }, "freenet-list-releases").start();
         }
 
         /** Returns true if the device has root (su binary accessible). */
