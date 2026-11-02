@@ -1,7 +1,7 @@
 {
-  "version": "v1.0.0",
+  "version": "v1.0.5",
   "assets": {
-    "arm64-v8a": { "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.0.0/freenet-mobile-v1.0.0-freenet-0.2.154-arm64-v8a-release.apk", "sha256": "40b1853dc3ad21fc2f3c3c45ddc8d581455ae43143b316a2df48190386c6e0d7" },
-    "x86_64": { "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.0.0/freenet-mobile-v1.0.0-freenet-0.2.154-x86_64-release.apk", "sha256": "57651f91bd8076e61e36c15af08351a2be75ca83f8a3c5d88c7f68399a4a29ba" }
+    "arm64-v8a": { "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.0.5/freenet-mobile-v1.0.5-freenet-0.2.154-arm64-v8a-release.apk", "sha256": "b5d70e0b6033e3b7098d45c19bf53a5b01fadb028d588eb0f2a860200de23cc2" },
+    "x86_64": { "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.0.5/freenet-mobile-v1.0.5-freenet-0.2.154-x86_64-release.apk", "sha256": "be2ce7bbd66cc1e8a3f056b97ec5c135a5e832d3260f7eadc2a09cf823458de8" }
   }
 }
