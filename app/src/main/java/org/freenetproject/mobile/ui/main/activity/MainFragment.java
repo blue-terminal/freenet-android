@@ -9,6 +9,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -51,6 +53,8 @@ public class MainFragment extends Fragment {
 
     private ValueAnimator colorAnimator;
     private ValueAnimator pulse;
+    private final Handler uptimeHandler = new Handler(Looper.getMainLooper());
+    private Runnable uptimeTick;
 
     private static int actionIcon(Manager.Status status) {
         switch (status) {
@@ -88,7 +92,6 @@ public class MainFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
-        // The animators hold the views: stopping them here keeps nothing alive after the fragment.
         if (colorAnimator != null) {
             colorAnimator.cancel();
             colorAnimator = null;
@@ -96,6 +99,9 @@ public class MainFragment extends Fragment {
         if (pulse != null) {
             pulse.cancel();
             pulse = null;
+        }
+        if (uptimeTick != null) {
+            uptimeHandler.removeCallbacks(uptimeTick);
         }
         super.onDestroyView();
     }
@@ -128,6 +134,7 @@ public class MainFragment extends Fragment {
         updateAbout(manager, view);
         view.findViewById(R.id.pc_button).setOnClickListener(v -> showPcHelp());
         view.findViewById(R.id.space_sound_button).setOnClickListener(v -> SpaceSound.play());
+        updateUptime(Manager.getInstance(), view);
         Button river = view.findViewById(R.id.river_button);
         river.setOnClickListener(v -> openRiver(river));
         manager.getStatus().observe(getViewLifecycleOwner(), status ->
@@ -312,6 +319,39 @@ public class MainFragment extends Fragment {
         ring.setScaleX(1f);
         ring.setScaleY(1f);
         ring.setAlpha(1f);
+    }
+
+    private void updateUptime(Manager m, View view) {
+        TextView uptimeView = view.findViewById(R.id.node_uptime);
+        m.getStatus().observe(getViewLifecycleOwner(), status -> {
+            if (uptimeTick != null) {
+                uptimeHandler.removeCallbacks(uptimeTick);
+                uptimeTick = null;
+            }
+            if (status == Manager.Status.STARTED) {
+                uptimeTick = new Runnable() {
+                    @Override
+                    public void run() {
+                        long ms = m.uptimeMs();
+                        if (ms <= 0) {
+                            uptimeView.setVisibility(View.GONE);
+                            return;
+                        }
+                        long s = ms / 1000;
+                        long h = s / 3600;
+                        long min = (s % 3600) / 60;
+                        long sec = s % 60;
+                        uptimeView.setText(String.format(
+                                java.util.Locale.ROOT, "%02d:%02d:%02d", h, min, sec));
+                        uptimeView.setVisibility(View.VISIBLE);
+                        uptimeHandler.postDelayed(this, 1000);
+                    }
+                };
+                uptimeHandler.post(uptimeTick);
+            } else {
+                uptimeView.setVisibility(View.GONE);
+            }
+        });
     }
 
     private void updateStatus(Manager m, View view) {
