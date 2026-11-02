@@ -256,19 +256,38 @@ public final class Updater {
                 .show();
     }
 
+    private static final int DOWNLOAD_NOTIFICATION_ID = 3;
+
     private static void download(Activity activity, Release release) {
         Context context = activity.getApplicationContext();
+        NotificationManager nm = context.getSystemService(NotificationManager.class);
+        // Ensure the high-importance channel exists (created in showNotification, but safe to call again).
+        nm.createNotificationChannel(new NotificationChannel(CHANNEL_ID,
+                context.getString(R.string.updates), NotificationManager.IMPORTANCE_HIGH));
+        // Show an indeterminate progress notification while the download starts.
+        Notification.Builder progressBuilder = new Notification.Builder(context, CHANNEL_ID)
+                .setContentTitle(context.getString(R.string.update_downloading_title, release.version))
+                .setSmallIcon(R.drawable.ic_freenet_logo_notification)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setProgress(100, 0, true);
+        nm.notify(DOWNLOAD_NOTIFICATION_ID, progressBuilder.build());
         try {
             File directory = new File(context.getCacheDir(), "updates");
             emptyDirectory(directory);
             File apk = new File(directory, "update.apk");
-            saveVerified(release, apk);
+            saveVerified(release, apk, (percent) -> {
+                nm.notify(DOWNLOAD_NOTIFICATION_ID,
+                        progressBuilder.setProgress(100, percent, false).build());
+            });
+            nm.cancel(DOWNLOAD_NOTIFICATION_ID);
             Uri uri = FileProvider.getUriForFile(context, context.getPackageName() + ".updates", apk);
             Intent install = new Intent(Intent.ACTION_VIEW)
                     .setDataAndType(uri, "application/vnd.android.package-archive")
                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(install);
         } catch (IOException | NoSuchAlgorithmException | RuntimeException e) {
+            nm.cancel(DOWNLOAD_NOTIFICATION_ID);
             Log.w(TAG, "Update download failed", e);
             activity.runOnUiThread(() -> toast(activity,
                     activity.getString(R.string.update_failed, e.getMessage())));
@@ -289,7 +308,12 @@ public final class Updater {
         }
     }
 
-    private static void saveVerified(Release release, File apk)
+    @FunctionalInterface
+    interface ProgressCallback {
+        void onProgress(int percent);
+    }
+
+    private static void saveVerified(Release release, File apk, ProgressCallback progress)
             throws IOException, NoSuchAlgorithmException {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         HttpsURLConnection connection = open(release.url);
@@ -299,7 +323,9 @@ public final class Updater {
             connection.disconnect();
             throw new IOException("HTTP " + httpCode + " downloading update");
         }
+        long contentLength = connection.getContentLengthLong(); // -1 if unknown
         long total = 0;
+        int lastPercent = 0;
         try (InputStream in = connection.getInputStream();
              OutputStream out = new FileOutputStream(apk)) {
             byte[] buffer = new byte[64 * 1024];
@@ -311,6 +337,13 @@ public final class Updater {
                 }
                 digest.update(buffer, 0, read);
                 out.write(buffer, 0, read);
+                if (contentLength > 0 && progress != null) {
+                    int percent = (int) (total * 100 / contentLength);
+                    if (percent != lastPercent) {
+                        lastPercent = percent;
+                        progress.onProgress(percent);
+                    }
+                }
             }
         } finally {
             connection.disconnect();
