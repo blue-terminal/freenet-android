@@ -86,4 +86,7 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
         <item>Verde</item>
     </string-array>
     <string name="update_unreachable">Non riesco a raggiungere GitHub. Riprova più tardi.</string>
+    <string name="use_from_pc">Usa dal PC</string>
+    <string name="pc_copy">Copia comando</string>
+    <string name="pc_help">Il telefono resta il server e usi Freenet nel browser del PC.\n\n1. Avvia Freenet qui.\n2. Collega il telefono con il cavo USB e attiva il debug USB.\n3. Sul PC lancia:\n%1$s\n4. Nel browser del PC apri:\n%2$s\n\nFunziona solo con il cavo USB: il nodo non ha password, e via rete chiunque potrebbe arrivare ai tuoi dati e alle tue chiavi.</string>
 </resources>
