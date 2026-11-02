@@ -77,7 +77,14 @@
         <SwitchPreferenceCompat
             app:key="show_version"
             app:title="@string/show_version"
-            app:defaultValue="false"
+            app:defaultValue="true"
+            />
+
+        <SwitchPreferenceCompat
+            app:key="show_timer"
+            app:title="@string/show_timer"
+            app:summary="@string/show_timer_summary"
+            app:defaultValue="true"
             />
 
         <SwitchPreferenceCompat
