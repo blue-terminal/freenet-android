@@ -1,14 +1,21 @@
 package org.freenetproject.mobile.ui.settings.activity;
 
+import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
+import android.graphics.Typeface;
 import android.os.Bundle;
+import android.text.format.DateUtils;
+import android.provider.Settings;
+import android.os.PowerManager;
 import android.os.SystemClock;
 import android.webkit.CookieManager;
 import android.webkit.WebStorage;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.ActionBar;
@@ -136,6 +143,13 @@ public class SettingsActivity extends AppCompatActivity {
                     return true;
                 });
             }
+            Preference address = findPreference("host_address");
+            if (address != null) {
+                address.setOnPreferenceClickListener(preference -> {
+                    showAddress();
+                    return true;
+                });
+            }
             Preference tor = findPreference(Tor.KEY);
             if (tor != null) {
                 tor.setOnPreferenceChangeListener((preference, value) -> {
@@ -160,14 +174,7 @@ public class SettingsActivity extends AppCompatActivity {
                             .setNegativeButton(android.R.string.cancel, null)
                             .setPositiveButton(R.string.host_mode, (d, w) -> {
                                 host.setChecked(true);
-                                String address = Manager.localAddress();
-                                Toast.makeText(requireContext(),
-                                        address == null
-                                                ? getString(R.string.host_mode_no_network)
-                                                : getString(R.string.host_mode_on,
-                                                        "http://" + address + ":"
-                                                                + Manager.WEB_PORT + "/"),
-                                        Toast.LENGTH_LONG).show();
+                                showAddress();
                             })
                             .show();
                     return false;
@@ -194,11 +201,85 @@ public class SettingsActivity extends AppCompatActivity {
             }
             Preference check = findPreference("check_update");
             if (check != null) {
+                showLastCheck(check);
                 check.setOnPreferenceClickListener(preference -> {
                     Updater.check(requireActivity(), true);
                     return true;
                 });
             }
+            Preference background = findPreference("update_background");
+            if (background != null) {
+                background.setOnPreferenceClickListener(preference -> {
+                    askToIgnoreBatteryLimits();
+                    return true;
+                });
+            }
+        }
+
+        /** Says when the last check ran and what it found, so a silent failure is visible. */
+        private void showLastCheck(Preference check) {
+            SharedPreferences preferences =
+                    PreferenceManager.getDefaultSharedPreferences(requireContext());
+            long when = preferences.getLong(Updater.LAST_CHECK, 0);
+            if (when == 0) {
+                check.setSummary(R.string.update_never_checked);
+                return;
+            }
+            String result = preferences.getString(Updater.LAST_RESULT, "");
+            check.setSummary(getString(R.string.update_last_check,
+                    DateUtils.getRelativeTimeSpanString(when),
+                    result.isEmpty() ? getString(R.string.update_last_none) : result));
+        }
+
+        /**
+         * Android stops background work for apps it considers idle, and then the check never
+         * runs with the app closed. Only the system dialog can lift that, and the user decides.
+         */
+        private void askToIgnoreBatteryLimits() {
+            PowerManager power = requireContext().getSystemService(PowerManager.class);
+            String app = requireContext().getPackageName();
+            if (power != null && power.isIgnoringBatteryOptimizations(app)) {
+                Toast.makeText(requireContext(), R.string.update_background_already,
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+            try {
+                startActivity(new Intent(
+                        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        Uri.parse("package:" + app)));
+            } catch (ActivityNotFoundException missing) {
+                // Some phones hide that screen: the general battery settings are the fallback.
+                startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+            }
+        }
+
+        /** The address to type on the PC, big enough to read and with a button to copy it. */
+        private void showAddress() {
+            String found = Manager.localAddress();
+            if (found == null) {
+                Toast.makeText(requireContext(), R.string.host_mode_no_network,
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+            String url = "http://" + found + ":" + Manager.WEB_PORT + "/";
+            TextView shown = new TextView(requireContext());
+            int padding = Math.round(20 * getResources().getDisplayMetrics().density);
+            shown.setPadding(padding, padding, padding, padding);
+            shown.setTextIsSelectable(true);
+            shown.setTextSize(20);
+            shown.setTypeface(Typeface.MONOSPACE);
+            shown.setText(url);
+            new AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.host_address)
+                    .setView(shown)
+                    .setNegativeButton(android.R.string.ok, null)
+                    .setPositiveButton(R.string.host_copy_address, (d, w) -> {
+                        requireContext().getSystemService(ClipboardManager.class)
+                                .setPrimaryClip(ClipData.newPlainText("Freenet", url));
+                        Toast.makeText(requireContext(), R.string.host_address_copied,
+                                Toast.LENGTH_SHORT).show();
+                    })
+                    .show();
         }
 
         /** Two quick taps on the build number show or hide the developer settings. */

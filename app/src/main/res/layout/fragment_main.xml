@@ -68,6 +68,7 @@
         app:layout_constraintTop_toBottomOf="@+id/textView">
 
         <FrameLayout
+            android:id="@+id/control_ring"
             android:layout_width="72dp"
             android:layout_height="72dp"
             android:background="@drawable/fondo_avvio">
