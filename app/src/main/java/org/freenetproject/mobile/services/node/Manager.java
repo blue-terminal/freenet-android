@@ -203,26 +203,47 @@ public class Manager {
     }
 
     /**
-     * The phone's address on the Wi-Fi or hotspot, for host mode. Null when there is none:
-     * only a private address is ever returned, never a public one, because the node has no
-     * password and nothing but the local network should be able to reach it.
+     * Every private address of this phone, Wi-Fi first, as "wlan0: 192.168.1.5". The Wi-Fi
+     * one is the only one a computer on the same network can reach: the others belong to
+     * mobile data, to a VPN or to the hotspot, and a computer cannot use them. Only private
+     * addresses are listed, never a public one, because the node has no password.
      */
-    public static String localAddress() {
+    public static List<String> localAddresses() {
+        List<String> wifi = new ArrayList<>();
+        List<String> others = new ArrayList<>();
         try {
             for (NetworkInterface network : Collections.list(NetworkInterface.getNetworkInterfaces())) {
                 if (network.isLoopback() || !network.isUp()) {
                     continue;
                 }
+                String name = String.valueOf(network.getName());
+                // Mobile data and tunnels carry an address a computer can never reach.
+                if (name.startsWith("rmnet") || name.startsWith("tun") || name.startsWith("ppp")
+                        || name.startsWith("ccmni") || name.startsWith("clat")) {
+                    continue;
+                }
                 for (InetAddress address : Collections.list(network.getInetAddresses())) {
                     if (address instanceof Inet4Address && address.isSiteLocalAddress()) {
-                        return address.getHostAddress();
+                        String found = name + ": " + address.getHostAddress();
+                        if (name.startsWith("wlan")) {
+                            wifi.add(found);
+                        } else {
+                            others.add(found);
+                        }
                     }
                 }
             }
         } catch (SocketException ignored) {
             // No network: the caller shows the USB instructions alone.
         }
-        return null;
+        wifi.addAll(others);
+        return wifi;
+    }
+
+    /** The most likely address, the Wi-Fi one, or null when the phone has no local network. */
+    public static String localAddress() {
+        List<String> found = localAddresses();
+        return found.isEmpty() ? null : found.get(0).substring(found.get(0).indexOf(": ") + 2);
     }
 
     public static File configHome(Context context) {

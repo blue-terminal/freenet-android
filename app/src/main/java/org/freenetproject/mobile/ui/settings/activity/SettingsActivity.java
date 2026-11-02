@@ -374,13 +374,20 @@ public class SettingsActivity extends AppCompatActivity {
 
         /** The address to type on the PC, big enough to read and with a button to copy it. */
         private void showAddress() {
-            String found = Manager.localAddress();
-            if (found == null) {
+            java.util.List<String> all = Manager.localAddresses();
+            if (all.isEmpty()) {
                 Toast.makeText(requireContext(), R.string.host_mode_no_network,
                         Toast.LENGTH_LONG).show();
                 return;
             }
+            String found = Manager.localAddress();
             String url = "http://" + found + ":" + Manager.WEB_PORT + "/";
+            StringBuilder list = new StringBuilder();
+            for (String one : all) {
+                list.append("http://").append(one.substring(one.indexOf(": ") + 2))
+                        .append(':').append(Manager.WEB_PORT).append("/   (")
+                        .append(one, 0, one.indexOf(':')).append(")\n");
+            }
             TextView shown = new TextView(requireContext());
             int padding = Math.round(20 * getResources().getDisplayMetrics().density);
             shown.setPadding(padding, padding, padding, padding);
@@ -388,7 +395,8 @@ public class SettingsActivity extends AppCompatActivity {
             shown.setTextSize(16);
             shown.setTypeface(Typeface.MONOSPACE);
             String network = found.substring(0, found.lastIndexOf('.') + 1) + "x";
-            shown.setText(url + "\n\n" + getString(R.string.host_same_network, network));
+            shown.setText(list + "\n" + getString(R.string.host_same_network, network)
+                    + "\n\n" + getString(R.string.host_restart_node));
             new AlertDialog.Builder(requireContext())
                     .setTitle(R.string.host_address)
                     .setView(shown)
