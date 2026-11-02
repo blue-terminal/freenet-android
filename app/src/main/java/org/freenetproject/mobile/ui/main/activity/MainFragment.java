@@ -5,7 +5,6 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.net.Uri;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -40,7 +39,6 @@ import java.security.NoSuchAlgorithmException;
 public class MainFragment extends Fragment {
     private static final String PC_COMMAND = "adb forward tcp:7509 tcp:7509";
     private static final String RIVER_JOINED = "river_joined";
-    private static final String GHOST_KEY_URL = "https://freenet.org/ghostkey/";
     private static final String RIVER_URL = Manager.WEB_URL
             + "v1/contract/web/raAqMhMG7KUpXBU2SxgCQ3Vh4PYjttxdSWd9ftV7RLv/";
 
@@ -103,8 +101,6 @@ public class MainFragment extends Fragment {
         updateSharedPreferences(manager, view);
         updateSettings(manager, view);
         updateAbout(manager, view);
-        view.findViewById(R.id.ghostkey_button).setOnClickListener(v ->
-                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(GHOST_KEY_URL))));
         view.findViewById(R.id.pc_button).setOnClickListener(v -> showPcHelp());
         Button river = view.findViewById(R.id.river_button);
         river.setOnClickListener(v -> openRiver(river));

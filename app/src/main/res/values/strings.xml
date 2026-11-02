@@ -71,8 +71,7 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     <string name="sites_importing">Copying the folder…</string>
     <string name="sites_imported">Folder imported as site: %1$s</string>
     <string name="sites_too_large">Folder too large: the limit is 200 MB.</string>
-    <string name="ghost_key">Ghost Key</string>
-    <string name="river_chat">River chat</string>
+    <string name="river_chat">Room chat</string>
     <string name="sites_copy_link">Copy link</string>
     <string name="sites_link_copied">Link copied:\n%1$s</string>
     <string name="river_joining">Joining the room, this can take a moment…</string>
@@ -97,4 +96,31 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     <string name="use_from_pc">Use from PC</string>
     <string name="pc_copy">Copy command</string>
     <string name="pc_help">The phone stays the server and you use Freenet in the PC browser.\n\n1. Start Freenet here.\n2. Connect the phone with a USB cable and turn on USB debugging.\n3. On the PC run:\n%1$s\n4. In the PC browser open:\n%2$s\n\nOnly the USB cable is supported: the node has no password, and over the network anyone could reach your data and keys.</string>
+    <string name="developer">Developer settings</string>
+    <string name="build_number">Build number</string>
+    <string name="developer_on">Developer settings on</string>
+    <string name="developer_off">Developer settings off</string>
+    <string name="dev_bandwidth">Total bandwidth</string>
+    <string name="dev_connections">Maximum connections</string>
+    <string name="dev_log">Log detail</string>
+    <string name="dev_block_screenshots">Block screenshots</string>
+    <string name="dev_block_screenshots_summary">Hides the app from screenshots and from the recent apps preview.</string>
+    <string name="dev_animations">Animations</string>
+    <string-array name="dev_bandwidth_names">
+        <item>No limit</item>
+        <item>250 KB/s</item>
+        <item>1 MB/s</item>
+        <item>5 MB/s</item>
+    </string-array>
+    <string-array name="dev_connections_names">
+        <item>Freenet default</item>
+        <item>10</item>
+        <item>20</item>
+        <item>40</item>
+    </string-array>
+    <string-array name="dev_log_names">
+        <item>Warnings only</item>
+        <item>Normal</item>
+        <item>Detailed</item>
+    </string-array>
 </resources>
