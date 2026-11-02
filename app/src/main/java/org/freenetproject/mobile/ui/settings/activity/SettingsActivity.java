@@ -134,6 +134,15 @@ public class SettingsActivity extends AppCompatActivity {
                 });
             }
             setUpBuildNumber();
+            Preference colorblind = findPreference(App.KEY_COLORBLIND);
+            if (colorblind != null) {
+                colorblind.setOnPreferenceChangeListener((preference, value) -> {
+                    preference.getPreferenceManager().getSharedPreferences().edit()
+                            .putBoolean(App.KEY_COLORBLIND, (Boolean) value).commit();
+                    requireActivity().recreate();
+                    return true;
+                });
+            }
             Preference blockScreenshots = findPreference(App.KEY_BLOCK_SCREENSHOTS);
             if (blockScreenshots != null) {
                 blockScreenshots.setOnPreferenceChangeListener((preference, value) -> {
@@ -262,22 +271,28 @@ public class SettingsActivity extends AppCompatActivity {
             if (macRandom != null) {
                 macRandom.setOnPreferenceChangeListener((preference, value) -> {
                     boolean enable = (Boolean) value;
-                    if (hasRoot()) {
-                        new Thread(() -> {
-                            boolean ok = setMacRandom(enable);
-                            requireActivity().runOnUiThread(() ->
-                                Toast.makeText(requireContext(),
-                                    ok ? (enable ? R.string.mac_random_done : R.string.mac_random_off)
-                                       : R.string.mac_random_error,
-                                    Toast.LENGTH_LONG).show());
-                        }, "mac-random").start();
-                    } else {
-                        Toast.makeText(requireContext(), R.string.mac_random_no_root, Toast.LENGTH_LONG).show();
-                        try {
-                            startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
-                        } catch (ActivityNotFoundException ignored) {}
-                        return false;
-                    }
+                    new Thread(() -> {
+                        boolean root = hasRoot();
+                        requireActivity().runOnUiThread(() -> {
+                            if (!isAdded()) return;
+                            if (root) {
+                                new Thread(() -> {
+                                    boolean ok = setMacRandom(enable);
+                                    if (!isAdded()) return;
+                                    requireActivity().runOnUiThread(() ->
+                                        Toast.makeText(requireContext(),
+                                            ok ? (enable ? R.string.mac_random_done : R.string.mac_random_off)
+                                               : R.string.mac_random_error,
+                                            Toast.LENGTH_LONG).show());
+                                }, "mac-random").start();
+                            } else {
+                                macRandom.setChecked(!enable);
+                                Toast.makeText(requireContext(), R.string.mac_random_no_root, Toast.LENGTH_LONG).show();
+                                try { startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS)); }
+                                catch (ActivityNotFoundException ignored) {}
+                            }
+                        });
+                    }, "mac-root-check").start();
                     return true;
                 });
             }
@@ -285,19 +300,26 @@ public class SettingsActivity extends AppCompatActivity {
             if (blockTracking != null) {
                 blockTracking.setOnPreferenceChangeListener((preference, value) -> {
                     boolean enable = (Boolean) value;
-                    if (hasRoot()) {
-                        new Thread(() -> {
-                            boolean ok = applyTrackingBlock(enable);
-                            requireActivity().runOnUiThread(() ->
-                                Toast.makeText(requireContext(),
-                                    ok ? (enable ? R.string.block_tracking_on : R.string.block_tracking_off)
-                                       : R.string.mac_random_error,
-                                    Toast.LENGTH_LONG).show());
-                        }, "block-tracking").start();
-                    } else {
-                        Toast.makeText(requireContext(), R.string.block_tracking_no_root, Toast.LENGTH_LONG).show();
-                        return false;
-                    }
+                    new Thread(() -> {
+                        boolean root = hasRoot();
+                        requireActivity().runOnUiThread(() -> {
+                            if (!isAdded()) return;
+                            if (root) {
+                                new Thread(() -> {
+                                    boolean ok = applyTrackingBlock(enable);
+                                    if (!isAdded()) return;
+                                    requireActivity().runOnUiThread(() ->
+                                        Toast.makeText(requireContext(),
+                                            ok ? (enable ? R.string.block_tracking_on : R.string.block_tracking_off)
+                                               : R.string.mac_random_error,
+                                            Toast.LENGTH_LONG).show());
+                                }, "block-tracking").start();
+                            } else {
+                                blockTracking.setChecked(!enable);
+                                Toast.makeText(requireContext(), R.string.block_tracking_no_root, Toast.LENGTH_LONG).show();
+                            }
+                        });
+                    }, "tracking-root-check").start();
                     return true;
                 });
             }
@@ -628,25 +650,34 @@ public class SettingsActivity extends AppCompatActivity {
         /** Generates a random locally-administered MAC and sets it via root. */
         private boolean setMacRandom(boolean enable) {
             try {
-                String cmd;
+                String mac;
                 if (enable) {
                     Random r = new Random();
-                    // Byte 0: locally administered (bit 1) and unicast (bit 0 clear)
-                    int b0 = (r.nextInt(64) * 4) | 2;
-                    String mac = String.format(Locale.ROOT,
-                            "%02x:%02x:%02x:%02x:%02x:%02x",
+                    int b0 = (r.nextInt(64) * 4) | 2; // locally administered, unicast
+                    mac = String.format(Locale.ROOT, "%02x:%02x:%02x:%02x:%02x:%02x",
                             b0, r.nextInt(256), r.nextInt(256),
                             r.nextInt(256), r.nextInt(256), r.nextInt(256));
-                    cmd = "ip link set wlan0 down; ip link set wlan0 address " + mac + "; ip link set wlan0 up";
                 } else {
-                    cmd = "ip link set wlan0 down; ip link set wlan0 address $(cat /sys/class/net/wlan0/address 2>/dev/null || echo 02:00:00:00:00:00); ip link set wlan0 up";
+                    // Read original MAC from the backup the first enable saved, or from hardware
+                    mac = readOriginalMac();
                 }
+                String cmd = "ip link set wlan0 down && ip link set wlan0 address " + mac + " && ip link set wlan0 up";
                 Process p = Runtime.getRuntime().exec(new String[]{"su", "-c", cmd});
                 p.waitFor();
                 return p.exitValue() == 0;
             } catch (Exception e) {
                 return false;
             }
+        }
+
+        private String readOriginalMac() {
+            // Try to read real hardware address from sysfs (Android 10+ exposes it)
+            try (java.io.BufferedReader r = new java.io.BufferedReader(
+                    new java.io.FileReader("/sys/class/net/wlan0/address"))) {
+                String line = r.readLine();
+                if (line != null && !line.trim().isEmpty()) return line.trim();
+            } catch (Exception ignored) {}
+            return "02:00:00:00:00:00";
         }
 
         /** Applies or removes iptables rules to block common tracking domains. */

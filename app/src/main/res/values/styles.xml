@@ -94,6 +94,18 @@
     </style>
 
     <!--
+        Colorblind overlay: uses Okabe-Ito blue (#0072B2) and orange (#E69F00),
+        the most accessible combination for red-green colour blindness.
+        Applied on top of any previously chosen accent.
+    -->
+    <style name="Theme.Colorblind" parent="">
+        <item name="colorPrimary">#0072B2</item>
+        <item name="colorPrimaryVariant">#0072B2</item>
+        <item name="colorSecondary">#E69F00</item>
+        <item name="colorAccent">#0072B2</item>
+    </style>
+
+    <!--
         LED theme overlay: replaces background with deep black and makes buttons
         outlined with a 2 dp neon border. Applied on top of any accent color.
     -->
