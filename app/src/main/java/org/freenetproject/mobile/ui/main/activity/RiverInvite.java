@@ -13,6 +13,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import org.freenetproject.mobile.net.Tor;
+
 import javax.net.ssl.HttpsURLConnection;
 
 /**
@@ -117,7 +119,7 @@ final class RiverInvite {
     }
 
     private static Answer send(String path, String json) throws IOException {
-        HttpsURLConnection connection = (HttpsURLConnection) new URL(API + path).openConnection();
+        HttpsURLConnection connection = Tor.open(API + path);
         connection.setConnectTimeout(TIMEOUT_MILLIS);
         connection.setReadTimeout(TIMEOUT_MILLIS);
         try {

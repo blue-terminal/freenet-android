@@ -45,6 +45,13 @@
     <PreferenceCategory app:title="@string/battery_and_data">
 
         <SwitchPreferenceCompat
+            app:key="saving_mode"
+            app:title="@string/saving_mode"
+            app:defaultValue="false"
+            app:summary="@string/saving_mode_summary"
+            />
+
+        <SwitchPreferenceCompat
             app:key="preserve_battery"
             app:title="@string/preserve_battery"
             app:defaultValue="false"
@@ -56,6 +63,28 @@
             app:title="@string/preserve_data"
             app:defaultValue="true"
             app:summary="@string/preserve_data_summary"
+            />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/privacy">
+
+        <SwitchPreferenceCompat
+            app:key="tor_mode"
+            app:title="@string/tor_mode"
+            app:defaultValue="false"
+            app:summary="@string/tor_mode_summary"
+            />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/host">
+
+        <SwitchPreferenceCompat
+            app:key="host_mode"
+            app:title="@string/host_mode"
+            app:defaultValue="false"
+            app:summary="@string/host_mode_summary"
             />
 
     </PreferenceCategory>

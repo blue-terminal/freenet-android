@@ -18,6 +18,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.preference.PreferenceManager;
 
 import org.freenetproject.mobile.BuildConfig;
 import org.freenetproject.mobile.R;
@@ -154,16 +155,29 @@ public class MainFragment extends Fragment {
         }, "freenet-river-invite").start();
     }
 
-    /** Through the USB cable only: the node has no password, so it must not reach the network. */
+    /** The USB cable always works; the network only with host mode, which has no password. */
     private void showPcHelp() {
         new AlertDialog.Builder(requireContext())
                 .setTitle(R.string.use_from_pc)
-                .setMessage(getString(R.string.pc_help, PC_COMMAND, Manager.WEB_URL))
+                .setMessage(getString(R.string.pc_help, PC_COMMAND, Manager.WEB_URL)
+                        + "\n\n" + networkHelp())
                 .setNegativeButton(android.R.string.ok, null)
                 .setPositiveButton(R.string.pc_copy, (d, w) ->
                         requireContext().getSystemService(ClipboardManager.class)
                                 .setPrimaryClip(ClipData.newPlainText("adb", PC_COMMAND)))
                 .show();
+    }
+
+    private String networkHelp() {
+        if (!PreferenceManager.getDefaultSharedPreferences(requireContext())
+                .getBoolean("host_mode", false)) {
+            return getString(R.string.pc_network_off);
+        }
+        String address = Manager.localAddress();
+        return address == null
+                ? getString(R.string.host_mode_no_network)
+                : getString(R.string.pc_network,
+                        "http://" + address + ":" + Manager.WEB_PORT + "/");
     }
 
     private void showRiver(String url) {

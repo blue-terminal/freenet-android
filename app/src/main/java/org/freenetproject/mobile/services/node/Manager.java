@@ -13,11 +13,16 @@ import androidx.preference.PreferenceManager;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +42,11 @@ public class Manager {
     private static final int LOG_TAIL_BYTES = 4096;
     private static final int LOG_COPY_BYTES = 64 * 1024;
     private static final String MIN_CONNECTIONS_WHEN_LIMITED = "5";
+    // Saving mode: 250 KB/s, few connections, 2 GB of cache and few threads keep the phone cool.
+    private static final String SAVING_BANDWIDTH = "250000";
+    private static final String SAVING_CONNECTIONS = "10";
+    private static final String SAVING_DISK = "2147483648";
+    private static final String SAVING_THREADS = "4";
     private static final int BLOCKED_BY_ANDROID_CODE = 128 + 31; // SIGSYS
 
     private static Manager instance = null;
@@ -144,20 +154,28 @@ public class Manager {
         new Thread(() -> watch(started), "freenet-watch").start();
     }
 
+    /** The developer setting when it is set, otherwise the fallback saving mode asks for. */
+    private static String setting(SharedPreferences preferences, String key, String fallback) {
+        String chosen = preferences.getString(key, "");
+        return chosen.isEmpty() ? fallback : chosen;
+    }
+
     private ProcessBuilder buildProcess(Context context) throws IOException {
         String program = context.getApplicationInfo().nativeLibraryDir + "/libfreenet.so";
         // The APK ships one version: the node must not try to replace itself.
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         List<String> command = new ArrayList<>(Arrays.asList(
                 program, "network", "--disable-auto-update", "--skip-load-from-network"));
-        String bandwidth = preferences.getString("dev_bandwidth", "");
+        // Saving mode sets gentle limits; a developer setting always wins over it.
+        boolean saving = preferences.getBoolean("saving_mode", false);
+        String bandwidth = setting(preferences, "dev_bandwidth", saving ? SAVING_BANDWIDTH : "");
         if (!bandwidth.isEmpty()) {
             command.add("--total-bandwidth-limit");
             command.add(bandwidth);
         }
         ProcessBuilder builder = new ProcessBuilder(command);
         Map<String, String> env = builder.environment();
-        String connections = preferences.getString("dev_connections", "");
+        String connections = setting(preferences, "dev_connections", saving ? SAVING_CONNECTIONS : "");
         if (!connections.isEmpty()) {
             env.put("MAX_NUMBER_OF_CONNECTIONS", connections);
             env.put("MIN_NUMBER_OF_CONNECTIONS", MIN_CONNECTIONS_WHEN_LIMITED);
@@ -165,13 +183,15 @@ public class Manager {
         applyEnvironment(context, env);
         // Upstream sends telemetry unless told otherwise.
         env.put("FREENET_TELEMETRY_ENABLED", "false");
-        // Only the phone itself can reach the node's web interface and its keys.
-        env.put("FREENET_WS_API_ADDRESS", "127.0.0.1");
-        String disk = preferences.getString("dev_disk", "");
+        // Only the phone itself can reach the node's web interface and its keys,
+        // unless host mode was turned on: then the local network can reach it too.
+        env.put("FREENET_WS_API_ADDRESS",
+                preferences.getBoolean("host_mode", false) ? "0.0.0.0" : "127.0.0.1");
+        String disk = setting(preferences, "dev_disk", saving ? SAVING_DISK : "");
         if (!disk.isEmpty()) {
             env.put("MAX_HOSTING_DISK", disk);
         }
-        String threads = preferences.getString("dev_threads", "");
+        String threads = setting(preferences, "dev_threads", saving ? SAVING_THREADS : "");
         if (!threads.isEmpty()) {
             env.put("MAX_BLOCKING_THREADS", threads);
         }
@@ -180,6 +200,29 @@ public class Manager {
         builder.redirectOutput(logFile);
         builder.directory(new File(env.get("HOME")));
         return builder;
+    }
+
+    /**
+     * The phone's address on the Wi-Fi or hotspot, for host mode. Null when there is none:
+     * only a private address is ever returned, never a public one, because the node has no
+     * password and nothing but the local network should be able to reach it.
+     */
+    public static String localAddress() {
+        try {
+            for (NetworkInterface network : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                if (network.isLoopback() || !network.isUp()) {
+                    continue;
+                }
+                for (InetAddress address : Collections.list(network.getInetAddresses())) {
+                    if (address instanceof Inet4Address && address.isSiteLocalAddress()) {
+                        return address.getHostAddress();
+                    }
+                }
+            }
+        } catch (SocketException ignored) {
+            // No network: the caller shows the USB instructions alone.
+        }
+        return null;
     }
 
     public static File configHome(Context context) {

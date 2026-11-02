@@ -20,6 +20,9 @@
     <string name="preserve_data">Preserve data</string>
     <string name="preserve_data_summary">Pause Freenet on mobile data. It runs only on Wi-Fi and other unmetered networks.</string>
     <string name="preserve_battery">Preserve battery</string>
+    <string name="saving_mode">Saving mode</string>
+    <string name="saving_mode_summary">Keeps Freenet running but slower: less data, fewer connections and requests, less work in the background, so the phone stays cooler. Update checks only on Wi-Fi.</string>
+    <string name="saving_mode_restart">Saving mode applies the next time the node starts.</string>
     <string name="preserve_battery_summary">Pause Freenet when the phone is not charging. A nearly empty battery always stops it.</string>
     <!-- Freenet Web Preferences -->
     <string name="node_paused">Freenet is paused.</string>
@@ -28,7 +31,19 @@
     <string name="text_about"><![CDATA[
 <h3>Freenet mobile v%1$s</h3>
 <p>Runs <a href="https://freenet.org">Freenet</a> v%2$s on your phone. This is an unofficial build, not made by The Freenet Project.</p>
-<p>Telemetry and automatic updates are turned off. The web interface can only be reached from this phone.</p>
+<h3>About the project</h3>
+<p>Freenet is a decentralised network: there is no central server, and every node both uses the network and carries other people\'s traffic. This app packs a real Freenet node into an Android app, so a phone becomes one of those nodes, with no PC needed.</p>
+<p>What it does:</p>
+<ul>
+<li>Starts and stops the node as a foreground service, and shows how many peers it is connected to.</li>
+<li>Opens the node\'s web interface inside the app, so Freenet apps and pages work on the phone.</li>
+<li>Builds and publishes a website from the phone, with an HTML, CSS and JavaScript editor, or by importing a folder.</li>
+<li>Keeps the site files and their keys encrypted on the phone.</li>
+<li>Joins the Room chat, asking for an invite by itself.</li>
+<li>Can serve the node to a PC, over USB or over the local network.</li>
+<li>Checks GitHub for new versions and verifies what it downloads before installing.</li>
+</ul>
+<p>Telemetry and the node\'s own automatic updates are turned off. The web interface can only be reached from this phone, unless you turn on host mode in the settings.</p>
 <p><a href="https://github.com/blue-terminal/freenet-android">Project on GitHub</a><br>
 <a href="https://github.com/blue-terminal/freenet-android/issues">Support and bug reports</a><br>
 <a href="https://github.com/blue-terminal/freenet-android/releases">All versions</a></p>
@@ -66,6 +81,16 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     <string name="open_freenet">Open Freenet</string>
     <string name="press_to_start">Press the button above to start Freenet</string>
     <string name="web_back">Back</string>
+    <string name="sites_video_site">Video site</string>
+    <string name="sites_add_video">Add video</string>
+    <string name="sites_video_title">Video title</string>
+    <string name="sites_video_author">Published by</string>
+    <string name="sites_video_needs_text">Fill in the title and the name.</string>
+    <string name="sites_video_added">Added: %1$s. Publish the site to put it on Freenet.</string>
+    <string name="sites_video_failed">Could not add the video: %1$s</string>
+    <string name="sites_video_too_large">Video too large: the limit is 60 MB.</string>
+    <string name="sites_video_unreadable">Cannot read the chosen video.</string>
+    <string name="sites_not_video_site">Select a video site first, or make one with "Video site".</string>
     <string name="sites_open_folder">Open folder</string>
     <string name="sites_no_index">The folder must contain index.html.</string>
     <string name="sites_importing">Copying the folder…</string>
@@ -93,7 +118,19 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
         <item>Green</item>
     </string-array>
     <string name="update_unreachable">Could not reach GitHub, try again later. Reason: %1$s</string>
-    <string name="use_from_pc">Use from PC</string>
+    <string name="use_from_pc">Use on PC</string>
+    <string name="privacy">Privacy</string>
+    <string name="tor_mode">Use Tor</string>
+    <string name="tor_mode_summary">Sends the app\'s own requests (update check, chat invite, gateway list) through Orbot on this phone. Orbot must be installed and running. It does not cover the Freenet node, which uses UDP: Tor cannot carry it.</string>
+    <string name="tor_mode_on">Tor on for the app\'s requests. Start Orbot, or they will fail.</string>
+    <string name="host">Host for the PC</string>
+    <string name="host_mode">Host mode</string>
+    <string name="host_mode_summary">Lets a PC on the same Wi-Fi use this phone as the Freenet server. Without it, only the USB cable works.</string>
+    <string name="host_mode_warning">The node has no password. With host mode on, anyone on the same Wi-Fi can open your node, read your data and use your keys. Only turn it on on a network you trust, and turn it off afterwards.\n\nThere is no public internet address: that would need a port opened on your router, and the node would then be open to everyone.</string>
+    <string name="host_mode_on">Host mode on from the next start of the node. Address: %1$s</string>
+    <string name="host_mode_no_network">Host mode on, but the phone has no local network address yet.</string>
+    <string name="pc_network">On the same Wi-Fi, open this in the PC browser:\n%1$s</string>
+    <string name="pc_network_off">To use it over Wi-Fi instead, turn on host mode in the settings.</string>
     <string name="pc_copy">Copy command</string>
     <string name="pc_help">The phone stays the server and you use Freenet in the PC browser.\n\n1. Start Freenet here.\n2. Connect the phone with a USB cable and turn on USB debugging.\n3. On the PC run:\n%1$s\n4. In the PC browser open:\n%2$s\n\nOnly the USB cable is supported: the node has no password, and over the network anyone could reach your data and keys.</string>
     <string name="developer">Developer settings</string>
@@ -152,12 +189,13 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     <string name="ghost_copied">Key copied. It contains the secret part: do not share it.</string>
     <string name="ghost_official">Valid Ghost Key</string>
     <string name="ghost_official_summary">Opens the Freenet page here. A valid key needs a donation.</string>
-    <string name="ghost_verify_help">Check a certificate against Freenet\'s key. Test keys made here are always invalid.</string>
+    <string name="ghost_verify_help">Check a certificate against Freenet\'s key. A test key made here is not valid for Freenet: it is recognised as this phone\'s test key.</string>
     <string name="ghost_verify_hint">Paste the Ghost Key certificate</string>
     <string name="ghost_verify">Verify certificate</string>
     <string name="ghost_verify_no_certificate">No Ghost Key certificate found in the text.</string>
     <string name="ghost_verify_valid">Valid for Freenet.\n%1$s</string>
     <string name="ghost_verify_invalid">Not valid for Freenet.\n%1$s</string>
+    <string name="ghost_verify_local">Not a Freenet key: this is the test key made on this phone.\nThe signature matches the key generated here.\n%1$s</string>
     <string name="sites_delete">Delete site</string>
     <string name="sites_delete_title">Delete %1$s?</string>
     <string name="sites_delete_warning">The files on this phone are deleted. A site already published can stay on the network.</string>

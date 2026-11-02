@@ -15,6 +15,9 @@
     <string name="preserve_data">Risparmia dati</string>
     <string name="preserve_data_summary">Mette Freenet in pausa con i dati mobili. Funziona solo in Wi-Fi e sulle altre reti senza limiti.</string>
     <string name="preserve_battery">Risparmia batteria</string>
+    <string name="saving_mode">Risparmio</string>
+    <string name="saving_mode_summary">Freenet resta attivo ma più lento: meno giga, meno connessioni e richieste, meno lavoro in background, così il telefono scalda meno. Controllo aggiornamenti solo su Wi-Fi.</string>
+    <string name="saving_mode_restart">Il risparmio vale dal prossimo avvio del nodo.</string>
     <string name="preserve_battery_summary">Mette Freenet in pausa quando il telefono non è in carica. Con la batteria quasi scarica si ferma sempre.</string>
     <string name="node_paused">Freenet è in pausa</string>
     <string name="paused_detail">Riparte da solo quando tornano il Wi-Fi o il caricatore. Puoi cambiarlo nelle impostazioni.</string>
@@ -22,7 +25,19 @@
     <string name="text_about"><![CDATA[
 <h3>Freenet mobile v%1$s</h3>
 <p>Fa girare <a href="https://freenet.org">Freenet</a> v%2$s sul telefono. È una versione non ufficiale, non fatta da The Freenet Project.</p>
-<p>Telemetria e aggiornamenti automatici sono spenti. L\'interfaccia web si raggiunge solo da questo telefono.</p>
+<h3>Informazioni sul progetto</h3>
+<p>Freenet è una rete decentralizzata: non c\'è un server centrale, e ogni nodo usa la rete e allo stesso tempo trasporta il traffico degli altri. Questa app mette un vero nodo Freenet dentro un\'app Android, così il telefono diventa uno di quei nodi, senza bisogno di un PC.</p>
+<p>Cosa fa:</p>
+<ul>
+<li>Avvia e ferma il nodo come servizio in primo piano, e mostra a quanti peer è collegato.</li>
+<li>Apre l\'interfaccia web del nodo dentro l\'app, così le pagine e le app Freenet funzionano sul telefono.</li>
+<li>Crea e pubblica un sito dal telefono, con un editor HTML, CSS e JavaScript, oppure importando una cartella.</li>
+<li>Tiene i file del sito e le loro chiavi cifrati sul telefono.</li>
+<li>Entra nella Room chat, chiedendo l\'invito da sola.</li>
+<li>Può offrire il nodo a un PC, via USB o sulla rete locale.</li>
+<li>Controlla su GitHub se c\'è una nuova versione e verifica quello che scarica prima di installarlo.</li>
+</ul>
+<p>Telemetria e aggiornamenti automatici del nodo sono spenti. L\'interfaccia web si raggiunge solo da questo telefono, a meno che non attivi la modalità host nelle impostazioni.</p>
 <p><a href="https://github.com/blue-terminal/freenet-android">Progetto su GitHub</a><br>
 <a href="https://github.com/blue-terminal/freenet-android/issues">Supporto e segnalazione errori</a><br>
 <a href="https://github.com/blue-terminal/freenet-android/releases">Tutte le versioni</a></p>
@@ -58,6 +73,16 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
     <string name="open_freenet">Apri Freenet</string>
     <string name="press_to_start">Premi il pulsante qui sopra per avviare Freenet</string>
     <string name="web_back">Indietro</string>
+    <string name="sites_video_site">Sito video</string>
+    <string name="sites_add_video">Aggiungi video</string>
+    <string name="sites_video_title">Titolo del video</string>
+    <string name="sites_video_author">Pubblicato da</string>
+    <string name="sites_video_needs_text">Compila il titolo e il nome.</string>
+    <string name="sites_video_added">Aggiunto: %1$s. Pubblica il sito per metterlo su Freenet.</string>
+    <string name="sites_video_failed">Non riesco ad aggiungere il video: %1$s</string>
+    <string name="sites_video_too_large">Video troppo grande: il limite è 60 MB.</string>
+    <string name="sites_video_unreadable">Non riesco a leggere il video scelto.</string>
+    <string name="sites_not_video_site">Prima seleziona un sito video, o creane uno con \"Sito video\".</string>
     <string name="sites_open_folder">Apri cartella</string>
     <string name="sites_no_index">La cartella deve contenere index.html.</string>
     <string name="sites_importing">Copio la cartella…</string>
@@ -85,7 +110,19 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
         <item>Verde</item>
     </string-array>
     <string name="update_unreachable">Non riesco a raggiungere GitHub, riprova più tardi. Motivo: %1$s</string>
-    <string name="use_from_pc">Usa dal PC</string>
+    <string name="use_from_pc">Usa sul PC</string>
+    <string name="privacy">Privacy</string>
+    <string name="tor_mode">Usa Tor</string>
+    <string name="tor_mode_summary">Manda le richieste dell\'app (controllo aggiornamenti, invito alla chat, elenco gateway) attraverso Orbot su questo telefono. Orbot deve essere installato e attivo. Non copre il nodo Freenet, che usa UDP: Tor non lo può trasportare.</string>
+    <string name="tor_mode_on">Tor attivo per le richieste dell\'app. Avvia Orbot, altrimenti non funzioneranno.</string>
+    <string name="host">Host per il PC</string>
+    <string name="host_mode">Modalità host</string>
+    <string name="host_mode_summary">Permette a un PC sulla stessa Wi-Fi di usare questo telefono come server Freenet. Senza, funziona solo il cavo USB.</string>
+    <string name="host_mode_warning">Il nodo non ha password. Con la modalità host attiva, chiunque sulla stessa Wi-Fi può aprire il tuo nodo, leggere i tuoi dati e usare le tue chiavi. Attivala solo su una rete di cui ti fidi, e poi spegnila.\n\nNon c\'è un indirizzo pubblico su internet: servirebbe aprire una porta sul router, e il nodo resterebbe aperto a tutti.</string>
+    <string name="host_mode_on">Modalità host attiva dal prossimo avvio del nodo. Indirizzo: %1$s</string>
+    <string name="host_mode_no_network">Modalità host attiva, ma il telefono non ha ancora un indirizzo di rete locale.</string>
+    <string name="pc_network">Sulla stessa Wi-Fi, apri questo nel browser del PC:\n%1$s</string>
+    <string name="pc_network_off">Per usarlo invece via Wi-Fi, attiva la modalità host nelle impostazioni.</string>
     <string name="pc_copy">Copia comando</string>
     <string name="pc_help">Il telefono resta il server e usi Freenet nel browser del PC.\n\n1. Avvia Freenet qui.\n2. Collega il telefono con il cavo USB e attiva il debug USB.\n3. Sul PC lancia:\n%1$s\n4. Nel browser del PC apri:\n%2$s\n\nFunziona solo con il cavo USB: il nodo non ha password, e via rete chiunque potrebbe arrivare ai tuoi dati e alle tue chiavi.</string>
     <string name="developer">Impostazioni sviluppatore</string>
@@ -144,12 +181,13 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
     <string name="ghost_copied">Chiave copiata. Contiene la parte segreta: non condividerla.</string>
     <string name="ghost_official">Ghost Key valida</string>
     <string name="ghost_official_summary">Apre qui la pagina di Freenet. Una chiave valida richiede una donazione.</string>
-    <string name="ghost_verify_help">Controlla un certificato con la chiave di Freenet. Le chiavi di prova create qui risultano sempre non valide.</string>
+    <string name="ghost_verify_help">Controlla un certificato con la chiave di Freenet. Una chiave di prova creata qui non è valida per Freenet: viene riconosciuta come chiave di prova di questo telefono.</string>
     <string name="ghost_verify_hint">Incolla il certificato Ghost Key</string>
     <string name="ghost_verify">Verifica certificato</string>
     <string name="ghost_verify_no_certificate">Nel testo non trovo un certificato Ghost Key.</string>
     <string name="ghost_verify_valid">Valido per Freenet.\n%1$s</string>
     <string name="ghost_verify_invalid">Non valido per Freenet.\n%1$s</string>
+    <string name="ghost_verify_local">Non è una chiave Freenet: è la chiave di prova creata su questo telefono.\nLa firma corrisponde alla chiave generata qui.\n%1$s</string>
     <string name="sites_delete">Elimina sito</string>
     <string name="sites_delete_title">Eliminare %1$s?</string>
     <string name="sites_delete_warning">Si cancellano i file su questo telefono. Un sito già pubblicato può restare in rete.</string>
