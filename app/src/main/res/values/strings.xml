@@ -256,6 +256,8 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     </string-array>
     <string name="notification_stop">Stop</string>
     <string name="space_sound_desc">Space sound</string>
+    <string name="fullscreen">Full screen</string>
+    <string name="fullscreen_summary">Hide status bar and navigation bar</string>
     <string name="led_theme">LED theme</string>
     <string name="led_theme_summary">Futuristic dark background with neon outlines</string>
     <string name="proxy_history">Password history</string>
