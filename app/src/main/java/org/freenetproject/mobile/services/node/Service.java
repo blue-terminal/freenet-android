@@ -4,106 +4,121 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.ServiceInfo;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
+import android.os.BatteryManager;
+import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 
+import androidx.lifecycle.Observer;
 import androidx.preference.PreferenceManager;
 
-import org.freenetproject.mobile.proxy.Simple;
 import org.freenetproject.mobile.receivers.BatteryLevelReceiver;
 import org.freenetproject.mobile.receivers.PowerConnectionReceiver;
 import org.freenetproject.mobile.ui.notification.Notification;
 
 public class Service extends android.app.Service {
-    PowerConnectionReceiver powerConnectionReceiver = new PowerConnectionReceiver();
-    ConnectivityManager connectivityManager;
-    ConnectivityManager.NetworkCallback networkCallback;
-    Thread proxyThread = null;
+    private final PowerConnectionReceiver powerConnectionReceiver = new PowerConnectionReceiver();
+    private final BatteryLevelReceiver batteryLevelReceiver = new BatteryLevelReceiver();
+    private final Manager manager = Manager.getInstance();
+    private final Observer<Manager.Status> notificationUpdater =
+            status -> Notification.update(this, status);
+    private ConnectivityManager connectivityManager;
+    private ConnectivityManager.NetworkCallback networkCallback;
+    private boolean started = false;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i("Freenet", "Called service onStartCommand");
 
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-        Boolean preserveBattery = sharedPreferences.getBoolean("preserve_battery", true);
-
-        // Register power connection receiver
-        if (preserveBattery) {
-            IntentFilter powerConnectedFilter = new IntentFilter();
-            powerConnectedFilter.addAction(Intent.ACTION_POWER_CONNECTED);
-            powerConnectedFilter.addAction(Intent.ACTION_POWER_DISCONNECTED);
-            registerReceiver(powerConnectionReceiver, powerConnectedFilter);
-
-            registerReceiver(new BatteryLevelReceiver(), new IntentFilter(
-                    Intent.ACTION_BATTERY_LOW));
+        android.app.Notification notification = Notification.show(this);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(Notification.ID, notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+        } else {
+            startForeground(Notification.ID, notification);
         }
 
-        Boolean preserveData = sharedPreferences.getBoolean("preserve_data",true);
-        // Register network callback
-        if (preserveData) {
-            Context context = getApplicationContext();
-            NetworkRequest networkRequest = new NetworkRequest.Builder()
-                    .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                    .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
-                    .build();
+        if (!started) {
+            started = true;
+            manager.clearPauses();
+            manager.getStatus().observeForever(notificationUpdater);
+            registerConditions();
+            new Thread(() -> manager.startNode(getApplicationContext()), "freenet-start").start();
+        }
 
-            connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        // If Android kills the app the node goes with it: the user starts it again.
+        return START_NOT_STICKY;
+    }
+
+    private void registerConditions() {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        // A nearly empty battery always stops the node.
+        registerReceiver(batteryLevelReceiver, new IntentFilter(Intent.ACTION_BATTERY_LOW),
+                Context.RECEIVER_NOT_EXPORTED);
+
+        if (preferences.getBoolean("preserve_battery", false)) {
+            IntentFilter filter = new IntentFilter();
+            filter.addAction(Intent.ACTION_POWER_CONNECTED);
+            filter.addAction(Intent.ACTION_POWER_DISCONNECTED);
+            registerReceiver(powerConnectionReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+            BatteryManager battery = getSystemService(BatteryManager.class);
+            if (!battery.isCharging()) {
+                manager.pause(Manager.PauseReason.BATTERY);
+            }
+        }
+
+        if (preferences.getBoolean("preserve_data", true)) {
+            connectivityManager = getSystemService(ConnectivityManager.class);
+            // Without this check a node started on mobile data would never be paused.
+            if (connectivityManager.isActiveNetworkMetered()) {
+                manager.pause(Manager.PauseReason.NETWORK);
+            }
+            Context context = getApplicationContext();
             networkCallback = new ConnectivityManager.NetworkCallback() {
                 @Override
                 public void onAvailable(Network network) {
-                    Log.d("Freenet", "Resuming service from network change");
-                    Manager.getInstance().resumeService(context, Manager.CONTEXT_NETWORK);
+                    new Thread(() -> manager.resume(context, Manager.PauseReason.NETWORK)).start();
                 }
 
                 @Override
                 public void onLost(Network network) {
-                    Log.d("Freenet", "Pausing service from network change");
-                    Manager.getInstance().pauseService(context, Manager.CONTEXT_NETWORK);
+                    new Thread(() -> manager.pause(Manager.PauseReason.NETWORK)).start();
                 }
             };
-
-            connectivityManager.registerNetworkCallback(networkRequest, networkCallback);
+            connectivityManager.registerNetworkCallback(new NetworkRequest.Builder()
+                    .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
+                    .build(), networkCallback);
         }
-
-        Boolean webAccess = sharedPreferences.getBoolean("web_access",false);
-        if (webAccess) {
-            if (proxyThread != null) proxyThread.interrupt();
-            proxyThread = new Thread(new Simple(), "simple-proxy-server");
-            proxyThread.start();
-        }
-
-        startForeground(1, Notification.show(this));
-
-        return android.app.Service.START_STICKY;
     }
-
 
     @Override
     public void onDestroy() {
         Log.i("Freenet", "Stopping service");
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-
-        Boolean preserveBattery = sharedPreferences.getBoolean("preserve_battery", true);
-        if (preserveBattery) unregisterReceiver(powerConnectionReceiver);
-
-        Boolean preserveData = sharedPreferences.getBoolean("preserve_data",true);
-        if (preserveData) connectivityManager.unregisterNetworkCallback(networkCallback);
-
-        Boolean webAccess = sharedPreferences.getBoolean("web_access",false);
-        if (webAccess) {
-            if (proxyThread != null) proxyThread.interrupt();
+        if (started) {
+            unregisterReceiver(batteryLevelReceiver);
+            try {
+                unregisterReceiver(powerConnectionReceiver);
+            } catch (IllegalArgumentException notRegistered) {
+                Log.d("Freenet", "Power receiver was not registered");
+            }
+            if (networkCallback != null) {
+                connectivityManager.unregisterNetworkCallback(networkCallback);
+            }
+            manager.getStatus().removeObserver(notificationUpdater);
         }
-
+        new Thread(() -> manager.stopNode(false), "freenet-stop").start();
         Notification.remove(getApplicationContext());
-        stopForeground(true);
-        stopSelf();
         super.onDestroy();
     }
 
+    @Override
     public IBinder onBind(Intent intent) {
         return null;
     }

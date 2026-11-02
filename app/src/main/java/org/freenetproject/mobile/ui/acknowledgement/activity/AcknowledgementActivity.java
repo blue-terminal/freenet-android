@@ -14,7 +14,6 @@ import android.text.method.LinkMovementMethod;
 import android.view.View;
 
 import org.freenetproject.mobile.R;
-import org.freenetproject.mobile.proxy.Simple;
 import org.freenetproject.mobile.ui.main.activity.MainActivity;
 import org.freenetproject.mobile.ui.settings.activity.SettingsActivity;
 

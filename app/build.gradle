@@ -1,75 +1,66 @@
 apply plugin: 'com.android.application'
 
+def freenetVersion = '0.2.154'
+
 android {
-    compileSdkVersion 32
-    buildToolsVersion "30.0.3"
+    namespace 'org.freenetproject.mobile'
+    compileSdk 35
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    buildFeatures {
+        buildConfig true
     }
     defaultConfig {
-        applicationId "org.freenetproject.mobile"
-        minSdkVersion 22
-        targetSdkVersion 32
-        versionCode 308
-        versionName '0.3.7-beta'
+        // Non e' l'app ufficiale: un id diverso evita di confonderla con quella vecchia
+        applicationId "local.freenet.mobile"
+        minSdk 26
+        targetSdk 34
+        versionCode 400
+        versionName "0.4.0-freenet-$freenetVersion"
+        buildConfigField "String", "FREENET_VERSION", "\"$freenetVersion\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        multiDexEnabled true
-        ndk {
-            abiFilters 'arm64-v8a', 'x86_64', 'x86', 'armeabi-v7a'
-        }
-
         setProperty("archivesBaseName", "freenet-mobile-v$versionName")
+    }
+
+    splits {
+        abi {
+            enable true
+            reset()
+            include 'arm64-v8a', 'x86_64'
+            universalApk false
+        }
+    }
+
+    packaging {
+        jniLibs {
+            // Android esegue solo programmi nella cartella delle librerie estratte
+            useLegacyPackaging true
+            keepDebugSymbols += ['**/libfreenet.so', '**/libfdev.so']
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
         }
     }
 }
 
-repositories {
-    mavenCentral()
-    maven { url 'https://jitpack.io' }
-}
-
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.4.2'
-    implementation 'com.google.android.material:material:1.6.1'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'androidx.navigation:navigation-fragment:2.5.0'
-    implementation 'androidx.navigation:navigation-ui:2.5.0'
-    implementation 'com.android.support:multidex:1.0.3'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.0'
+    implementation 'androidx.navigation:navigation-fragment:2.8.5'
+    implementation 'androidx.navigation:navigation-ui:2.8.5'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel:2.8.7'
+    implementation 'androidx.lifecycle:lifecycle-livedata:2.8.7'
+    implementation 'androidx.preference:preference:1.2.1'
 
-    // ViewModel
-    implementation "androidx.lifecycle:lifecycle-viewmodel:2.5.0"
-    // LiveData
-    implementation "androidx.lifecycle:lifecycle-livedata:2.5.0"
-    implementation "androidx.lifecycle:lifecycle-viewmodel-savedstate:2.5.0"
-
-    implementation 'com.jakewharton:process-phoenix:2.0.0'
-    implementation 'com.google.guava:guava:30.0-android'
-
-    // Freenet dependencies
-    implementation ('com.github.freenet-mobile:node-wrapper:0.12') {
-        exclude group: 'org.freenetproject', module: 'freenet-ext'
-        exclude group: 'net.java.dev.jna', module: 'jna'
-        exclude group: 'net.java.dev.jna', module: 'jna-platform'
-    }
-    implementation 'net.java.dev.jna:jna:5.6.0@aar'
-    // End Freenet dependencies
-
-    // For running a locally built freenet.jar
-    //implementation "net.java.dev.jna:jna:4.5.2"
-    //implementation "net.java.dev.jna:jna-platform:4.5.2"
-    //implementation files('libs/freenet.jar')
-
-    implementation 'androidx.preference:preference:1.2.0'
-
-    testImplementation 'junit:junit:4.13'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
 }
