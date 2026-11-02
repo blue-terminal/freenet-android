@@ -13,6 +13,8 @@ import androidx.preference.PreferenceManager;
 import org.freenetproject.mobile.net.Tor;
 import org.freenetproject.mobile.update.UpdateWorker;
 
+import java.util.Calendar;
+
 public class App extends Application {
     public static final String KEY_LANGUAGE = "language";
     public static final String KEY_COLOR = "color";
@@ -47,6 +49,16 @@ public class App extends Application {
         AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag));
     }
 
+    private static int seasonalStyle() {
+        Calendar c = Calendar.getInstance();
+        int month = c.get(Calendar.MONTH);
+        int day   = c.get(Calendar.DAY_OF_MONTH);
+        if (month == Calendar.OCTOBER  && day == 31)                    return R.style.Theme_Halloween;
+        if (month == Calendar.DECEMBER && day >= 24 && day <= 26)       return R.style.Theme_Christmas;
+        if (month == Calendar.APRIL    && day == 1)                     return R.style.Theme_AprilFools;
+        return 0;
+    }
+
     private static int colorStyle(String name) {
         switch (name) {
             case "teal":
@@ -76,6 +88,10 @@ public class App extends Application {
             }
             if (preferences.getBoolean(KEY_COLORBLIND, false)) {
                 activity.getTheme().applyStyle(R.style.Theme_Colorblind, true);
+            }
+            int seasonStyle = seasonalStyle();
+            if (seasonStyle != 0) {
+                activity.getTheme().applyStyle(seasonStyle, true);
             }
             applyScreenshotBlock(activity, preferences.getBoolean(KEY_BLOCK_SCREENSHOTS, false));
             if (!preferences.getBoolean("dev_animations", true)) {
