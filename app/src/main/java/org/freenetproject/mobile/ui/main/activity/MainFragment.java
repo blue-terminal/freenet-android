@@ -434,7 +434,9 @@ public class MainFragment extends Fragment {
                         uptimeView.setText(String.format(
                                 java.util.Locale.ROOT, "%02d:%02d:%02d", h, min, sec));
                         uptimeView.setTextColor(timerColor());
-                        uptimeView.setVisibility(View.VISIBLE);
+                        boolean showTimer = PreferenceManager.getDefaultSharedPreferences(requireContext())
+                                .getBoolean("show_timer", true);
+                        uptimeView.setVisibility(showTimer ? View.VISIBLE : View.GONE);
                         uptimeHandler.postDelayed(this, 1000);
                     }
                 };
