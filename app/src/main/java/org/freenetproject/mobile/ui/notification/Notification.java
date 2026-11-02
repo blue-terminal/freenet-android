@@ -37,7 +37,16 @@ public class Notification {
         switch (status) {
             case STARTED:
                 title = context.getString(R.string.node_running);
-                text = context.getString(R.string.connected_to_the_network);
+                long ms = Manager.getInstance().uptimeMs();
+                if (ms > 0) {
+                    long s = ms / 1000;
+                    long h = s / 3600;
+                    long min = (s % 3600) / 60;
+                    long sec = s % 60;
+                    text = String.format(java.util.Locale.ROOT, "%02d:%02d:%02d", h, min, sec);
+                } else {
+                    text = context.getString(R.string.connected_to_the_network);
+                }
                 break;
             case PAUSED:
                 title = context.getString(R.string.node_paused);

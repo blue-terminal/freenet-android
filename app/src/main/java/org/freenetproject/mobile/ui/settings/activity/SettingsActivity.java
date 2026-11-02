@@ -195,6 +195,13 @@ public class SettingsActivity extends AppCompatActivity {
                     return true;
                 });
             }
+            Preference proxyHistory = findPreference("proxy_history");
+            if (proxyHistory != null) {
+                proxyHistory.setOnPreferenceClickListener(preference -> {
+                    showPasswordHistory();
+                    return true;
+                });
+            }
             Preference tor = findPreference(Tor.KEY);
             if (tor != null) {
                 tor.setOnPreferenceChangeListener((preference, value) -> {
@@ -426,6 +433,31 @@ public class SettingsActivity extends AppCompatActivity {
                         requireContext().getSystemService(ClipboardManager.class)
                                 .setPrimaryClip(ClipData.newPlainText("Freenet", proxyUrl));
                         Toast.makeText(requireContext(), R.string.host_address_copied,
+                                Toast.LENGTH_SHORT).show();
+                    })
+                    .show();
+        }
+
+        private void showPasswordHistory() {
+            String text = HostProxy.readHistory(requireContext());
+            if (text.trim().isEmpty()) {
+                text = getString(R.string.proxy_history_empty);
+            }
+            TextView shown = new TextView(requireContext());
+            int padding = Math.round(20 * getResources().getDisplayMetrics().density);
+            shown.setPadding(padding, padding, padding, padding);
+            shown.setTextIsSelectable(true);
+            shown.setTypeface(android.graphics.Typeface.MONOSPACE);
+            shown.setText(text);
+            android.widget.ScrollView scroll = new android.widget.ScrollView(requireContext());
+            scroll.addView(shown);
+            new AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.proxy_history)
+                    .setView(scroll)
+                    .setNegativeButton(android.R.string.ok, null)
+                    .setPositiveButton(R.string.proxy_history_clear, (d, w) -> {
+                        HostProxy.clearHistory(requireContext());
+                        Toast.makeText(requireContext(), R.string.proxy_history_cleared,
                                 Toast.LENGTH_SHORT).show();
                     })
                     .show();

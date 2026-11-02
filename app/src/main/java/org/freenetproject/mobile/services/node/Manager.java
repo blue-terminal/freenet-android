@@ -71,6 +71,7 @@ public class Manager {
     private final Map<PauseReason, Boolean> pauses = new EnumMap<>(PauseReason.class);
     private final MutableLiveData<Status> statusData = new MutableLiveData<>(Status.STOPPED);
     private volatile Status status = Status.STOPPED;
+    private volatile long startedAtMs = 0;
     private Process process = null;
     private HostProxy proxy = null;
     private File logFile = null;
@@ -274,6 +275,7 @@ public class Manager {
                 socket.connect(new InetSocketAddress("127.0.0.1", WEB_PORT), 1000);
                 synchronized (this) {
                     if (process == started && status == Status.STARTING_UP) {
+                        startedAtMs = System.currentTimeMillis();
                         setStatus(Status.STARTED);
                         SharedPreferences prefs =
                                 PreferenceManager.getDefaultSharedPreferences(context);
@@ -411,6 +413,12 @@ public class Manager {
             Log.w(TAG, "Cannot read the log", e);
         }
         return lastProblem;
+    }
+
+    /** Milliseconds since the node started, or 0 if it is not running. */
+    public long uptimeMs() {
+        return startedAtMs == 0 || status != Status.STARTED ? 0
+                : System.currentTimeMillis() - startedAtMs;
     }
 
     public Boolean isStopped() {

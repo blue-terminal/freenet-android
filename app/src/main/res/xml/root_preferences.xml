@@ -106,6 +106,12 @@
             app:summary="@string/proxy_password_summary"
             />
 
+        <Preference
+            app:key="proxy_history"
+            app:title="@string/proxy_history"
+            app:summary="@string/proxy_history_summary"
+            />
+
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/updates">
