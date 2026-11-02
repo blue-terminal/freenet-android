@@ -1,12 +1,12 @@
 # Sicurezza
 
-Questa app non è prodotta da The Freenet Project. La versione 1.0 non è stata verificata fino in fondo su un telefono vero: vedi i limiti nel README.
+Questa app non è prodotta da The Freenet Project. Questa versione non è stata verificata fino in fondo su un telefono vero: vedi i limiti nel README.
 
 ## Versioni supportate
 
 | Versione       | Correzioni di sicurezza |
 | -------------- | ----------------------- |
-| 1.0.0          | Sì                      |
+| 0.6.4          | Sì                      |
 | Precedenti     | No                      |
 
 Conviene usare sempre l'ultima versione della pagina
