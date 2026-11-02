@@ -93,6 +93,12 @@
             app:summary="@string/host_address_summary"
             />
 
+        <Preference
+            app:key="proxy_password"
+            app:title="@string/proxy_password"
+            app:summary="@string/proxy_password_summary"
+            />
+
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/updates">
