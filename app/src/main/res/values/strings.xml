@@ -63,4 +63,9 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     <string name="open_freenet">Open Freenet</string>
     <string name="press_to_start">Press the button above to start Freenet</string>
     <string name="web_back">Back</string>
+    <string name="sites_open_folder">Open folder</string>
+    <string name="sites_no_index">The folder must contain index.html.</string>
+    <string name="sites_importing">Copying the folder…</string>
+    <string name="sites_imported">Folder imported as site: %1$s</string>
+    <string name="sites_too_large">Folder too large: the limit is 200 MB.</string>
 </resources>

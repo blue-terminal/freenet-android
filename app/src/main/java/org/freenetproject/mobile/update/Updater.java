@@ -1,6 +1,10 @@
 package org.freenetproject.mobile.update;
 
 import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -15,6 +19,7 @@ import androidx.preference.PreferenceManager;
 
 import org.freenetproject.mobile.BuildConfig;
 import org.freenetproject.mobile.R;
+import org.freenetproject.mobile.ui.settings.activity.SettingsActivity;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -53,7 +58,9 @@ public final class Updater {
     private static final int MAX_LIST_BYTES = 2 * 1024 * 1024;
     private static final long MAX_APK_BYTES = 200L * 1024 * 1024;
     private static final String LAST_CHECK = "update_last_check";
-    private static final long AUTO_CHECK_INTERVAL = TimeUnit.HOURS.toMillis(24);
+    private static final long AUTO_CHECK_INTERVAL = TimeUnit.MINUTES.toMillis(10);
+    private static final String CHANNEL_ID = "FREENET UPDATES";
+    private static final int NOTIFICATION_ID = 2;
 
     private Updater() {
     }
@@ -64,7 +71,7 @@ public final class Updater {
         String sha256;
     }
 
-    /** At most once a day, when the setting is on. It stays silent unless there is an update. */
+    /** Every time the app opens, when the setting is on. It stays silent unless there is an update. */
     public static void autoCheck(Activity activity) {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activity);
         long now = System.currentTimeMillis();
@@ -74,6 +81,38 @@ public final class Updater {
         }
         preferences.edit().putLong(LAST_CHECK, now).apply();
         check(activity, false);
+    }
+
+    /** From the background service: a system notification, since no window may be open. */
+    public static void notifyInBackground(Context context) {
+        if (!PreferenceManager.getDefaultSharedPreferences(context).getBoolean("auto_update", true)) {
+            return;
+        }
+        new Thread(() -> {
+            try {
+                Release release = newestRelease();
+                if (release != null) {
+                    showNotification(context, release);
+                }
+            } catch (IOException | JSONException e) {
+                Log.w(TAG, "Background update check failed", e);
+            }
+        }, "freenet-update-notify").start();
+    }
+
+    private static void showNotification(Context context, Release release) {
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        manager.createNotificationChannel(new NotificationChannel(CHANNEL_ID,
+                context.getString(R.string.updates), NotificationManager.IMPORTANCE_DEFAULT));
+        Intent open = new Intent(context, SettingsActivity.class);
+        manager.notify(NOTIFICATION_ID, new Notification.Builder(context, CHANNEL_ID)
+                .setContentTitle(context.getString(R.string.update_available_title))
+                .setContentText(release.version)
+                .setSmallIcon(R.drawable.ic_freenet_logo_notification)
+                .setAutoCancel(true)
+                .setContentIntent(PendingIntent.getActivity(context, 1, open,
+                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
+                .build());
     }
 
     public static void check(Activity activity, boolean showResult) {
