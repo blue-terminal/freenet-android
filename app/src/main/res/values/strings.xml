@@ -262,4 +262,11 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     <string name="proxy_history_empty">No passwords regenerated yet</string>
     <string name="proxy_history_clear">Clear</string>
     <string name="proxy_history_cleared">History cleared</string>
+    <string name="logo_style">Logo style</string>
+    <string name="timer_color">Timer color</string>
+    <string name="show_version">Always show version</string>
+    <string name="btn_river_pref">Show River button</string>
+    <string name="btn_pc_pref">Show PC button</string>
+    <string name="btn_web_pref">Show Open Freenet button</string>
+    <string name="btn_sites_pref">Show Sites button</string>
 </resources>

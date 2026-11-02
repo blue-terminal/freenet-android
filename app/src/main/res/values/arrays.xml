@@ -48,4 +48,32 @@
         <item>125</item>
         <item>150</item>
     </string-array>
+
+    <string-array name="logo_names" translatable="false">
+        <item>Freenet</item>
+        <item>Galaxy</item>
+        <item>Shield</item>
+        <item>Star</item>
+    </string-array>
+    <string-array name="logo_values" translatable="false">
+        <item>freenet</item>
+        <item>galaxy</item>
+        <item>shield</item>
+        <item>star</item>
+    </string-array>
+
+    <string-array name="timer_color_names" translatable="false">
+        <item>Accent</item>
+        <item>White</item>
+        <item>Cyan</item>
+        <item>Green</item>
+        <item>Pink</item>
+    </string-array>
+    <string-array name="timer_color_values" translatable="false">
+        <item>secondary</item>
+        <item>white</item>
+        <item>cyan</item>
+        <item>green</item>
+        <item>pink</item>
+    </string-array>
 </resources>
