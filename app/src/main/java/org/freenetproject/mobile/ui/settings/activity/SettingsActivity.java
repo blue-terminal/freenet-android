@@ -19,6 +19,8 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -26,6 +28,10 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import androidx.preference.SwitchPreferenceCompat;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 
 import org.freenetproject.mobile.App;
 import org.freenetproject.mobile.BuildConfig;
@@ -61,7 +67,11 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
+    public static final String PREF_LOGO_CUSTOM_PATH = "logo_custom_path";
+
     public static class SettingsFragment extends PreferenceFragmentCompat {
+        private ActivityResultLauncher<String> imagePicker;
+
         /** Straight from Freenet\'s own instructions; not translated, they are commands. */
         private static final String INSTALL_COMMANDS =
                 "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh\n"
@@ -73,6 +83,30 @@ public class SettingsActivity extends AppCompatActivity {
         private static final String KEY_DEVELOPER = "developer_enabled";
         private static final long DOUBLE_TAP_MILLIS = 600;
         private long lastBuildTap = 0;
+
+        @Override
+        public void onCreate(Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+            imagePicker = registerForActivityResult(
+                    new ActivityResultContracts.GetContent(),
+                    uri -> {
+                        if (uri == null) return;
+                        try {
+                            File dest = new File(requireContext().getFilesDir(), "custom_logo.png");
+                            try (InputStream in = requireContext().getContentResolver().openInputStream(uri);
+                                 FileOutputStream out = new FileOutputStream(dest)) {
+                                byte[] buf = new byte[8192];
+                                int n;
+                                while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
+                            }
+                            PreferenceManager.getDefaultSharedPreferences(requireContext())
+                                    .edit().putString(PREF_LOGO_CUSTOM_PATH, dest.getAbsolutePath()).apply();
+                            Toast.makeText(requireContext(), R.string.logo_custom_pick, Toast.LENGTH_SHORT).show();
+                        } catch (Exception e) {
+                            Toast.makeText(requireContext(), R.string.logo_custom_none, Toast.LENGTH_SHORT).show();
+                        }
+                    });
+        }
 
         @Override
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -199,6 +233,13 @@ public class SettingsActivity extends AppCompatActivity {
             if (proxyHistory != null) {
                 proxyHistory.setOnPreferenceClickListener(preference -> {
                     showPasswordHistory();
+                    return true;
+                });
+            }
+            Preference logoCustom = findPreference("logo_custom_pick");
+            if (logoCustom != null) {
+                logoCustom.setOnPreferenceClickListener(preference -> {
+                    imagePicker.launch("image/*");
                     return true;
                 });
             }
