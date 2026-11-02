@@ -1,13 +1,16 @@
 package org.freenetproject.mobile.ui.ghostkey;
 
 import android.content.ClipData;
+import android.content.ClipDescription;
 import android.content.ClipboardManager;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -60,14 +63,24 @@ public class GhostKeyActivity extends AppCompatActivity {
         copyButton = new MaterialButton(this);
         copyButton.setText(R.string.ghost_copy);
         copyButton.setVisibility(View.GONE);
-        copyButton.setOnClickListener(v -> getSystemService(ClipboardManager.class)
-                .setPrimaryClip(ClipData.newPlainText("Ghost Key", certificate)));
+        copyButton.setOnClickListener(v -> copyKey());
         root.addView(copyButton);
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFitsSystemWindows(true);
         scroll.addView(root);
         setContentView(scroll);
+    }
+
+    /** The vault imports certificate and signing key together, as one text. */
+    private void copyKey() {
+        ClipData clip = ClipData.newPlainText("Ghost Key", certificate);
+        // The text holds the secret key: Android must not show it in the clipboard preview.
+        PersistableBundle extras = new PersistableBundle();
+        extras.putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true);
+        clip.getDescription().setExtras(extras);
+        getSystemService(ClipboardManager.class).setPrimaryClip(clip);
+        Toast.makeText(this, R.string.ghost_copied, Toast.LENGTH_SHORT).show();
     }
 
     private void generate() {
@@ -93,7 +106,10 @@ public class GhostKeyActivity extends AppCompatActivity {
                 String local = run("verify-ghost-key",
                         "--master-verifying-key", new File(master, "master_verifying_key.pem").getPath(),
                         "--ghost-certificate", cert.getPath());
-                made = new String(Files.readAllBytes(cert.toPath()), StandardCharsets.UTF_8);
+                made = new String(Files.readAllBytes(cert.toPath()), StandardCharsets.UTF_8).trim()
+                        + "\n" + new String(Files.readAllBytes(
+                                new File(ghost, "ghost_key_signing_key.pem").toPath()),
+                                StandardCharsets.UTF_8).trim() + "\n";
                 text = getString(R.string.ghost_done, firstLine(local));
             } catch (IOException | InterruptedException e) {
                 text = getString(R.string.ghost_failed, e.getMessage());
