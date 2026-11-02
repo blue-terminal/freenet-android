@@ -20,6 +20,13 @@
             app:useSimpleSummaryProvider="true"
             />
 
+        <SwitchPreferenceCompat
+            app:key="led_theme"
+            app:title="@string/led_theme"
+            app:summary="@string/led_theme_summary"
+            app:defaultValue="false"
+            />
+
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/web_pages">

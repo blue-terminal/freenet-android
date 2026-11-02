@@ -5,6 +5,8 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 
+import android.content.SharedPreferences;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
 
@@ -17,14 +19,16 @@ import org.freenetproject.mobile.update.Updater;
 
 public class MainActivity extends AppCompatActivity {
     private String shownColor;
+    private boolean shownLed;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         PreferenceManager.setDefaultValues(this, R.xml.root_preferences, false);
-        shownColor = PreferenceManager.getDefaultSharedPreferences(this)
-                .getString(App.KEY_COLOR, "blue");
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        shownColor = prefs.getString(App.KEY_COLOR, "blue");
+        shownLed = prefs.getBoolean(App.KEY_LED, false);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
@@ -40,9 +44,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onRestart() {
         super.onRestart();
-        String color = PreferenceManager.getDefaultSharedPreferences(this)
-                .getString(App.KEY_COLOR, "blue");
-        if (!color.equals(shownColor)) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String color = prefs.getString(App.KEY_COLOR, "blue");
+        boolean led = prefs.getBoolean(App.KEY_LED, false);
+        if (!color.equals(shownColor) || led != shownLed) {
             recreate();
         }
     }
