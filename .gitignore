@@ -32,3 +32,7 @@ Thumbs.db
 *.aab
 app/debug/
 app/release/
+
+# Scaricati da prepara-freenet.sh
+app/src/main/jniLibs/
+APK/

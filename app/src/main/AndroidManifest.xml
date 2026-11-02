@@ -1,28 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="org.freenetproject.mobile">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        tools:ignore="ScopedStorage" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".App"
-        android:allowBackup="true"
+        android:allowBackup="false"
+        android:extractNativeLibs="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <meta-data
+            android:name="android.webkit.WebView.MetricsOptOut"
+            android:value="true" />
+
         <activity
             android:name=".ui.acknowledgement.activity.AcknowledgementActivity"
-            android:theme="@style/AppTheme.NoActionBar">
-        </activity>
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".ui.about.activity.AboutActivity"
             android:label="@string/title_activity_about"
@@ -31,27 +32,31 @@
             android:name=".ui.settings.activity.SettingsActivity"
             android:label="@string/title_activity_settings"
             android:parentActivityName=".ui.main.activity.MainActivity" />
-
+        <activity
+            android:name=".ui.sites.SitesActivity"
+            android:label="@string/sites_title"
+            android:parentActivityName=".ui.main.activity.MainActivity"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.bootstrap.activity.BootstrapActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
             android:label=""
-            android:theme="@style/AppTheme.NoActionBar"
-            android:parentActivityName=".ui.main.activity.MainActivity" />
+            android:parentActivityName=".ui.main.activity.MainActivity"
+            android:theme="@style/AppTheme.NoActionBar" />
 
         <service
             android:name=".services.node.Service"
-            android:enabled="true"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="org.freenetproject.mobilenode.intent.action.START_NODE" />
-                <action android:name="org.freenetproject.mobilenode.intent.action.STOP_NODE" />
-            </intent-filter>
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Nodo peer-to-peer Freenet che resta collegato alla rete" />
         </service>
 
         <activity
             android:name=".ui.main.activity.MainActivity"
-            android:theme="@style/AppTheme.NoActionBar"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

@@ -2,9 +2,12 @@ name: Android CI
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [ master, develop, nuova-freenet ]
   pull_request:
     branches: [ master, develop ]
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -12,12 +15,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: set up JDK
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v4
       with:
-        java-version: 11
-    - name: Install NDK
-      run: echo "y" | sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install "ndk;21.0.6113669" --sdk_root=${ANDROID_SDK_ROOT}
+        distribution: temurin
+        java-version: 21
+    - name: Download and verify Freenet
+      run: ./prepara-freenet.sh
     - name: Build with Gradle
-      run: ./gradlew build
+      run: ./gradlew assembleRelease
