@@ -48,6 +48,7 @@ public class GhostKeyActivity extends AppCompatActivity {
     private TextView result;
     private Button generateButton;
     private Button copyButton;
+    private Button deleteButton;
     private String certificate = null;
 
     @Override
@@ -77,6 +78,18 @@ public class GhostKeyActivity extends AppCompatActivity {
         copyButton.setVisibility(View.GONE);
         copyButton.setOnClickListener(v -> copyKey());
         root.addView(copyButton);
+
+        deleteButton = new MaterialButton(this);
+        deleteButton.setText(R.string.ghost_delete);
+        deleteButton.setVisibility(new File(getFilesDir(), "ghostkey").exists() ? View.VISIBLE : View.GONE);
+        deleteButton.setOnClickListener(v -> {
+            deleteTree(new File(getFilesDir(), "ghostkey"));
+            certificate = null;
+            copyButton.setVisibility(View.GONE);
+            deleteButton.setVisibility(View.GONE);
+            result.setText(R.string.ghost_deleted);
+        });
+        root.addView(deleteButton);
 
         TextView verifyTitle = new TextView(this);
         verifyTitle.setText(R.string.ghost_verify_help);
@@ -183,6 +196,7 @@ public class GhostKeyActivity extends AppCompatActivity {
                 result.setText(shown);
                 certificate = ready;
                 copyButton.setVisibility(ready == null ? View.GONE : View.VISIBLE);
+                deleteButton.setVisibility(ready == null ? View.GONE : View.VISIBLE);
             });
         }, "ghost-key").start();
     }

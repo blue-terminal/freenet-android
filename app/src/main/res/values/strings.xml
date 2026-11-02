@@ -158,4 +158,27 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     <string name="ghost_verify_no_certificate">No Ghost Key certificate found in the text.</string>
     <string name="ghost_verify_valid">Valid for Freenet.\n%1$s</string>
     <string name="ghost_verify_invalid">Not valid for Freenet.\n%1$s</string>
+    <string name="sites_delete">Delete site</string>
+    <string name="sites_delete_title">Delete %1$s?</string>
+    <string name="sites_delete_warning">The files on this phone are deleted. A site already published can stay on the network.</string>
+    <string name="sites_deleted">Site deleted.</string>
+    <string name="ghost_delete">Delete test keys</string>
+    <string name="ghost_deleted">Test keys deleted.</string>
+    <string name="web_pages">Web pages</string>
+    <string name="web_text_size">Text size</string>
+    <string name="web_keep_screen">Keep the screen on</string>
+    <string name="web_keep_screen_summary">While a Freenet page is open.</string>
+    <string name="dev_new_invite">Ask for a new room invite</string>
+    <string name="dev_new_invite_summary">The next Room chat request asks for a new invite.</string>
+    <string name="dev_new_invite_done">The next Room chat will ask for an invite.</string>
+    <string name="dev_clear_web">Clear page data</string>
+    <string name="dev_clear_web_summary">Cookies and data saved by the pages.</string>
+    <string name="dev_clear_web_warning">Freenet pages may forget what they saved on this phone, such as settings or rooms.</string>
+    <string name="dev_clear_web_done">Page data cleared.</string>
+    <string-array name="web_text_size_names">
+        <item>Small</item>
+        <item>Normal</item>
+        <item>Large</item>
+        <item>Very large</item>
+    </string-array>
 </resources>
