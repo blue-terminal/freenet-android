@@ -10,6 +10,8 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.preference.PreferenceManager;
 
+import org.freenetproject.mobile.net.HostProxy;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -70,6 +72,7 @@ public class Manager {
     private final MutableLiveData<Status> statusData = new MutableLiveData<>(Status.STOPPED);
     private volatile Status status = Status.STOPPED;
     private Process process = null;
+    private HostProxy proxy = null;
     private File logFile = null;
     private volatile String lastProblem = "";
 
@@ -150,7 +153,8 @@ public class Manager {
             }
             started = process;
         }
-        new Thread(() -> waitForPort(started), "freenet-wait-port").start();
+        Context appContext = context.getApplicationContext();
+        new Thread(() -> waitForPort(started, appContext), "freenet-wait-port").start();
         new Thread(() -> watch(started), "freenet-watch").start();
     }
 
@@ -264,13 +268,18 @@ public class Manager {
         env.put("TMPDIR", tmp.getAbsolutePath());
     }
 
-    private void waitForPort(Process started) {
+    private void waitForPort(Process started, Context context) {
         for (int i = 0; i < STARTUP_TIMEOUT_SECONDS && started.isAlive(); i++) {
             try (Socket socket = new Socket()) {
                 socket.connect(new InetSocketAddress("127.0.0.1", WEB_PORT), 1000);
                 synchronized (this) {
                     if (process == started && status == Status.STARTING_UP) {
                         setStatus(Status.STARTED);
+                        SharedPreferences prefs =
+                                PreferenceManager.getDefaultSharedPreferences(context);
+                        if (prefs.getBoolean("host_mode", false) && proxy == null) {
+                            proxy = HostProxy.start(context);
+                        }
                     }
                 }
                 return;
@@ -301,6 +310,7 @@ public class Manager {
                 return; // already replaced or stopped on purpose
             }
             process = null;
+            stopProxy();
             Log.e(TAG, "The node stopped by itself with code " + code);
             lastProblem = "Exit code " + code + (code == BLOCKED_BY_ANDROID_CODE
                     ? ": Android blocked a system call the node needs" : "");
@@ -308,7 +318,34 @@ public class Manager {
         }
     }
 
+    private void stopProxy() {
+        HostProxy p = proxy;
+        proxy = null;
+        if (p != null) {
+            p.stop();
+        }
+    }
+
+    /** Called when the host_mode preference changes while the node is running. */
+    public synchronized void onHostModeChanged(Context context, boolean enabled) {
+        if (enabled && status == Status.STARTED && proxy == null) {
+            proxy = HostProxy.start(context.getApplicationContext());
+        } else if (!enabled) {
+            stopProxy();
+        }
+    }
+
+    /** The password the proxy uses, or null if the proxy is not running. */
+    public String proxyPassword(Context context) {
+        HostProxy p = proxy;
+        if (p != null) {
+            return p.getPassword();
+        }
+        return null;
+    }
+
     public synchronized void stopNode(boolean paused) {
+        stopProxy();
         Process running = process;
         process = null;
         if (running != null && running.isAlive()) {
