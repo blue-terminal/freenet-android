@@ -150,4 +150,27 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
     <string name="ghost_verify_no_certificate">Nel testo non trovo un certificato Ghost Key.</string>
     <string name="ghost_verify_valid">Valido per Freenet.\n%1$s</string>
     <string name="ghost_verify_invalid">Non valido per Freenet.\n%1$s</string>
+    <string name="sites_delete">Elimina sito</string>
+    <string name="sites_delete_title">Eliminare %1$s?</string>
+    <string name="sites_delete_warning">Si cancellano i file su questo telefono. Un sito già pubblicato può restare in rete.</string>
+    <string name="sites_deleted">Sito eliminato.</string>
+    <string name="ghost_delete">Elimina chiavi di prova</string>
+    <string name="ghost_deleted">Chiavi di prova eliminate.</string>
+    <string name="web_pages">Pagine web</string>
+    <string name="web_text_size">Dimensione del testo</string>
+    <string name="web_keep_screen">Tieni lo schermo acceso</string>
+    <string name="web_keep_screen_summary">Mentre è aperta una pagina di Freenet.</string>
+    <string name="dev_new_invite">Chiedi un nuovo invito alla stanza</string>
+    <string name="dev_new_invite_summary">La prossima Room chat chiede un invito nuovo.</string>
+    <string name="dev_new_invite_done">La prossima Room chat chiederà un invito.</string>
+    <string name="dev_clear_web">Cancella i dati delle pagine</string>
+    <string name="dev_clear_web_summary">Cookie e dati salvati dalle pagine.</string>
+    <string name="dev_clear_web_warning">Le pagine di Freenet possono dimenticare ciò che hanno salvato su questo telefono, come impostazioni o stanze.</string>
+    <string name="dev_clear_web_done">Dati delle pagine cancellati.</string>
+    <string-array name="web_text_size_names">
+        <item>Piccolo</item>
+        <item>Normale</item>
+        <item>Grande</item>
+        <item>Molto grande</item>
+    </string-array>
 </resources>

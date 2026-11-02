@@ -97,30 +97,49 @@ public class Manager {
         context.stopService(new Intent(context, Service.class));
     }
 
-    /** Runs on a background thread: it waits for the node to open its web port. */
-    public synchronized void startNode(Context context) {
-        if (process != null && process.isAlive()) {
-            return;
-        }
-        if (!pauses.isEmpty()) {
-            setStatus(Status.PAUSED);
-            return;
-        }
-        setStatus(Status.STARTING_UP);
-        try {
-            logFile = new File(context.getFilesDir(), "freenet.log");
+    /** Runs on a background thread: it can wait for the network and for the web port. */
+    public void startNode(Context context) {
+        synchronized (this) {
+            if (process != null && process.isAlive()) {
+                return;
+            }
+            if (!pauses.isEmpty()) {
+                setStatus(Status.PAUSED);
+                return;
+            }
+            setStatus(Status.STARTING_UP);
             lastProblem = "";
-            ProcessBuilder builder = buildProcess(context);
+        }
+        // Outside the lock: a slow network must not block stopping or pausing the node.
+        try {
             Gateways.prepare(new File(configHome(context), "freenet"),
                     new File(context.getFilesDir(), "home/.local/share/freenet/secrets"));
-            process = builder.start();
         } catch (IOException e) {
-            Log.e(TAG, "Cannot start the node", e);
-            lastProblem = String.valueOf(e.getMessage());
-            setStatus(Status.ERROR);
+            synchronized (this) {
+                Log.e(TAG, "Cannot prepare the gateways", e);
+                lastProblem = String.valueOf(e.getMessage());
+                if (status == Status.STARTING_UP) {
+                    setStatus(Status.ERROR);
+                }
+            }
             return;
         }
-        Process started = process;
+        Process started;
+        synchronized (this) {
+            if (status != Status.STARTING_UP) {
+                return; // stopped or paused while waiting for the network
+            }
+            try {
+                logFile = new File(context.getFilesDir(), "freenet.log");
+                process = buildProcess(context).start();
+            } catch (IOException e) {
+                Log.e(TAG, "Cannot start the node", e);
+                lastProblem = String.valueOf(e.getMessage());
+                setStatus(Status.ERROR);
+                return;
+            }
+            started = process;
+        }
         new Thread(() -> waitForPort(started), "freenet-wait-port").start();
         new Thread(() -> watch(started), "freenet-watch").start();
     }

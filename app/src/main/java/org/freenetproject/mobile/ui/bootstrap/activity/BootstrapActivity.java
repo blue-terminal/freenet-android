@@ -3,10 +3,12 @@ package org.freenetproject.mobile.ui.bootstrap.activity;
 import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Message;
 import android.util.Log;
+import android.view.WindowManager;
 import android.webkit.ConsoleMessage;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -17,6 +19,7 @@ import android.widget.TextView;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.preference.PreferenceManager;
 
 import org.freenetproject.mobile.R;
 import org.freenetproject.mobile.services.node.Manager;
@@ -36,6 +39,11 @@ public class BootstrapActivity extends AppCompatActivity {
         findViewById(R.id.web_back).setOnClickListener(
                 v -> getOnBackPressedDispatcher().onBackPressed());
         WebSettings settings = web.getSettings();
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        settings.setTextZoom(Integer.parseInt(preferences.getString("web_text_size", "100")));
+        if (preferences.getBoolean("web_keep_screen", false)) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(false);

@@ -9,6 +9,7 @@ import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.webkit.WebView;
@@ -93,6 +94,8 @@ public class SitesActivity extends AppCompatActivity {
             return;
         }
 
+        cleanLeftovers();
+
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         int padding = Math.round(12 * getResources().getDisplayMetrics().density);
@@ -103,7 +106,10 @@ public class SitesActivity extends AppCompatActivity {
         pageSpinner = new Spinner(this);
         root.addView(row(siteSpinner, button(R.string.sites_new_site, v -> askNewSite())));
         root.addView(row(pageSpinner, button(R.string.sites_new_page, v -> askNewPage())));
-        root.addView(button(R.string.sites_open_folder, v -> folderPicker.launch(null)));
+        LinearLayout tools = new LinearLayout(this);
+        tools.addView(button(R.string.sites_open_folder, v -> folderPicker.launch(null)), weight());
+        tools.addView(button(R.string.sites_delete, v -> askDeleteSite()), weight());
+        root.addView(tools);
 
         editor = new EditText(this);
         editor.setTypeface(Typeface.MONOSPACE);
@@ -156,6 +162,47 @@ public class SitesActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         save();
+    }
+
+    /**
+     * A crash during publishing can leave plain copies behind. Plain files go away and
+     * keys are encrypted again; writing a key already encrypted changes nothing.
+     */
+    private void cleanLeftovers() {
+        Vault.deleteTree(new File(getCacheDir(), "publish"));
+        File[] keys = new File(Manager.configHome(this), "freenet/website-keys").listFiles();
+        if (keys == null) {
+            return;
+        }
+        for (File key : keys) {
+            try {
+                vault.writeAll(key, vault.readAll(key));
+            } catch (IOException e) {
+                Log.w("Freenet", "Cannot encrypt " + key.getName(), e);
+            }
+        }
+    }
+
+    private void askDeleteSite() {
+        String site = (String) siteSpinner.getSelectedItem();
+        if (site == null) {
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.sites_delete_title, site))
+                .setMessage(R.string.sites_delete_warning)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.sites_delete, (d, w) -> {
+                    currentFile = null; // nothing must be saved back into the deleted folder
+                    Vault.deleteTree(new File(sitesDir(), site));
+                    getPreferences(MODE_PRIVATE).edit().remove("url_" + site).apply();
+                    if (sites().isEmpty()) {
+                        createSite("mio-sito");
+                    }
+                    refreshSites(null);
+                    message.setText(R.string.sites_deleted);
+                })
+                .show();
     }
 
     private LinearLayout row(View first, View second) {

@@ -38,7 +38,7 @@ import java.security.NoSuchAlgorithmException;
 
 public class MainFragment extends Fragment {
     private static final String PC_COMMAND = "adb forward tcp:7509 tcp:7509";
-    private static final String RIVER_JOINED = "river_joined";
+    public static final String RIVER_JOINED = "river_joined";
     private static final String RIVER_URL = Manager.WEB_URL
             + "v1/contract/web/raAqMhMG7KUpXBU2SxgCQ3Vh4PYjttxdSWd9ftV7RLv/";
 

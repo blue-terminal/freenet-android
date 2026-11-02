@@ -7,9 +7,12 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.webkit.CookieManager;
+import android.webkit.WebStorage;
 import android.widget.Toast;
 
 import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
@@ -21,6 +24,7 @@ import org.freenetproject.mobile.R;
 import org.freenetproject.mobile.services.node.Manager;
 import org.freenetproject.mobile.ui.bootstrap.activity.BootstrapActivity;
 import org.freenetproject.mobile.ui.ghostkey.GhostKeyActivity;
+import org.freenetproject.mobile.ui.main.activity.MainFragment;
 import org.freenetproject.mobile.update.UpdateWorker;
 import org.freenetproject.mobile.update.Updater;
 
@@ -71,6 +75,40 @@ public class SettingsActivity extends AppCompatActivity {
                 });
             }
             setUpBuildNumber();
+            Preference blockScreenshots = findPreference(App.KEY_BLOCK_SCREENSHOTS);
+            if (blockScreenshots != null) {
+                blockScreenshots.setOnPreferenceChangeListener((preference, value) -> {
+                    App.applyScreenshotBlock(requireActivity(), (Boolean) value);
+                    return true;
+                });
+            }
+            Preference newInvite = findPreference("dev_new_invite");
+            if (newInvite != null) {
+                newInvite.setOnPreferenceClickListener(preference -> {
+                    Context context = requireContext();
+                    context.getSharedPreferences(context.getPackageName(), Context.MODE_PRIVATE)
+                            .edit().remove(MainFragment.RIVER_JOINED).apply();
+                    Toast.makeText(context, R.string.dev_new_invite_done, Toast.LENGTH_SHORT).show();
+                    return true;
+                });
+            }
+            Preference clearWeb = findPreference("dev_clear_web");
+            if (clearWeb != null) {
+                clearWeb.setOnPreferenceClickListener(preference -> {
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle(R.string.dev_clear_web)
+                            .setMessage(R.string.dev_clear_web_warning)
+                            .setNegativeButton(android.R.string.cancel, null)
+                            .setPositiveButton(android.R.string.ok, (d, w) -> {
+                                WebStorage.getInstance().deleteAllData();
+                                CookieManager.getInstance().removeAllCookies(null);
+                                Toast.makeText(requireContext(), R.string.dev_clear_web_done,
+                                        Toast.LENGTH_SHORT).show();
+                            })
+                            .show();
+                    return true;
+                });
+            }
             Preference copyLog = findPreference("dev_copy_log");
             if (copyLog != null) {
                 copyLog.setOnPreferenceClickListener(preference -> {
