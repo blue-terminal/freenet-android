@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -55,8 +56,10 @@ public class MainFragment extends Fragment {
         int color;
         switch (status) {
             case STARTED:
-                color = R.color.colorAccent;
-                break;
+                TypedValue accent = new TypedValue();
+                requireContext().getTheme().resolveAttribute(
+                        androidx.appcompat.R.attr.colorAccent, accent, true);
+                return accent.data;
             case ERROR:
                 color = R.color.colorError;
                 break;
