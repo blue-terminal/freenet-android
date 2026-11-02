@@ -126,6 +126,12 @@
             />
 
         <Preference
+            app:key="video_site"
+            app:title="@string/video_site_entry"
+            app:summary="@string/video_site_entry_summary"
+            />
+
+        <Preference
             app:key="ghost_generator"
             app:title="@string/ghost_generator"
             app:summary="@string/ghost_generator_summary"

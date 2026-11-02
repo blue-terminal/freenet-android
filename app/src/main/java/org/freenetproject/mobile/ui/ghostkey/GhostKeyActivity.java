@@ -14,6 +14,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
@@ -33,14 +34,21 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Makes local test keys with the ghostkey tool. Valid Ghost Keys are signed by Freenet after a
- * donation: these are signed by a master key made here, so Freenet rejects them.
+ * Makes keys with the ghostkey tool and checks them. Freenet only accepts a Ghost Key it has
+ * signed itself after a donation, so the keys made here are signed by this phone's own master
+ * key: they work between the people who use this app and add each other's public key.
  */
 public class GhostKeyActivity extends AppCompatActivity {
     // Only the certificate: a pasted secret key must not end up in the temporary file.
     private static final Pattern CERTIFICATE = Pattern.compile(
             "-----BEGIN GHOSTKEY_CERTIFICATE_V1-----.*?-----END GHOSTKEY_CERTIFICATE_V1-----",
             Pattern.DOTALL);
+    // The public half of someone else's master key, which is what makes their keys verifiable.
+    private static final Pattern PUBLIC_KEY = Pattern.compile(
+            "-----BEGIN VERIFYING_KEY_V1-----.*?-----END VERIFYING_KEY_V1-----",
+            Pattern.DOTALL);
+    /** Written into every key made here, so the check prints where the key comes from. */
+    private static final String INFO = "{\"action\":\"freenet-android\"}";
 
     private EditText certificateInput;
     private Button verifyButton;
@@ -48,6 +56,7 @@ public class GhostKeyActivity extends AppCompatActivity {
     private TextView result;
     private Button generateButton;
     private Button copyButton;
+    private Button shareButton;
     private Button deleteButton;
     private String certificate = null;
 
@@ -79,6 +88,12 @@ public class GhostKeyActivity extends AppCompatActivity {
         copyButton.setOnClickListener(v -> copyKey());
         root.addView(copyButton);
 
+        shareButton = new MaterialButton(this);
+        shareButton.setText(R.string.ghost_share);
+        shareButton.setVisibility(ownKey().isFile() ? View.VISIBLE : View.GONE);
+        shareButton.setOnClickListener(v -> sharePublicKey());
+        root.addView(shareButton);
+
         deleteButton = new MaterialButton(this);
         deleteButton.setText(R.string.ghost_delete);
         deleteButton.setVisibility(new File(getFilesDir(), "ghostkey").exists() ? View.VISIBLE : View.GONE);
@@ -86,6 +101,7 @@ public class GhostKeyActivity extends AppCompatActivity {
             deleteTree(new File(getFilesDir(), "ghostkey"));
             certificate = null;
             copyButton.setVisibility(View.GONE);
+            shareButton.setVisibility(View.GONE);
             deleteButton.setVisibility(View.GONE);
             result.setText(R.string.ghost_deleted);
         });
@@ -128,15 +144,53 @@ public class GhostKeyActivity extends AppCompatActivity {
         Toast.makeText(this, R.string.ghost_copied, Toast.LENGTH_SHORT).show();
     }
 
+    /** This phone's master verifying key: public, and the piece another person needs. */
+    private File ownKey() {
+        return new File(new File(new File(getFilesDir(), "ghostkey"), "master"),
+                "master_verifying_key.pem");
+    }
+
+    /** The public keys of the people added here, one PEM file each, named after the person. */
+    private File peopleDir() {
+        return new File(getFilesDir(), "ghostkey-people");
+    }
+
     /**
-     * Checks the chain from Freenet's master key (the tool's default, with no key given).
-     * If that fails and a test key was made on this phone, checks it against that key too,
-     * so a test certificate is told apart from a broken one.
+     * Copies the public half of this phone's master key. It carries no secret: the other person
+     * adds it in their app and from then on the keys made here check out for them.
+     */
+    private void sharePublicKey() {
+        File own = ownKey();
+        if (!own.isFile()) {
+            Toast.makeText(this, R.string.ghost_share_missing, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        try {
+            String text = new String(Files.readAllBytes(own.toPath()), StandardCharsets.UTF_8).trim();
+            getSystemService(ClipboardManager.class)
+                    .setPrimaryClip(ClipData.newPlainText("Freenet public key", text + "\n"));
+            Toast.makeText(this, R.string.ghost_shared, Toast.LENGTH_LONG).show();
+        } catch (IOException e) {
+            Toast.makeText(this, getString(R.string.ghost_failed, e.getMessage()),
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /**
+     * Reads the pasted text: a certificate is checked, a public key is added to the people
+     * list. Checking goes from Freenet's key to this phone's key to the people added here,
+     * so the answer says who the certificate belongs to instead of only "not valid".
      */
     private void verify() {
-        Matcher block = CERTIFICATE.matcher(certificateInput.getText());
+        CharSequence pasted = certificateInput.getText();
+        Matcher block = CERTIFICATE.matcher(pasted);
         if (!block.find()) {
-            verifyResult.setText(R.string.ghost_verify_no_certificate);
+            Matcher key = PUBLIC_KEY.matcher(pasted);
+            if (key.find()) {
+                askNameAndAdd(key.group() + "\n");
+            } else {
+                verifyResult.setText(R.string.ghost_verify_no_certificate);
+            }
             return;
         }
         String text = block.group() + "\n";
@@ -150,7 +204,7 @@ public class GhostKeyActivity extends AppCompatActivity {
                 shown = getString(R.string.ghost_verify_valid,
                         run("verify-ghost-key", "--ghost-certificate", file.getPath()).trim());
             } catch (IOException | InterruptedException e) {
-                shown = verifyWithOwnKey(file, e);
+                shown = verifyWithKnownKeys(file, e);
             } finally {
                 file.delete();
             }
@@ -162,27 +216,74 @@ public class GhostKeyActivity extends AppCompatActivity {
         }, "ghost-key-verify").start();
     }
 
+    /** Stores a pasted public key under a name, so a later check can say whose key it is. */
+    private void askNameAndAdd(String pem) {
+        EditText name = new EditText(this);
+        name.setHint(R.string.ghost_key_name);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.ghost_key_add)
+                .setView(name)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    String person = name.getText().toString().trim();
+                    if (person.isEmpty()) {
+                        person = getString(R.string.ghost_key_unnamed);
+                    }
+                    String safe = person.replaceAll("[^\\p{L}\\p{N} _-]", "_");
+                    try {
+                        Files.createDirectories(peopleDir().toPath());
+                        Files.write(new File(peopleDir(), safe + ".pem").toPath(),
+                                pem.getBytes(StandardCharsets.UTF_8));
+                        certificateInput.setText("");
+                        verifyResult.setText(getString(R.string.ghost_key_added, person));
+                    } catch (IOException e) {
+                        verifyResult.setText(getString(R.string.ghost_failed, e.getMessage()));
+                    }
+                })
+                .show();
+    }
+
     /**
-     * Second pass: the certificate did not come from Freenet, so it is checked against the
-     * master key the generator left in app storage. Tells "test key made here" apart from
-     * "certificate is broken".
+     * Second pass: the certificate did not come from Freenet, so it is checked against this
+     * phone's master key and then against every person added here.
      */
-    private String verifyWithOwnKey(File certificate, Exception first) {
-        File own = new File(new File(new File(getFilesDir(), "ghostkey"), "master"),
-                "master_verifying_key.pem");
+    private String verifyWithKnownKeys(File certificate, Exception first) {
+        File own = ownKey();
         if (own.isFile() && own.length() > 0) {
-            try {
-                String output = run("verify-ghost-key",
-                        "--master-verifying-key", own.getPath(),
-                        "--ghost-certificate", certificate.getPath()).trim();
+            String output = check(own, certificate);
+            if (output != null) {
                 return getString(R.string.ghost_verify_local, output);
-            } catch (IOException | InterruptedException ignored) {
-                // Not this phone's test key either: report the Freenet result below.
+            }
+        }
+        File[] people = peopleDir().listFiles();
+        if (people != null) {
+            for (File person : people) {
+                String output = check(person, certificate);
+                if (output != null) {
+                    String name = person.getName().replaceFirst("\\.pem$", "");
+                    return getString(R.string.ghost_verify_person, name, output);
+                }
             }
         }
         return getString(R.string.ghost_verify_invalid, first.getMessage());
     }
 
+    /** The tool's output when the certificate matches that master key, otherwise null. */
+    private String check(File masterVerifyingKey, File certificate) {
+        try {
+            return run("verify-ghost-key",
+                    "--master-verifying-key", masterVerifyingKey.getPath(),
+                    "--ghost-certificate", certificate.getPath()).trim();
+        } catch (IOException | InterruptedException notThisOne) {
+            return null;
+        }
+    }
+
+    /**
+     * Keeps the master and delegate keys already on the phone and only makes the ghost key
+     * again: it is quicker, and the identity stays the same, so the public key already given
+     * to other people keeps recognising the new key.
+     */
     private void generate() {
         generateButton.setEnabled(false);
         result.setText(R.string.ghost_working);
@@ -191,15 +292,18 @@ public class GhostKeyActivity extends AppCompatActivity {
             String made = null;
             try {
                 File base = new File(getFilesDir(), "ghostkey");
-                deleteTree(base);
                 File master = folder(base, "master");
                 File delegate = folder(base, "delegate");
                 File ghost = folder(base, "ghost");
-                run("generate-master-key", "--output-dir", master.getPath());
-                run("generate-delegate",
-                        "--master-signing-key", new File(master, "master_signing_key.pem").getPath(),
-                        "--info", "{\"action\":\"test-key\"}",
-                        "--output-dir", delegate.getPath());
+                if (!new File(master, "master_signing_key.pem").isFile()) {
+                    run("generate-master-key", "--output-dir", master.getPath());
+                }
+                if (!new File(delegate, "delegate_signing_key.pem").isFile()) {
+                    run("generate-delegate",
+                            "--master-signing-key", new File(master, "master_signing_key.pem").getPath(),
+                            "--info", INFO,
+                            "--output-dir", delegate.getPath());
+                }
                 run("generate-ghost-key", "--delegate-dir", delegate.getPath(),
                         "--output-dir", ghost.getPath());
                 File cert = new File(ghost, "ghost_key_certificate.pem");
@@ -221,6 +325,7 @@ public class GhostKeyActivity extends AppCompatActivity {
                 result.setText(shown);
                 certificate = ready;
                 copyButton.setVisibility(ready == null ? View.GONE : View.VISIBLE);
+                shareButton.setVisibility(ready == null ? View.GONE : View.VISIBLE);
                 deleteButton.setVisibility(ready == null ? View.GONE : View.VISIBLE);
             });
         }, "ghost-key").start();
