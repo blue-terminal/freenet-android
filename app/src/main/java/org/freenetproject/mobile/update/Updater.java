@@ -91,16 +91,18 @@ public final class Updater {
         for (int i = 0; i < items.length(); i++) {
             JSONObject item = items.getJSONObject(i);
             if (item.getBoolean("draft")) continue;
+            boolean prerelease = item.optBoolean("prerelease", false);
             String tag = item.getString("tag_name");
             String notes = item.optString("body", "");
             JSONArray assets = item.getJSONArray("assets");
             for (int j = 0; j < assets.length(); j++) {
                 JSONObject asset = assets.getJSONObject(j);
                 String name = asset.getString("name");
-                if (!name.endsWith(android.os.Build.SUPPORTED_ABIS[0] + "-release.apk")) continue;
+                if (!name.endsWith(android.os.Build.SUPPORTED_ABIS[0] + "-release.apk") &&
+                    !name.endsWith(android.os.Build.SUPPORTED_ABIS[0] + "-release-signed.apk")) continue;
                 String digest = asset.optString("digest", "");
                 Release r = new Release();
-                r.version = tag;
+                r.version = prerelease ? tag + " (beta)" : tag;
                 r.url = asset.getString("browser_download_url");
                 r.sha256 = digest.startsWith("sha256:") ? digest.substring(7).toLowerCase(Locale.ROOT) : "";
                 r.notes = notes;
