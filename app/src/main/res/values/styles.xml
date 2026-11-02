@@ -45,4 +45,46 @@
 
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Dark" />
 
+    <style name="Accent.Teal" parent="">
+        <item name="colorPrimary">#2DD4BF</item>
+        <item name="colorPrimaryVariant">#2DD4BF</item>
+        <item name="colorSecondary">#2DD4BF</item>
+        <item name="colorAccent">#2DD4BF</item>
+    </style>
+
+    <style name="Accent.Blue" parent="">
+        <item name="colorPrimary">#60A5FA</item>
+        <item name="colorPrimaryVariant">#60A5FA</item>
+        <item name="colorSecondary">#60A5FA</item>
+        <item name="colorAccent">#60A5FA</item>
+    </style>
+
+    <style name="Accent.Violet" parent="">
+        <item name="colorPrimary">#A78BFA</item>
+        <item name="colorPrimaryVariant">#A78BFA</item>
+        <item name="colorSecondary">#A78BFA</item>
+        <item name="colorAccent">#A78BFA</item>
+    </style>
+
+    <style name="Accent.Orange" parent="">
+        <item name="colorPrimary">#FB923C</item>
+        <item name="colorPrimaryVariant">#FB923C</item>
+        <item name="colorSecondary">#FB923C</item>
+        <item name="colorAccent">#FB923C</item>
+    </style>
+
+    <style name="Accent.Pink" parent="">
+        <item name="colorPrimary">#F472B6</item>
+        <item name="colorPrimaryVariant">#F472B6</item>
+        <item name="colorSecondary">#F472B6</item>
+        <item name="colorAccent">#F472B6</item>
+    </style>
+
+    <style name="Accent.Green" parent="">
+        <item name="colorPrimary">#4ADE80</item>
+        <item name="colorPrimaryVariant">#4ADE80</item>
+        <item name="colorSecondary">#4ADE80</item>
+        <item name="colorAccent">#4ADE80</item>
+    </style>
+
 </resources>

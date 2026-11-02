@@ -1,5 +1,27 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <PreferenceCategory app:title="@string/appearance">
+
+        <ListPreference
+            app:key="language"
+            app:title="@string/language"
+            app:defaultValue=""
+            app:entries="@array/language_names"
+            app:entryValues="@array/language_values"
+            app:useSimpleSummaryProvider="true"
+            />
+
+        <ListPreference
+            app:key="color"
+            app:title="@string/color"
+            app:defaultValue="teal"
+            app:entries="@array/color_names"
+            app:entryValues="@array/color_values"
+            app:useSimpleSummaryProvider="true"
+            />
+
+    </PreferenceCategory>
+
     <PreferenceCategory app:title="@string/battery_and_data">
 
         <SwitchPreferenceCompat
