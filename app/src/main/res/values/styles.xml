@@ -128,4 +128,43 @@
         <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
+    <!-- Halloween: sfondo quasi nero, accento arancione spettrale -->
+    <style name="Theme.Halloween" parent="">
+        <item name="colorPrimary">#FF6600</item>
+        <item name="colorPrimaryVariant">#FF6600</item>
+        <item name="colorSecondary">#CC3300</item>
+        <item name="colorAccent">#FF6600</item>
+        <item name="android:colorBackground">#0D0005</item>
+        <item name="android:windowBackground">#0D0005</item>
+        <item name="android:statusBarColor">#0D0005</item>
+        <item name="android:navigationBarColor">#0D0005</item>
+        <item name="colorSurface">#1A000A</item>
+    </style>
+
+    <!-- Natale: sfondo notte blu scuro, accento rosso/verde natalizio -->
+    <style name="Theme.Christmas" parent="">
+        <item name="colorPrimary">#E63946</item>
+        <item name="colorPrimaryVariant">#E63946</item>
+        <item name="colorSecondary">#2DC653</item>
+        <item name="colorAccent">#E63946</item>
+        <item name="android:colorBackground">#071B0E</item>
+        <item name="android:windowBackground">#071B0E</item>
+        <item name="android:statusBarColor">#071B0E</item>
+        <item name="android:navigationBarColor">#071B0E</item>
+        <item name="colorSurface">#0F2B18</item>
+    </style>
+
+    <!-- Pesce d'Aprile: sfondo oceano profondo, accento azzurro vivace -->
+    <style name="Theme.AprilFools" parent="">
+        <item name="colorPrimary">#00B4D8</item>
+        <item name="colorPrimaryVariant">#00B4D8</item>
+        <item name="colorSecondary">#FF9F1C</item>
+        <item name="colorAccent">#00B4D8</item>
+        <item name="android:colorBackground">#03045E</item>
+        <item name="android:windowBackground">#03045E</item>
+        <item name="android:statusBarColor">#03045E</item>
+        <item name="android:navigationBarColor">#03045E</item>
+        <item name="colorSurface">#0A0F6E</item>
+    </style>
+
 </resources>
