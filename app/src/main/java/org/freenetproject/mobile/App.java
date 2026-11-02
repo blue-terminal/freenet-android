@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.os.LocaleListCompat;
 import androidx.preference.PreferenceManager;
 
+import org.freenetproject.mobile.net.Tor;
 import org.freenetproject.mobile.update.UpdateWorker;
 
 public class App extends Application {
@@ -27,6 +28,7 @@ public class App extends Application {
         }
         applyLanguage(preferences.getString(KEY_LANGUAGE, ""));
         registerActivityLifecycleCallbacks(new ColorApplier());
+        Tor.load(this);
         UpdateWorker.schedule(this, preferences.getBoolean("auto_update", true));
     }
 
