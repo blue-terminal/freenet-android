@@ -8,6 +8,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <!-- Only to open Orbot from the Tor setting; nothing else is queried. -->
     <queries>
@@ -62,6 +65,13 @@
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:label=""
             android:windowSoftInputMode="adjustResize"
+            android:parentActivityName=".ui.main.activity.MainActivity"
+            android:theme="@style/AppTheme.NoActionBar" />
+
+        <activity
+            android:name=".ui.main.activity.VideoCallActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:label="@string/video_call"
             android:parentActivityName=".ui.main.activity.MainActivity"
             android:theme="@style/AppTheme.NoActionBar" />
 

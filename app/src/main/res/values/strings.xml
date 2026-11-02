@@ -302,4 +302,8 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     <string name="btn_pc_pref">Show PC button</string>
     <string name="btn_web_pref">Show Open Freenet button</string>
     <string name="btn_sites_pref">Show Sites button</string>
+    <string name="video_call">Video Call</string>
+    <string name="vc_room_slot">Stanza %s</string>
+    <string name="vc_perm_denied">Camera e microfono richiesti per la videochiamata</string>
+    <string name="back">Indietro</string>
 </resources>
