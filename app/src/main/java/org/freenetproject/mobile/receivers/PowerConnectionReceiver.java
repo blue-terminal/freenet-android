@@ -14,22 +14,16 @@ public class PowerConnectionReceiver extends BroadcastReceiver {
     @SuppressLint("UnsafeProtectedBroadcastReceiver")
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.d("Freenet", "onReceive");
-
-        // only if configured to manage start/stop
-        switch(Objects.requireNonNull(intent.getAction())){
+        Context appContext = context.getApplicationContext();
+        Manager manager = Manager.getInstance();
+        switch (Objects.requireNonNull(intent.getAction())) {
             case Intent.ACTION_POWER_CONNECTED:
                 Log.i("Freenet", "Resuming service from power change");
-                new Thread(() -> {
-                    Manager.getInstance().resumeService(context, Manager.CONTEXT_BATTERY);
-                }).start();
-
+                new Thread(() -> manager.resume(appContext, Manager.PauseReason.BATTERY)).start();
                 break;
             case Intent.ACTION_POWER_DISCONNECTED:
                 Log.i("Freenet", "Pausing service from power change");
-                new Thread(() -> {
-                    Manager.getInstance().pauseService(context, Manager.CONTEXT_BATTERY);
-                }).start();
+                new Thread(() -> manager.pause(Manager.PauseReason.BATTERY)).start();
                 break;
         }
     }

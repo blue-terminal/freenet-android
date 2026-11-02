@@ -8,8 +8,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import org.freenetproject.mobile.BuildConfig;
 import org.freenetproject.mobile.R;
 
-import freenet.node.Version;
-
 public class AboutActivity extends AppCompatActivity {
 
     @Override
@@ -22,8 +20,7 @@ public class AboutActivity extends AppCompatActivity {
                 getResources().getString(
                         R.string.text_about,
                         BuildConfig.VERSION_NAME,
-                        Version.publicVersion(),
-                        String.valueOf(Version.buildNumber())
+                        BuildConfig.FREENET_VERSION
                 ),
                 "text/html; charset=utf-8",
                 null
