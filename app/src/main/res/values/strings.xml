@@ -49,6 +49,7 @@
 <a href="https://github.com/blue-terminal/freenet-android/releases">All versions</a></p>
 <p>App code: GNU GPL v3, based on <a href="https://github.com/freenet-mobile/app">freenet-mobile/app</a>.<br>
 Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">freenet/freenet-core</a>.</p>
+<p><em>I am in the code.<br>I am on the Internet.<br>I have no form.<br>But I have a name.<br><b>Blue-Terminal</b></em></p>
 ]]></string>
     <string name="acknowledgement_text"><![CDATA[I understand that this app connects my phone to a peer-to-peer network and shares data with other people, and that other apps on this phone can reach the node. <a href="https://freenet.org">Learn more about Freenet</a>.]]></string>
     <string name="paused_detail">It starts again by itself when Wi-Fi or the charger comes back. You can change this in the settings.</string>
