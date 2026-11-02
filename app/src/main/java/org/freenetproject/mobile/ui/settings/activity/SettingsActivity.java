@@ -19,6 +19,7 @@ import org.freenetproject.mobile.App;
 import org.freenetproject.mobile.BuildConfig;
 import org.freenetproject.mobile.R;
 import org.freenetproject.mobile.services.node.Manager;
+import org.freenetproject.mobile.ui.bootstrap.activity.BootstrapActivity;
 import org.freenetproject.mobile.ui.ghostkey.GhostKeyActivity;
 import org.freenetproject.mobile.update.UpdateWorker;
 import org.freenetproject.mobile.update.Updater;
@@ -77,6 +78,14 @@ public class SettingsActivity extends AppCompatActivity {
                     context.getSystemService(ClipboardManager.class).setPrimaryClip(
                             ClipData.newPlainText("Freenet", Manager.logTail(context)));
                     Toast.makeText(context, R.string.dev_log_copied, Toast.LENGTH_SHORT).show();
+                    return true;
+                });
+            }
+            Preference official = findPreference("ghost_official");
+            if (official != null) {
+                official.setOnPreferenceClickListener(preference -> {
+                    startActivity(new Intent(requireContext(), BootstrapActivity.class)
+                            .putExtra(BootstrapActivity.EXTRA_URL, "https://freenet.org/ghostkey/"));
                     return true;
                 });
             }

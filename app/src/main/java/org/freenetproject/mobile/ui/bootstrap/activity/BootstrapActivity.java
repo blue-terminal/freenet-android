@@ -105,6 +105,12 @@ public class BootstrapActivity extends AppCompatActivity {
         if ("127.0.0.1".equals(url.getHost()) && url.getPort() == Manager.WEB_PORT) {
             return false;
         }
+        // Invite form and Ghost Key page stay in the app: the address bar shows where you are.
+        String host = url.getHost();
+        if ("https".equals(url.getScheme()) && host != null
+                && (host.equals("freenet.org") || host.endsWith(".freenet.org"))) {
+            return false;
+        }
         // A page must not be able to open other apps through their own link types.
         String scheme = url.getScheme();
         if ("https".equals(scheme) || "http".equals(scheme)) {
