@@ -15,6 +15,7 @@ la vecchia rete (oggi Hyphanet). Non è un'app di The Freenet Project.
 
 - C'è un editor HTML: scrivi le pagine, guardi l'anteprima e pubblichi con `fdev website`.
 
+- Ha uno stile scuro nuovo.
 - Può cercare e scaricare da sola le nuove versioni da GitHub. L'installazione la confermi sempre tu.
 
 ## Compilare
@@ -31,7 +32,7 @@ non sono nel repository: li scarica `prepara-freenet.sh`, che ne controlla le im
 
 - Non è un'app ufficiale di The Freenet Project e non è stata provata a lungo sui telefoni.
 - Le build usano una chiave di debug: gli aggiornamenti funzionano solo con APK firmati dalla stessa chiave, quindi vanno compilati sullo stesso PC. Per distribuirla serve una chiave di firma propria.
-- La chat River è stata segnalata come non funzionante. La 0.4.1 contiene una correzione, ma non è stata verificata.
+- La chat River è stata segnalata come non funzionante. Dalla 0.4.1 c'è una correzione, ma non è stata verificata.
 - Sull'emulatore x86_64 il nodo non parte: Android blocca la chiamata di sistema `poll`.
 - Le altre app sullo stesso telefono possono raggiungere il nodo su `127.0.0.1:7509`.
 - La versione di Freenet è fissa: per aggiornarla va cambiata in `prepara-freenet.sh` e
