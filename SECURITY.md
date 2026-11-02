@@ -6,7 +6,7 @@ Questa è una versione di prova, non ufficiale, e non è prodotta da The Freenet
 
 | Versione       | Correzioni di sicurezza |
 | -------------- | ----------------------- |
-| 0.5.5          | Sì                      |
+| 0.6.0          | Sì                      |
 | Precedenti     | No                      |
 
 Conviene usare sempre l'ultima versione della pagina

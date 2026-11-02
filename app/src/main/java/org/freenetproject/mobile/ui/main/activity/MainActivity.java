@@ -24,7 +24,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         PreferenceManager.setDefaultValues(this, R.xml.root_preferences, false);
         shownColor = PreferenceManager.getDefaultSharedPreferences(this)
-                .getString(App.KEY_COLOR, "teal");
+                .getString(App.KEY_COLOR, "blue");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onRestart() {
         super.onRestart();
         String color = PreferenceManager.getDefaultSharedPreferences(this)
-                .getString(App.KEY_COLOR, "teal");
+                .getString(App.KEY_COLOR, "blue");
         if (!color.equals(shownColor)) {
             recreate();
         }

@@ -14,11 +14,15 @@ import org.freenetproject.mobile.update.UpdateWorker;
 public class App extends Application {
     public static final String KEY_LANGUAGE = "language";
     public static final String KEY_COLOR = "color";
+    private static final String KEY_MINIMAL_DESIGN = "minimal_design";
 
     @Override
     public void onCreate() {
         super.onCreate();
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        if (!preferences.getBoolean(KEY_MINIMAL_DESIGN, false)) {
+            preferences.edit().putBoolean(KEY_MINIMAL_DESIGN, true).putString(KEY_COLOR, "blue").apply();
+        }
         applyLanguage(preferences.getString(KEY_LANGUAGE, ""));
         registerActivityLifecycleCallbacks(new ColorApplier());
         UpdateWorker.schedule(this, preferences.getBoolean("auto_update", true));
@@ -31,8 +35,8 @@ public class App extends Application {
 
     private static int colorStyle(String name) {
         switch (name) {
-            case "blue":
-                return R.style.Accent_Blue;
+            case "teal":
+                return R.style.Accent_Teal;
             case "violet":
                 return R.style.Accent_Violet;
             case "orange":
@@ -42,7 +46,7 @@ public class App extends Application {
             case "green":
                 return R.style.Accent_Green;
             default:
-                return R.style.Accent_Teal;
+                return R.style.Accent_Blue;
         }
     }
 
@@ -51,7 +55,7 @@ public class App extends Application {
         @Override
         public void onActivityCreated(Activity activity, Bundle state) {
             String color = PreferenceManager.getDefaultSharedPreferences(activity)
-                    .getString(KEY_COLOR, "teal");
+                    .getString(KEY_COLOR, "blue");
             activity.getTheme().applyStyle(colorStyle(color), true);
         }
 
