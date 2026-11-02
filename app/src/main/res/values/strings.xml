@@ -152,4 +152,10 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     <string name="ghost_copied">Key copied. It contains the secret part: do not share it.</string>
     <string name="ghost_official">Valid Ghost Key</string>
     <string name="ghost_official_summary">Opens the Freenet page here. A valid key needs a donation.</string>
+    <string name="ghost_verify_help">Check a certificate against Freenet\'s key. Test keys made here are always invalid.</string>
+    <string name="ghost_verify_hint">Paste the Ghost Key certificate</string>
+    <string name="ghost_verify">Verify certificate</string>
+    <string name="ghost_verify_no_certificate">No Ghost Key certificate found in the text.</string>
+    <string name="ghost_verify_valid">Valid for Freenet.\n%1$s</string>
+    <string name="ghost_verify_invalid">Not valid for Freenet.\n%1$s</string>
 </resources>
