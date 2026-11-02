@@ -15,6 +15,7 @@ import android.os.PowerManager;
 import android.os.SystemClock;
 import android.webkit.CookieManager;
 import android.webkit.WebStorage;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -60,6 +61,14 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     public static class SettingsFragment extends PreferenceFragmentCompat {
+        /** Straight from Freenet\'s own instructions; not translated, they are commands. */
+        private static final String INSTALL_COMMANDS =
+                "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh\n"
+                        + "cargo install ghostkey\n"
+                        + "ghostkey -h\n"
+                        + "ghostkey verify-ghost-key \\\n"
+                        + "    --ghost-certificate ~/Downloads/ghost-key-cert.pem\n";
+
         private static final String KEY_DEVELOPER = "developer_enabled";
         private static final long DOUBLE_TAP_MILLIS = 600;
         private long lastBuildTap = 0;
@@ -148,6 +157,13 @@ public class SettingsActivity extends AppCompatActivity {
             if (video != null) {
                 video.setOnPreferenceClickListener(preference -> {
                     startActivity(new Intent(requireContext(), SitesActivity.class));
+                    return true;
+                });
+            }
+            Preference install = findPreference("ghost_install");
+            if (install != null) {
+                install.setOnPreferenceClickListener(preference -> {
+                    showInstallSteps();
                     return true;
                 });
             }
@@ -303,6 +319,34 @@ public class SettingsActivity extends AppCompatActivity {
             } catch (ActivityNotFoundException noBrowser) {
                 Toast.makeText(requireContext(), R.string.tor_no_orbot, Toast.LENGTH_LONG).show();
             }
+        }
+
+        /**
+         * The commands that install the ghostkey tool on a computer, scrollable and with a
+         * button that copies them. The phone already carries the tool: this is for the PC,
+         * where a certificate downloaded from Freenet is checked.
+         */
+        private void showInstallSteps() {
+            TextView shown = new TextView(requireContext());
+            int padding = Math.round(16 * getResources().getDisplayMetrics().density);
+            shown.setPadding(padding, padding, padding, padding);
+            shown.setTextIsSelectable(true);
+            shown.setTypeface(Typeface.MONOSPACE);
+            shown.setText(getString(R.string.ghost_install_steps, INSTALL_COMMANDS));
+            ScrollView scroll = new ScrollView(requireContext());
+            scroll.addView(shown);
+            new AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.ghost_install)
+                    .setView(scroll)
+                    .setNegativeButton(android.R.string.ok, null)
+                    .setPositiveButton(R.string.ghost_install_copy, (dialog, which) -> {
+                        requireContext().getSystemService(ClipboardManager.class)
+                                .setPrimaryClip(ClipData.newPlainText(
+                                        "ghostkey", INSTALL_COMMANDS));
+                        Toast.makeText(requireContext(), R.string.ghost_install_copied,
+                                Toast.LENGTH_SHORT).show();
+                    })
+                    .show();
         }
 
         /** The address to type on the PC, big enough to read and with a button to copy it. */
