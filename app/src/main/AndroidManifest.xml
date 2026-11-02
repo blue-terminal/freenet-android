@@ -65,6 +65,10 @@
             android:parentActivityName=".ui.main.activity.MainActivity"
             android:theme="@style/AppTheme.NoActionBar" />
 
+        <receiver
+            android:name=".ui.notification.Restore"
+            android:exported="false" />
+
         <service
             android:name=".services.node.Service"
             android:exported="false"
