@@ -1,5 +1,7 @@
 package org.freenetproject.mobile.ui.main.activity;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -14,6 +16,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -35,6 +38,7 @@ import java.net.URLEncoder;
 import java.security.NoSuchAlgorithmException;
 
 public class MainFragment extends Fragment {
+    private static final String PC_COMMAND = "adb forward tcp:7509 tcp:7509";
     private static final String RIVER_JOINED = "river_joined";
     private static final String GHOST_KEY_URL = "https://freenet.org/ghostkey/";
     private static final String RIVER_URL = Manager.WEB_URL
@@ -101,6 +105,7 @@ public class MainFragment extends Fragment {
         updateAbout(manager, view);
         view.findViewById(R.id.ghostkey_button).setOnClickListener(v ->
                 startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(GHOST_KEY_URL))));
+        view.findViewById(R.id.pc_button).setOnClickListener(v -> showPcHelp());
         Button river = view.findViewById(R.id.river_button);
         river.setOnClickListener(v -> openRiver(river));
         manager.getStatus().observe(getViewLifecycleOwner(), status ->
@@ -151,6 +156,18 @@ public class MainFragment extends Fragment {
                 showRiver(invited);
             });
         }, "freenet-river-invite").start();
+    }
+
+    /** Through the USB cable only: the node has no password, so it must not reach the network. */
+    private void showPcHelp() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.use_from_pc)
+                .setMessage(getString(R.string.pc_help, PC_COMMAND, Manager.WEB_URL))
+                .setNegativeButton(android.R.string.ok, null)
+                .setPositiveButton(R.string.pc_copy, (d, w) ->
+                        requireContext().getSystemService(ClipboardManager.class)
+                                .setPrimaryClip(ClipData.newPlainText("adb", PC_COMMAND)))
+                .show();
     }
 
     private void showRiver(String url) {
