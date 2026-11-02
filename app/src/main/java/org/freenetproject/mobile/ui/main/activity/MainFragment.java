@@ -127,6 +127,7 @@ public class MainFragment extends Fragment {
         updateSettings(manager, view);
         updateAbout(manager, view);
         view.findViewById(R.id.pc_button).setOnClickListener(v -> showPcHelp());
+        view.findViewById(R.id.space_sound_button).setOnClickListener(v -> SpaceSound.play());
         Button river = view.findViewById(R.id.river_button);
         river.setOnClickListener(v -> openRiver(river));
         manager.getStatus().observe(getViewLifecycleOwner(), status ->
