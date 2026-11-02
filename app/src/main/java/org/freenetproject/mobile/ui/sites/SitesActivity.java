@@ -3,6 +3,8 @@ package org.freenetproject.mobile.ui.sites;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Intent;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.InputType;
@@ -19,6 +21,8 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.android.material.button.MaterialButton;
 
 import org.freenetproject.mobile.R;
 import org.freenetproject.mobile.services.node.Manager;
@@ -79,6 +83,7 @@ public class SitesActivity extends AppCompatActivity {
 
         editor = new EditText(this);
         editor.setTypeface(Typeface.MONOSPACE);
+        editor.setTextSize(14);
         editor.setGravity(Gravity.TOP | Gravity.START);
         editor.setHorizontallyScrolling(true);
         editor.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE
@@ -129,13 +134,26 @@ public class SitesActivity extends AppCompatActivity {
     }
 
     private LinearLayout.LayoutParams weight() {
-        return new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        LinearLayout.LayoutParams params =
+                new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        int margin = Math.round(4 * getResources().getDisplayMetrics().density);
+        params.setMargins(margin, margin, margin, margin);
+        return params;
     }
 
+    /** Only the main action stands out: the others use the quieter color. */
     private Button button(int text, View.OnClickListener listener) {
-        Button button = new Button(this);
+        MaterialButton button = new MaterialButton(this);
         button.setText(text);
+        button.setAllCaps(false);
+        button.setLetterSpacing(0);
+        button.setInsetTop(0);
+        button.setInsetBottom(0);
         button.setOnClickListener(listener);
+        if (text != R.string.sites_publish) {
+            button.setBackgroundTintList(ColorStateList.valueOf(getColor(R.color.colorSurface)));
+            button.setTextColor(Color.WHITE);
+        }
         return button;
     }
 
