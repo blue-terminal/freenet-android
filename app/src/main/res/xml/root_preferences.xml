@@ -18,4 +18,20 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory app:title="@string/updates">
+
+        <SwitchPreferenceCompat
+            app:key="auto_update"
+            app:title="@string/auto_update"
+            app:defaultValue="true"
+            app:summary="@string/auto_update_summary"
+            />
+
+        <Preference
+            app:key="check_update"
+            app:title="@string/check_update"
+            />
+
+    </PreferenceCategory>
+
 </PreferenceScreen>
