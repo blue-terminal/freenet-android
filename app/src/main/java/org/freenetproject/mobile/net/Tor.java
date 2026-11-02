@@ -7,6 +7,7 @@ import androidx.preference.PreferenceManager;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.Proxy;
 import java.net.URL;
 
@@ -40,6 +41,23 @@ public final class Tor {
 
     public static boolean isEnabled() {
         return enabled;
+    }
+
+    /** Orbot's package, so the settings screen can open it when it is not running. */
+    public static final String ORBOT = "org.torproject.android";
+
+    /**
+     * True when something answers on the SOCKS port, which in practice means Orbot is
+     * running. Without it every request through Tor would fail, so the setting checks
+     * this instead of silently turning on.
+     */
+    public static boolean available() {
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(HOST, SOCKS_PORT), 1500);
+            return true;
+        } catch (IOException notRunning) {
+            return false;
+        }
     }
 
     public static HttpsURLConnection open(String url) throws IOException {
