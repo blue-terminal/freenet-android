@@ -53,7 +53,6 @@
         <item>Freenet</item>
         <item>Galaxy</item>
         <item>Shield</item>
-        <item>Star</item>
         <item>Immagine</item>
         <item>Nessuno</item>
     </string-array>
@@ -61,7 +60,6 @@
         <item>freenet</item>
         <item>galaxy</item>
         <item>shield</item>
-        <item>star</item>
         <item>custom</item>
         <item>none</item>
     </string-array>
