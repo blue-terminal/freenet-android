@@ -123,4 +123,30 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
         <item>Normal</item>
         <item>Detailed</item>
     </string-array>
+    <string name="other_apps">Other apps</string>
+    <string name="ghost_generator">Key generator</string>
+    <string name="ghost_generator_summary">Makes test Ghost Keys, valid only locally.</string>
+    <string name="ghost_warning">These are test keys, made on this phone: Freenet rejects them. A valid Ghost Key is signed by Freenet after a donation, at freenet.org/ghostkey.</string>
+    <string name="ghost_generate">Generate test key</string>
+    <string name="ghost_working">Generating…</string>
+    <string name="ghost_done">Test key created.\nCheck with the key made here: %1$s\nIt replaces the previous test key.</string>
+    <string name="ghost_failed">Could not create the key: %1$s</string>
+    <string name="ghost_copy">Copy certificate</string>
+    <string name="dev_disk">Disk space for network content</string>
+    <string name="dev_threads">Background threads</string>
+    <string name="dev_copy_log">Copy the log</string>
+    <string name="dev_copy_log_summary">Copies the end of the node log. Read it before sharing it.</string>
+    <string name="dev_log_copied">Log copied</string>
+    <string-array name="dev_disk_names">
+        <item>Freenet default</item>
+        <item>2 GB</item>
+        <item>8 GB</item>
+        <item>16 GB</item>
+    </string-array>
+    <string-array name="dev_threads_names">
+        <item>Freenet default</item>
+        <item>4</item>
+        <item>8</item>
+        <item>16</item>
+    </string-array>
 </resources>

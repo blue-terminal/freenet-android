@@ -30,4 +30,16 @@
         <item>info</item>
         <item>debug</item>
     </string-array>
+    <string-array name="dev_disk_values" translatable="false">
+        <item></item>
+        <item>2147483648</item>
+        <item>8589934592</item>
+        <item>17179869184</item>
+    </string-array>
+    <string-array name="dev_threads_values" translatable="false">
+        <item></item>
+        <item>4</item>
+        <item>8</item>
+        <item>16</item>
+    </string-array>
 </resources>

@@ -44,6 +44,9 @@
             android:label="@string/title_activity_settings"
             android:parentActivityName=".ui.main.activity.MainActivity" />
         <activity
+            android:name=".ui.ghostkey.GhostKeyActivity"
+            android:parentActivityName=".ui.settings.activity.SettingsActivity" />
+        <activity
             android:name=".ui.sites.SitesActivity"
             android:label="@string/sites_title"
             android:parentActivityName=".ui.main.activity.MainActivity"
