@@ -58,6 +58,7 @@ public class MainFragment extends Fragment {
     private ValueAnimator pulse;
     private final Handler uptimeHandler = new Handler(Looper.getMainLooper());
     private Runnable uptimeTick;
+    private SharedPreferences.OnSharedPreferenceChangeListener appearanceListener;
 
     private static int actionIcon(Manager.Status status) {
         switch (status) {
@@ -106,6 +107,10 @@ public class MainFragment extends Fragment {
         if (uptimeTick != null) {
             uptimeHandler.removeCallbacks(uptimeTick);
         }
+        if (appearanceListener != null) {
+            PreferenceManager.getDefaultSharedPreferences(requireContext())
+                    .unregisterOnSharedPreferenceChangeListener(appearanceListener);
+        }
         super.onDestroyView();
     }
 
@@ -139,6 +144,15 @@ public class MainFragment extends Fragment {
         view.findViewById(R.id.space_sound_button).setOnClickListener(v -> SpaceSound.play());
         updateUptime(Manager.getInstance(), view);
         applyAppearance(view);
+
+        // Live update without leaving Settings
+        appearanceListener = (prefs, key) -> {
+            if (isAdded() && getView() != null) {
+                applyAppearance(getView());
+            }
+        };
+        PreferenceManager.getDefaultSharedPreferences(requireContext())
+                .registerOnSharedPreferenceChangeListener(appearanceListener);
         Button river = view.findViewById(R.id.river_button);
         river.setOnClickListener(v -> openRiver(river));
         manager.getStatus().observe(getViewLifecycleOwner(), status ->
