@@ -248,6 +248,8 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
     </string-array>
     <string name="notification_stop">Ferma</string>
     <string name="space_sound_desc">Suono spaziale</string>
+    <string name="fullscreen">Schermo intero</string>
+    <string name="fullscreen_summary">Nascondi barra di stato e navigazione</string>
     <string name="led_theme">Tema LED</string>
     <string name="led_theme_summary">Sfondo nero profondo con contorni al neon</string>
     <string name="proxy_history">Cronologia password</string>

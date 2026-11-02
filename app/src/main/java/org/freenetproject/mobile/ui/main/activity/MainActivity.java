@@ -6,9 +6,9 @@ import android.os.Build;
 import android.os.Bundle;
 
 import android.content.SharedPreferences;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
@@ -21,17 +21,9 @@ import org.freenetproject.mobile.R;
 import org.freenetproject.mobile.update.Updater;
 
 public class MainActivity extends AppCompatActivity {
-    private static final Set<String> APPEARANCE_KEYS = new HashSet<>(Arrays.asList(
-            "logo_style", "timer_color", "show_version",
-            "btn_river", "btn_pc", "btn_web", "btn_sites"));
     private String shownColor;
     private boolean shownLed;
-    private final SharedPreferences.OnSharedPreferenceChangeListener appearanceListener =
-            (prefs, key) -> {
-                if (APPEARANCE_KEYS.contains(key)) {
-                    recreate();
-                }
-            };
+    private SharedPreferences.OnSharedPreferenceChangeListener fullscreenListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,10 +33,38 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         shownColor = prefs.getString(App.KEY_COLOR, "blue");
         shownLed = prefs.getBoolean(App.KEY_LED, false);
-        prefs.registerOnSharedPreferenceChangeListener(appearanceListener);
+        applyFullscreen(prefs.getBoolean("fullscreen", false));
+        fullscreenListener = (p, key) -> {
+            if ("fullscreen".equals(key)) applyFullscreen(p.getBoolean("fullscreen", false));
+        };
+        prefs.registerOnSharedPreferenceChangeListener(fullscreenListener);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
+        }
+    }
+
+    private void applyFullscreen(boolean enable) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowInsetsController ctrl = getWindow().getInsetsController();
+            if (ctrl != null) {
+                if (enable) {
+                    ctrl.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                    ctrl.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                } else {
+                    ctrl.show(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                }
+            }
+        } else {
+            View decor = getWindow().getDecorView();
+            if (enable) {
+                decor.setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+            } else {
+                decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+            }
         }
     }
 
@@ -52,6 +72,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         Updater.autoCheck(this);
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        applyFullscreen(prefs.getBoolean("fullscreen", false));
     }
 
     @Override
@@ -72,9 +94,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        PreferenceManager.getDefaultSharedPreferences(this)
-                .unregisterOnSharedPreferenceChangeListener(appearanceListener);
         super.onDestroy();
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .unregisterOnSharedPreferenceChangeListener(fullscreenListener);
     }
 
     @Override
