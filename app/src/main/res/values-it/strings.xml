@@ -23,6 +23,9 @@
 <h3>Freenet mobile v%1$s</h3>
 <p>Fa girare <a href="https://freenet.org">Freenet</a> v%2$s sul telefono. È una versione non ufficiale, non fatta da The Freenet Project.</p>
 <p>Telemetria e aggiornamenti automatici sono spenti. L\'interfaccia web si raggiunge solo da questo telefono.</p>
+<p><a href="https://github.com/blue-terminal/freenet-android">Progetto su GitHub</a><br>
+<a href="https://github.com/blue-terminal/freenet-android/issues">Supporto e segnalazione errori</a><br>
+<a href="https://github.com/blue-terminal/freenet-android/releases">Tutte le versioni</a></p>
 <p>Codice dell\'app: GNU GPL v3, basato su <a href="https://github.com/freenet-mobile/app">freenet-mobile/app</a>.<br>
 Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">freenet/freenet-core</a>.</p>
 ]]></string>
