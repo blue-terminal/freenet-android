@@ -167,6 +167,20 @@
             app:summary="@string/tor_mode_summary"
             />
 
+        <SwitchPreferenceCompat
+            app:key="mac_random"
+            app:title="@string/mac_random"
+            app:defaultValue="false"
+            app:summary="@string/mac_random_summary"
+            />
+
+        <SwitchPreferenceCompat
+            app:key="block_tracking"
+            app:title="@string/block_tracking"
+            app:defaultValue="false"
+            app:summary="@string/block_tracking_summary"
+            />
+
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/host">
