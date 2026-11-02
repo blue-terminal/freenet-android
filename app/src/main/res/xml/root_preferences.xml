@@ -126,9 +126,9 @@
             />
 
         <Preference
-            app:key="video_site"
-            app:title="@string/video_site_entry"
-            app:summary="@string/video_site_entry_summary"
+            app:key="site_zip"
+            app:title="@string/site_zip_entry"
+            app:summary="@string/site_zip_entry_summary"
             />
 
         <Preference
@@ -229,6 +229,12 @@
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/title_activity_about">
+
+        <Preference
+            app:key="news"
+            app:title="@string/news"
+            app:summary="@string/news_summary"
+            />
 
         <Preference
             app:key="build_number"

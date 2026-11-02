@@ -146,6 +146,13 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     <string name="pc_copy">Copy command</string>
     <string name="pc_help">The phone stays the server and you use Freenet in the PC browser.\n\n1. Start Freenet here.\n2. Connect the phone with a USB cable and turn on USB debugging.\n3. On the PC run:\n%1$s\n4. In the PC browser open:\n%2$s\n\nOnly the USB cable is supported: the node has no password, and over the network anyone could reach your data and keys.</string>
     <string name="developer">Developer settings</string>
+    <string name="sites_from_zip">Site from a zip</string>
+    <string name="sites_zip_unreadable">The zip file cannot be read.</string>
+    <string name="sites_zip_bad_path">The zip holds a path outside the site: %1$s</string>
+    <string name="host_same_network">The computer must be on the same network: its address has to start with %1$s. On mobile data, or on another Wi-Fi, the two cannot see each other.</string>
+    <string name="news">News and what is missing</string>
+    <string name="news_summary">What this version brings and what is still to be done.</string>
+    <string name="news_text">In this version:\n\n• Keys made here work between the people who use the app: copy your public key, add theirs, and a check says whose certificate it is.\n• Generating a key is immediate and keeps the same identity.\n• A website can be cloned from a zip file and published.\n• "Use with Tor" checks that Orbot is running.\n• "Install the keys on the PC" shows Freenet\'s commands.\n• The start button changes colour, and host mode shows a copyable address.\n\nStill to be done:\n\n• A password for host mode: the node has none, so for now host mode only belongs on a network you trust.\n• No SSH into the phone: an app cannot give a shell to the system.\n• The node itself cannot go through Tor: it speaks UDP, which Tor does not carry.\n• A Freenet site cannot receive uploads from other people, so the video site holds what is published from this phone.\n• Nothing is verified on a phone yet: every version is built and checked, not used on a device.</string>
     <string name="build_number">Build number</string>
     <string name="developer_on">Developer settings on</string>
     <string name="developer_off">Developer settings off</string>
@@ -173,8 +180,8 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
         <item>Detailed</item>
     </string-array>
     <string name="other_apps">Other apps</string>
-    <string name="video_site_entry">Video site (like YouTube)</string>
-    <string name="video_site_entry_summary">Opens the editor, where "Video site" makes a video page hosted on this phone and published to Freenet.</string>
+    <string name="site_zip_entry">Clone a site from a zip</string>
+    <string name="site_zip_entry_summary">Opens the editor, where a zipped website is copied in and published to Freenet.</string>
     <string name="ghost_install">Install the keys on the PC</string>
     <string name="ghost_install_summary">The commands to install Freenet\'s ghostkey tool on a computer and check a certificate.</string>
     <string name="ghost_install_steps">The phone already carries the tool. On a computer, Freenet\'s own steps are:\n\n%1$s\nThe first command installs Rust, the second the tool, the third checks it runs. The last one verifies a certificate downloaded from freenet.org/ghostkey: a valid one answers "Ghost certificate verified".</string>

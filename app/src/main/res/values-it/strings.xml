@@ -138,6 +138,13 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
     <string name="pc_copy">Copia comando</string>
     <string name="pc_help">Il telefono resta il server e usi Freenet nel browser del PC.\n\n1. Avvia Freenet qui.\n2. Collega il telefono con il cavo USB e attiva il debug USB.\n3. Sul PC lancia:\n%1$s\n4. Nel browser del PC apri:\n%2$s\n\nFunziona solo con il cavo USB: il nodo non ha password, e via rete chiunque potrebbe arrivare ai tuoi dati e alle tue chiavi.</string>
     <string name="developer">Impostazioni sviluppatore</string>
+    <string name="sites_from_zip">Sito da uno zip</string>
+    <string name="sites_zip_unreadable">Non riesco a leggere il file zip.</string>
+    <string name="sites_zip_bad_path">Lo zip contiene un percorso fuori dal sito: %1$s</string>
+    <string name="host_same_network">Il computer deve essere sulla stessa rete: il suo indirizzo deve iniziare con %1$s. Se il telefono è sui dati o su un\'altra Wi-Fi, i due non si vedono.</string>
+    <string name="news">Novità e cosa manca</string>
+    <string name="news_summary">Cosa porta questa versione e cosa resta da fare.</string>
+    <string name="news_text">In questa versione:\n\n• Le chiavi create qui funzionano tra le persone che usano l\'app: copi la tua chiave pubblica, aggiungi la loro, e il controllo dice di chi è un certificato.\n• Generare una chiave è immediato e l\'identità resta la stessa.\n• Un sito si può clonare da un file zip e pubblicare.\n• "Usa con Tor" controlla che Orbot sia attivo.\n• "Installa le chiavi sul PC" mostra i comandi di Freenet.\n• Il pulsante di avvio cambia colore, e la modalità host mostra un indirizzo copiabile.\n\nCosa manca:\n\n• Una password per la modalità host: il nodo non ne ha, quindi per ora la modalità host va usata solo su una rete di cui ti fidi.\n• Niente SSH sul telefono: un\'app non può dare una shell al sistema.\n• Il nodo non può passare da Tor: parla UDP, che Tor non trasporta.\n• Un sito Freenet non può ricevere caricamenti da altre persone, quindi il sito video contiene quello che pubblichi da questo telefono.\n• Niente è ancora provato su un telefono: ogni versione è compilata e controllata, non usata su un dispositivo.</string>
     <string name="build_number">Numero build</string>
     <string name="developer_on">Impostazioni sviluppatore attive</string>
     <string name="developer_off">Impostazioni sviluppatore disattivate</string>
@@ -165,8 +172,8 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
         <item>Dettagliato</item>
     </string-array>
     <string name="other_apps">Altre app</string>
-    <string name="video_site_entry">Sito video (tipo YouTube)</string>
-    <string name="video_site_entry_summary">Apre l\'editor, dove "Sito video" crea una pagina di video ospitata su questo telefono e pubblicata su Freenet.</string>
+    <string name="site_zip_entry">Clona un sito da uno zip</string>
+    <string name="site_zip_entry_summary">Apre l\'editor, dove un sito dentro uno zip viene copiato e pubblicato su Freenet.</string>
     <string name="ghost_install">Installa le chiavi sul PC</string>
     <string name="ghost_install_summary">I comandi per installare lo strumento ghostkey di Freenet su un computer e controllare un certificato.</string>
     <string name="ghost_install_steps">Sul telefono lo strumento c\'è già. Su un computer, i passi di Freenet sono:\n\n%1$s\nIl primo comando installa Rust, il secondo lo strumento, il terzo controlla che parta. L\'ultimo verifica un certificato scaricato da freenet.org/ghostkey: se è valido risponde "Ghost certificate verified".</string>
