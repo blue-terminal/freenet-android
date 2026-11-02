@@ -78,6 +78,7 @@ public final class Updater {
         String version;
         String url;
         String sha256;
+        String notes = "";
     }
 
     /** Every time the app opens, when the setting is on. It stays silent unless there is an update. */
@@ -122,9 +123,14 @@ public final class Updater {
                 context.getString(R.string.updates), NotificationManager.IMPORTANCE_HIGH));
         Intent open = new Intent(context, SettingsActivity.class)
                 .putExtra(SettingsActivity.EXTRA_CHECK_UPDATE, true);
+        String notifText = release.version;
+        if (release.notes != null && !release.notes.isEmpty()) {
+            notifText += " — " + release.notes.replace("\n", " ");
+        }
         manager.notify(NOTIFICATION_ID, new Notification.Builder(context, CHANNEL_ID)
                 .setContentTitle(context.getString(R.string.update_available_title))
-                .setContentText(release.version)
+                .setContentText(notifText)
+                .setStyle(new Notification.BigTextStyle().bigText(notifText))
                 .setSmallIcon(R.drawable.ic_freenet_logo_notification)
                 .setAutoCancel(true)
                 .setPriority(Notification.PRIORITY_HIGH)
@@ -190,6 +196,7 @@ public final class Updater {
                     found.version = item.getString("tag_name");
                     found.url = asset.getString("browser_download_url");
                     found.sha256 = digest.substring("sha256:".length()).toLowerCase(Locale.ROOT);
+                    found.notes = item.optString("body", "");
                     newest = version;
                 }
             }
@@ -216,6 +223,7 @@ public final class Updater {
         release.version = tag;
         release.url = asset.getString("url");
         release.sha256 = asset.getString("sha256").toLowerCase(Locale.ROOT);
+        release.notes = manifest.optString("notes", "");
         if (!release.url.startsWith(DOWNLOAD_PREFIX)) {
             throw new IOException("Unexpected download address");
         }
@@ -245,9 +253,13 @@ public final class Updater {
     }
 
     private static void askToInstall(Activity activity, Release release) {
+        String message = activity.getString(R.string.update_available, release.version);
+        if (release.notes != null && !release.notes.isEmpty()) {
+            message += "\n\n" + activity.getString(R.string.update_notes_label) + "\n" + release.notes;
+        }
         new AlertDialog.Builder(activity)
                 .setTitle(R.string.update_available_title)
-                .setMessage(activity.getString(R.string.update_available, release.version))
+                .setMessage(message)
                 .setNegativeButton(android.R.string.cancel, null)
                 .setPositiveButton(R.string.update_download, (d, w) -> {
                     toast(activity, activity.getString(R.string.update_downloading));
