@@ -55,9 +55,9 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     <string name="sites_publish_failed">Publishing failed: %1$s</string>
     <string name="updates">Updates</string>
     <string name="auto_update">Check automatically</string>
-    <string name="auto_update_summary">Once a day, when the app opens, it asks GitHub if there is a new version. You always confirm before installing.</string>
+    <string name="auto_update_summary">Every few hours, even with the app closed, it asks GitHub if there is a new version and sends a notification. You always confirm before installing.</string>
     <string name="check_update">Check for updates</string>
-    <string name="update_none">You have the latest version.</string>
+    <string name="update_none">You have the latest version (%1$s).</string>
     <string name="update_failed">Update failed: %1$s</string>
     <string name="update_available_title">New version available</string>
     <string name="update_available">Version %1$s is ready on GitHub. Download it now?</string>
@@ -93,4 +93,5 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
         <item>Pink</item>
         <item>Green</item>
     </string-array>
+    <string name="update_unreachable">Could not reach GitHub. Try again later.</string>
 </resources>

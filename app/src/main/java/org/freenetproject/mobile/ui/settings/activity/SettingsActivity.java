@@ -9,9 +9,11 @@ import androidx.preference.PreferenceFragmentCompat;
 
 import org.freenetproject.mobile.App;
 import org.freenetproject.mobile.R;
+import org.freenetproject.mobile.update.UpdateWorker;
 import org.freenetproject.mobile.update.Updater;
 
 public class SettingsActivity extends AppCompatActivity {
+    public static final String EXTRA_CHECK_UPDATE = "check_update";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,6 +26,10 @@ public class SettingsActivity extends AppCompatActivity {
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
+        }
+        // Opened from the update notification: go straight to the download question.
+        if (savedInstanceState == null && getIntent().getBooleanExtra(EXTRA_CHECK_UPDATE, false)) {
+            Updater.check(this, true);
         }
     }
 
@@ -45,6 +51,13 @@ public class SettingsActivity extends AppCompatActivity {
                     preference.getPreferenceManager().getSharedPreferences().edit()
                             .putString(App.KEY_COLOR, (String) value).commit();
                     requireActivity().recreate();
+                    return true;
+                });
+            }
+            Preference automatic = findPreference("auto_update");
+            if (automatic != null) {
+                automatic.setOnPreferenceChangeListener((preference, value) -> {
+                    UpdateWorker.schedule(requireContext(), (Boolean) value);
                     return true;
                 });
             }

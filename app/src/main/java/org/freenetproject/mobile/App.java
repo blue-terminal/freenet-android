@@ -9,6 +9,8 @@ import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.os.LocaleListCompat;
 import androidx.preference.PreferenceManager;
 
+import org.freenetproject.mobile.update.UpdateWorker;
+
 public class App extends Application {
     public static final String KEY_LANGUAGE = "language";
     public static final String KEY_COLOR = "color";
@@ -19,6 +21,7 @@ public class App extends Application {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         applyLanguage(preferences.getString(KEY_LANGUAGE, ""));
         registerActivityLifecycleCallbacks(new ColorApplier());
+        UpdateWorker.schedule(this, preferences.getBoolean("auto_update", true));
     }
 
     /** An empty value follows the language of the phone. */

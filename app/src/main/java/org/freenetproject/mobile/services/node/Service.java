@@ -11,9 +11,7 @@ import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.os.BatteryManager;
 import android.os.Build;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
 import android.util.Log;
 
 import androidx.lifecycle.Observer;
@@ -22,13 +20,8 @@ import androidx.preference.PreferenceManager;
 import org.freenetproject.mobile.receivers.BatteryLevelReceiver;
 import org.freenetproject.mobile.receivers.PowerConnectionReceiver;
 import org.freenetproject.mobile.ui.notification.Notification;
-import org.freenetproject.mobile.update.Updater;
-
-import java.util.concurrent.TimeUnit;
 
 public class Service extends android.app.Service {
-    private static final long UPDATE_CHECK_MILLIS = TimeUnit.HOURS.toMillis(6);
-
     private final PowerConnectionReceiver powerConnectionReceiver = new PowerConnectionReceiver();
     private final BatteryLevelReceiver batteryLevelReceiver = new BatteryLevelReceiver();
     private final Manager manager = Manager.getInstance();
@@ -37,14 +30,6 @@ public class Service extends android.app.Service {
     private ConnectivityManager connectivityManager;
     private ConnectivityManager.NetworkCallback networkCallback;
     private boolean started = false;
-    private final Handler handler = new Handler(Looper.getMainLooper());
-    private final Runnable updateChecks = new Runnable() {
-        @Override
-        public void run() {
-            Updater.notifyInBackground(getApplicationContext());
-            handler.postDelayed(this, UPDATE_CHECK_MILLIS);
-        }
-    };
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -63,7 +48,6 @@ public class Service extends android.app.Service {
             manager.clearPauses();
             manager.getStatus().observeForever(notificationUpdater);
             registerConditions();
-            updateChecks.run();
             new Thread(() -> manager.startNode(getApplicationContext()), "freenet-start").start();
         }
 
@@ -117,7 +101,6 @@ public class Service extends android.app.Service {
     @Override
     public void onDestroy() {
         Log.i("Freenet", "Stopping service");
-        handler.removeCallbacks(updateChecks);
         if (started) {
             unregisterReceiver(batteryLevelReceiver);
             try {
