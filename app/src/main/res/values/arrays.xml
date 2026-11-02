@@ -66,6 +66,19 @@
         <item>none</item>
     </string-array>
 
+    <string-array name="logo_size_names" translatable="false">
+        <item>Piccolo</item>
+        <item>Medio</item>
+        <item>Grande</item>
+        <item>Molto grande</item>
+    </string-array>
+    <string-array name="logo_size_values" translatable="false">
+        <item>small</item>
+        <item>medium</item>
+        <item>large</item>
+        <item>xlarge</item>
+    </string-array>
+
     <string-array name="timer_color_names" translatable="false">
         <item>Accent</item>
         <item>White</item>

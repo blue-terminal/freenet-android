@@ -43,6 +43,15 @@
             app:useSimpleSummaryProvider="true"
             />
 
+        <ListPreference
+            app:key="logo_size"
+            app:title="@string/logo_size"
+            app:defaultValue="medium"
+            app:entries="@array/logo_size_names"
+            app:entryValues="@array/logo_size_values"
+            app:useSimpleSummaryProvider="true"
+            />
+
         <Preference
             app:key="logo_custom_pick"
             app:title="@string/logo_custom_pick"
