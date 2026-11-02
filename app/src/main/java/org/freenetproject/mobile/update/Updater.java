@@ -20,6 +20,7 @@ import androidx.preference.PreferenceManager;
 import org.freenetproject.mobile.BuildConfig;
 import org.freenetproject.mobile.R;
 import org.freenetproject.mobile.ui.settings.activity.SettingsActivity;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -53,6 +54,9 @@ public final class Updater {
             "https://raw.githubusercontent.com/blue-terminal/freenet-android/main/update.json";
     private static final String DOWNLOAD_PREFIX =
             "https://github.com/blue-terminal/freenet-android/releases/download/";
+    // Second road, when the first one is filtered by the network or the phone.
+    private static final String RELEASES_API =
+            "https://api.github.com/repos/blue-terminal/freenet-android/releases?per_page=5";
     private static final Pattern VERSION = Pattern.compile("^v?(\\d+)\\.(\\d+)\\.(\\d+)");
     private static final int TIMEOUT_MILLIS = 20000;
     private static final int MAX_LIST_BYTES = 2 * 1024 * 1024;
@@ -131,13 +135,56 @@ public final class Updater {
                 Log.w(TAG, "Update check failed", e);
                 if (showResult) {
                     activity.runOnUiThread(() -> toast(activity,
-                            activity.getString(R.string.update_unreachable)));
+                            activity.getString(R.string.update_unreachable, describe(e))));
                 }
             }
         }, "freenet-update-check").start();
     }
 
     private static Release newestRelease() throws IOException, JSONException {
+        try {
+            return fromManifest();
+        } catch (IOException | JSONException first) {
+            Log.w(TAG, "Update file not available, trying the GitHub API", first);
+            try {
+                return fromApi();
+            } catch (IOException | JSONException second) {
+                throw first; // the first failure says more about the phone's network
+            }
+        }
+    }
+
+    private static Release fromApi() throws IOException, JSONException {
+        JSONArray releases = new JSONArray(fetchText(RELEASES_API));
+        int[] newest = parseVersion(BuildConfig.VERSION_NAME);
+        Release found = null;
+        for (int i = 0; newest != null && i < releases.length(); i++) {
+            JSONObject item = releases.getJSONObject(i);
+            int[] version = parseVersion(item.getString("tag_name"));
+            if (item.getBoolean("draft") || version == null || compare(version, newest) <= 0) {
+                continue;
+            }
+            JSONArray assets = item.getJSONArray("assets");
+            for (int j = 0; j < assets.length(); j++) {
+                JSONObject asset = assets.getJSONObject(j);
+                String digest = asset.optString("digest", "");
+                if (asset.getString("name").endsWith(Build.SUPPORTED_ABIS[0] + "-release.apk")
+                        && digest.startsWith("sha256:")) {
+                    found = new Release();
+                    found.version = item.getString("tag_name");
+                    found.url = asset.getString("browser_download_url");
+                    found.sha256 = digest.substring("sha256:".length()).toLowerCase(Locale.ROOT);
+                    newest = version;
+                }
+            }
+        }
+        if (found != null && !found.url.startsWith(DOWNLOAD_PREFIX)) {
+            throw new IOException("Unexpected download address");
+        }
+        return found;
+    }
+
+    private static Release fromManifest() throws IOException, JSONException {
         JSONObject manifest = new JSONObject(fetchText(MANIFEST_URL));
         String tag = manifest.getString("version");
         int[] version = parseVersion(tag);
@@ -175,6 +222,10 @@ public final class Updater {
             }
         }
         return 0;
+    }
+
+    private static String describe(Exception e) {
+        return e.getClass().getSimpleName() + ": " + e.getMessage();
     }
 
     private static void askToInstall(Activity activity, Release release) {
