@@ -66,4 +66,20 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
     <string name="sites_link_copied">Link copiato:\n%1$s</string>
     <string name="river_joining">Entro nella stanza, può volerci un momento…</string>
     <string name="river_join_failed">Invito non ottenuto: %1$s</string>
+    <string name="appearance">Aspetto</string>
+    <string name="language">Lingua</string>
+    <string name="color">Colore</string>
+    <string-array name="language_names">
+        <item>Lingua del telefono</item>
+        <item>Italiano</item>
+        <item>English</item>
+    </string-array>
+    <string-array name="color_names">
+        <item>Turchese</item>
+        <item>Blu</item>
+        <item>Viola</item>
+        <item>Arancione</item>
+        <item>Rosa</item>
+        <item>Verde</item>
+    </string-array>
 </resources>
