@@ -6,7 +6,8 @@ Questa app non è prodotta da The Freenet Project. Questa versione non è stata 
 
 | Versione       | Correzioni di sicurezza |
 | -------------- | ----------------------- |
-| 1.2.0          | Sì                      |
+| 1.2.1          | Sì                      |
+| 1.2.0          | No                      |
 | 1.1.9          | No                      |
 | Precedenti     | No                      |
 
