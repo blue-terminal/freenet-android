@@ -93,4 +93,27 @@
         <item name="colorAccent">#4ADE80</item>
     </style>
 
+    <!--
+        LED theme overlay: replaces background with deep black and makes buttons
+        outlined with a 2 dp neon border. Applied on top of any accent color.
+    -->
+    <style name="Theme.Led" parent="">
+        <item name="android:colorBackground">@color/colorLedBackground</item>
+        <item name="android:windowBackground">@color/colorLedBackground</item>
+        <item name="android:statusBarColor">@color/colorLedBackground</item>
+        <item name="android:navigationBarColor">@color/colorLedBackground</item>
+        <item name="colorSurface">@color/colorLedSurface</item>
+        <item name="materialButtonStyle">@style/AppTheme.Button.Led</item>
+    </style>
+
+    <style name="AppTheme.Button.Led" parent="AppTheme.Button">
+        <item name="backgroundTint">@android:color/transparent</item>
+        <item name="strokeWidth">2dp</item>
+        <item name="elevation">0dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:textColor">?attr/colorAccent</item>
+        <item name="android:letterSpacing">0.08</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
 </resources>
