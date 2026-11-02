@@ -10,6 +10,8 @@ import androidx.preference.PreferenceManager;
 import org.freenetproject.mobile.services.node.Manager;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -17,7 +19,10 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.security.SecureRandom;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
 
 /**
@@ -31,6 +36,7 @@ public final class HostProxy implements Runnable {
 
     public static final int PORT = 7510;
     private static final String PREF_PASSWORD = "proxy_password";
+    private static final String HISTORY_FILE = "proxy-password-history.txt";
     private static final String USER = "freenet";
     private static final String TAG = "FreenetProxy";
     private static final int MAX_HEADER_BYTES = 64 * 1024;
@@ -57,10 +63,43 @@ public final class HostProxy implements Runnable {
 
     /** Replaces the stored password with a freshly generated one and returns it. */
     public static String newPassword(Context context) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        String old = prefs.getString(PREF_PASSWORD, null);
+        if (old != null && !old.isEmpty()) {
+            recordOldPassword(context, old);
+        }
         String password = generate();
-        PreferenceManager.getDefaultSharedPreferences(context)
-                .edit().putString(PREF_PASSWORD, password).apply();
+        prefs.edit().putString(PREF_PASSWORD, password).apply();
         return password;
+    }
+
+    private static void recordOldPassword(Context context, String old) {
+        String line = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.ROOT).format(new Date())
+                + "  " + old + "\n";
+        try (FileWriter writer = new FileWriter(new File(context.getFilesDir(), HISTORY_FILE), true)) {
+            writer.write(line);
+        } catch (IOException ignored) {
+        }
+    }
+
+    /** The history file, or null when there is none. */
+    public static File historyFile(Context context) {
+        File f = new File(context.getFilesDir(), HISTORY_FILE);
+        return f.isFile() ? f : null;
+    }
+
+    public static String readHistory(Context context) {
+        File f = new File(context.getFilesDir(), HISTORY_FILE);
+        if (!f.isFile()) return "";
+        try {
+            return new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            return "";
+        }
+    }
+
+    public static void clearHistory(Context context) {
+        new File(context.getFilesDir(), HISTORY_FILE).delete();
     }
 
     private static String generate() {
