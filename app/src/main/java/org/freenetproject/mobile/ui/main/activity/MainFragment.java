@@ -10,6 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -26,7 +27,14 @@ import org.freenetproject.mobile.ui.main.viewmodel.MainViewModel;
 import org.freenetproject.mobile.ui.settings.activity.SettingsActivity;
 import org.freenetproject.mobile.ui.sites.SitesActivity;
 
+import org.json.JSONException;
+
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.security.NoSuchAlgorithmException;
+
 public class MainFragment extends Fragment {
+    private static final String RIVER_JOINED = "river_joined";
     private static final String GHOST_KEY_URL = "https://freenet.org/ghostkey/";
     private static final String RIVER_URL = Manager.WEB_URL
             + "v1/contract/web/raAqMhMG7KUpXBU2SxgCQ3Vh4PYjttxdSWd9ftV7RLv/";
@@ -91,8 +99,7 @@ public class MainFragment extends Fragment {
         view.findViewById(R.id.ghostkey_button).setOnClickListener(v ->
                 startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(GHOST_KEY_URL))));
         Button river = view.findViewById(R.id.river_button);
-        river.setOnClickListener(v -> startActivity(new Intent(getContext(), BootstrapActivity.class)
-                .putExtra(BootstrapActivity.EXTRA_URL, RIVER_URL)));
+        river.setOnClickListener(v -> openRiver(river));
         manager.getStatus().observe(getViewLifecycleOwner(), status ->
                 river.setEnabled(status.equals(Manager.Status.STARTED)));
         Button web = view.findViewById(R.id.web_button);
@@ -104,6 +111,48 @@ public class MainFragment extends Fragment {
         updateControls(manager, view);
         updateStatus(manager, view);
         updateStatusDetail(manager, view);
+    }
+
+    /** The first time it joins the public room with an invite; then it just opens River. */
+    private void openRiver(Button river) {
+        SharedPreferences prefs = requireContext().getSharedPreferences(
+                requireContext().getPackageName(), Context.MODE_PRIVATE);
+        if (prefs.getBoolean(RIVER_JOINED, false)) {
+            showRiver(RIVER_URL);
+            return;
+        }
+        river.setEnabled(false);
+        Toast.makeText(getContext(), R.string.river_joining, Toast.LENGTH_LONG).show();
+        new Thread(() -> {
+            String url = null;
+            String problem = null;
+            try {
+                url = RIVER_URL + "?invitation=" + URLEncoder.encode(RiverInvite.request(), "UTF-8");
+            } catch (IOException | JSONException | NoSuchAlgorithmException e) {
+                problem = e.getMessage();
+            }
+            String invited = url;
+            String failure = problem;
+            river.post(() -> {
+                river.setEnabled(Manager.getInstance().isRunning());
+                if (!isAdded()) {
+                    return;
+                }
+                if (invited == null) {
+                    Toast.makeText(getContext(), getString(R.string.river_join_failed, failure),
+                            Toast.LENGTH_LONG).show();
+                    showRiver(RIVER_URL); // River still opens, without joining the room
+                    return;
+                }
+                prefs.edit().putBoolean(RIVER_JOINED, true).apply();
+                showRiver(invited);
+            });
+        }, "freenet-river-invite").start();
+    }
+
+    private void showRiver(String url) {
+        startActivity(new Intent(getContext(), BootstrapActivity.class)
+                .putExtra(BootstrapActivity.EXTRA_URL, url));
     }
 
     private void updateControls(Manager m, View view) {
