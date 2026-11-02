@@ -75,6 +75,7 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
     <string name="update_failed">Aggiornamento non riuscito: %1$s</string>
     <string name="update_available_title">Nuova versione disponibile</string>
     <string name="update_available">La versione %1$s è pronta su GitHub. La scarico?</string>
+    <string name="update_notes_label">Novità:</string>
     <string name="update_download">Scarica</string>
     <string name="update_downloading">Sto scaricando l\'aggiornamento…</string>
     <string name="open_freenet">Apri Freenet</string>
