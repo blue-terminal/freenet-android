@@ -19,6 +19,8 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.widget.ImageView;
 
@@ -344,11 +346,29 @@ public class MainFragment extends Fragment {
 
         // Logo style
         ImageView logo = view.findViewById(R.id.imageView);
-        switch (prefs.getString("logo_style", "freenet")) {
-            case "galaxy": logo.setImageResource(R.drawable.ic_logo_galaxy); break;
-            case "shield": logo.setImageResource(R.drawable.ic_logo_shield); break;
-            case "star":   logo.setImageResource(R.drawable.ic_baseline_star_24); break;
-            default:       logo.setImageResource(R.drawable.ic_freenet_logo); break;
+        String logoStyle = prefs.getString("logo_style", "freenet");
+        switch (logoStyle) {
+            case "galaxy":  logo.setImageResource(R.drawable.ic_logo_galaxy); logo.setVisibility(View.VISIBLE); break;
+            case "shield":  logo.setImageResource(R.drawable.ic_logo_shield); logo.setVisibility(View.VISIBLE); break;
+            case "star":    logo.setImageResource(R.drawable.ic_baseline_star_24); logo.setVisibility(View.VISIBLE); break;
+            case "none":    logo.setVisibility(View.GONE); break;
+            case "custom": {
+                String path = prefs.getString(
+                        org.freenetproject.mobile.ui.settings.activity.SettingsActivity.PREF_LOGO_CUSTOM_PATH, "");
+                if (path != null && !path.isEmpty()) {
+                    Bitmap bmp = BitmapFactory.decodeFile(path);
+                    if (bmp != null) { logo.setImageBitmap(bmp); logo.setVisibility(View.VISIBLE); break; }
+                }
+                logo.setImageResource(R.drawable.ic_freenet_logo); logo.setVisibility(View.VISIBLE); break;
+            }
+            default:        logo.setImageResource(R.drawable.ic_freenet_logo); logo.setVisibility(View.VISIBLE); break;
+        }
+
+        // Custom app name (shown in the title TextView)
+        TextView titleText = view.findViewById(R.id.textView);
+        if (titleText != null) {
+            String customName = prefs.getString("app_custom_name", "").trim();
+            titleText.setText(customName.isEmpty() ? getString(R.string.freenet) : customName);
         }
 
         // Version always visible
