@@ -59,6 +59,12 @@
     <PreferenceCategory app:title="@string/other_apps">
 
         <Preference
+            app:key="ghost_official"
+            app:title="@string/ghost_official"
+            app:summary="@string/ghost_official_summary"
+            />
+
+        <Preference
             app:key="ghost_generator"
             app:title="@string/ghost_generator"
             app:summary="@string/ghost_generator_summary"
