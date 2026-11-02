@@ -62,7 +62,9 @@ public final class Updater {
     private static final int TIMEOUT_MILLIS = 20000;
     private static final int MAX_LIST_BYTES = 2 * 1024 * 1024;
     private static final long MAX_APK_BYTES = 200L * 1024 * 1024;
-    private static final String LAST_CHECK = "update_last_check";
+    public static final String LAST_CHECK = "update_last_check";
+    /** Written whether the check found something or not, so the setting can show it. */
+    public static final String LAST_RESULT = "update_last_result";
     private static final long AUTO_CHECK_INTERVAL = TimeUnit.MINUTES.toMillis(10);
     private static final String CHANNEL_ID = "FREENET UPDATES";
     private static final int NOTIFICATION_ID = 2;
@@ -95,11 +97,21 @@ public final class Updater {
             if (release != null) {
                 showNotification(context, release);
             }
+            record(context, release == null ? "" : release.version);
             return true;
         } catch (IOException | JSONException e) {
             Log.w(TAG, "Background update check failed", e);
+            record(context, describe(e));
             return false;
         }
+    }
+
+    /** Leaves a trace of the last check, so it is visible whether it runs at all. */
+    private static void record(Context context, String result) {
+        PreferenceManager.getDefaultSharedPreferences(context).edit()
+                .putLong(LAST_CHECK, System.currentTimeMillis())
+                .putString(LAST_RESULT, result)
+                .apply();
     }
 
     private static void showNotification(Context context, Release release) {

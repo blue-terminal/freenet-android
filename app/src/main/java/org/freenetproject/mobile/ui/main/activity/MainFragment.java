@@ -1,10 +1,13 @@
 package org.freenetproject.mobile.ui.main.activity;
 
+import android.animation.ArgbEvaluator;
+import android.animation.ValueAnimator;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -43,6 +46,12 @@ public class MainFragment extends Fragment {
     private static final String RIVER_URL = Manager.WEB_URL
             + "v1/contract/web/raAqMhMG7KUpXBU2SxgCQ3Vh4PYjttxdSWd9ftV7RLv/";
 
+    private static final long COLOR_MILLIS = 450;
+    private static final long PULSE_MILLIS = 900;
+
+    private ValueAnimator colorAnimator;
+    private ValueAnimator pulse;
+
     private static int actionIcon(Manager.Status status) {
         switch (status) {
             case STARTED:
@@ -76,6 +85,21 @@ public class MainFragment extends Fragment {
         }
         return requireContext().getColor(color);
     }
+
+    @Override
+    public void onDestroyView() {
+        // The animators hold the views: stopping them here keeps nothing alive after the fragment.
+        if (colorAnimator != null) {
+            colorAnimator.cancel();
+            colorAnimator = null;
+        }
+        if (pulse != null) {
+            pulse.cancel();
+            pulse = null;
+        }
+        super.onDestroyView();
+    }
+
 
     @Override
     public View onCreateView(
@@ -162,9 +186,9 @@ public class MainFragment extends Fragment {
                 .setMessage(getString(R.string.pc_help, PC_COMMAND, Manager.WEB_URL)
                         + "\n\n" + networkHelp())
                 .setNegativeButton(android.R.string.ok, null)
-                .setPositiveButton(R.string.pc_copy, (d, w) ->
-                        requireContext().getSystemService(ClipboardManager.class)
-                                .setPrimaryClip(ClipData.newPlainText("adb", PC_COMMAND)))
+                .setNeutralButton(R.string.host_copy_address, hostAddress() == null ? null
+                        : (d, w) -> copyToClipboard("Freenet", hostAddress()))
+                .setPositiveButton(R.string.pc_copy, (d, w) -> copyToClipboard("adb", PC_COMMAND))
                 .show();
     }
 
@@ -173,11 +197,26 @@ public class MainFragment extends Fragment {
                 .getBoolean("host_mode", false)) {
             return getString(R.string.pc_network_off);
         }
-        String address = Manager.localAddress();
-        return address == null
+        String url = hostAddress();
+        return url == null
                 ? getString(R.string.host_mode_no_network)
-                : getString(R.string.pc_network,
-                        "http://" + address + ":" + Manager.WEB_PORT + "/");
+                : getString(R.string.pc_network, url);
+    }
+
+    /** The address the PC uses, or null when host mode is off or there is no local network. */
+    private String hostAddress() {
+        if (!PreferenceManager.getDefaultSharedPreferences(requireContext())
+                .getBoolean("host_mode", false)) {
+            return null;
+        }
+        String found = Manager.localAddress();
+        return found == null ? null : "http://" + found + ":" + Manager.WEB_PORT + "/";
+    }
+
+    private void copyToClipboard(String label, String text) {
+        requireContext().getSystemService(ClipboardManager.class)
+                .setPrimaryClip(ClipData.newPlainText(label, text));
+        Toast.makeText(requireContext(), R.string.host_address_copied, Toast.LENGTH_SHORT).show();
     }
 
     private void showRiver(String url) {
@@ -205,10 +244,73 @@ public class MainFragment extends Fragment {
             }
         });
 
+        View ring = view.findViewById(R.id.control_ring);
         m.getStatus().observe(getViewLifecycleOwner(), status -> {
             controlButton.setEnabled(!m.isTransitioning());
             controlButton.setBackgroundResource(actionIcon(status));
+            animateControl(controlButton, ring, statusColor(status), m.isTransitioning());
         });
+    }
+
+    /**
+     * The colour slides from the old one to the new one, and the ring breathes while the node
+     * is starting up or stopping, so the button shows what is happening without any text.
+     */
+    private void animateControl(View button, View ring, int color, boolean working) {
+        boolean animations = PreferenceManager.getDefaultSharedPreferences(requireContext())
+                .getBoolean("dev_animations", true);
+        ColorStateList tint = ColorStateList.valueOf(color);
+        if (!animations) {
+            stopPulse(ring);
+            button.setBackgroundTintList(tint);
+            ring.setBackgroundTintList(tint);
+            return;
+        }
+        ColorStateList previous = ring.getBackgroundTintList();
+        int from = previous == null ? color : previous.getDefaultColor();
+        if (colorAnimator != null) {
+            colorAnimator.cancel();
+        }
+        colorAnimator = ValueAnimator.ofObject(new ArgbEvaluator(), from, color);
+        colorAnimator.setDuration(COLOR_MILLIS);
+        colorAnimator.addUpdateListener(step -> {
+            ColorStateList now = ColorStateList.valueOf((Integer) step.getAnimatedValue());
+            button.setBackgroundTintList(now);
+            ring.setBackgroundTintList(now);
+        });
+        colorAnimator.start();
+        if (working) {
+            startPulse(ring);
+        } else {
+            stopPulse(ring);
+        }
+    }
+
+    private void startPulse(View ring) {
+        if (pulse != null && pulse.isRunning()) {
+            return;
+        }
+        pulse = ValueAnimator.ofFloat(1f, 1.18f);
+        pulse.setDuration(PULSE_MILLIS);
+        pulse.setRepeatCount(ValueAnimator.INFINITE);
+        pulse.setRepeatMode(ValueAnimator.REVERSE);
+        pulse.addUpdateListener(step -> {
+            float scale = (Float) step.getAnimatedValue();
+            ring.setScaleX(scale);
+            ring.setScaleY(scale);
+            ring.setAlpha(1.18f - scale + 0.82f);
+        });
+        pulse.start();
+    }
+
+    private void stopPulse(View ring) {
+        if (pulse != null) {
+            pulse.cancel();
+            pulse = null;
+        }
+        ring.setScaleX(1f);
+        ring.setScaleY(1f);
+        ring.setAlpha(1f);
     }
 
     private void updateStatus(Manager m, View view) {
