@@ -293,6 +293,12 @@ public final class Updater {
             throws IOException, NoSuchAlgorithmException {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         HttpsURLConnection connection = open(release.url);
+        connection.connect();
+        int httpCode = connection.getResponseCode();
+        if (httpCode != HttpsURLConnection.HTTP_OK) {
+            connection.disconnect();
+            throw new IOException("HTTP " + httpCode + " downloading update");
+        }
         long total = 0;
         try (InputStream in = connection.getInputStream();
              OutputStream out = new FileOutputStream(apk)) {
@@ -323,10 +329,15 @@ public final class Updater {
 
     private static String fetchText(String url) throws IOException {
         HttpsURLConnection connection = open(url);
+        // Check the response code before consuming the body: getInputStream() throws on 4xx/5xx
+        // on some Android versions, making the code check below unreachable.
+        connection.connect();
+        int code = connection.getResponseCode();
+        if (code != HttpsURLConnection.HTTP_OK) {
+            connection.disconnect();
+            throw new IOException("HTTP " + code + " for " + url);
+        }
         try (InputStream in = connection.getInputStream()) {
-            if (connection.getResponseCode() != HttpsURLConnection.HTTP_OK) {
-                throw new IOException("HTTP " + connection.getResponseCode());
-            }
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             byte[] buffer = new byte[8192];
             int read;

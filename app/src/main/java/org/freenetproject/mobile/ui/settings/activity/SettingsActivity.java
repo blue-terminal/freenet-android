@@ -29,6 +29,7 @@ import androidx.preference.SwitchPreferenceCompat;
 
 import org.freenetproject.mobile.App;
 import org.freenetproject.mobile.BuildConfig;
+import org.freenetproject.mobile.net.HostProxy;
 import org.freenetproject.mobile.net.Tor;
 import org.freenetproject.mobile.R;
 import org.freenetproject.mobile.services.node.Manager;
@@ -181,6 +182,19 @@ public class SettingsActivity extends AppCompatActivity {
                     return true;
                 });
             }
+            Preference proxyPwd = findPreference("proxy_password");
+            if (proxyPwd != null) {
+                proxyPwd.setOnPreferenceClickListener(preference -> {
+                    String newPwd = HostProxy.newPassword(requireContext());
+                    Manager.getInstance().onHostModeChanged(requireContext(),
+                            PreferenceManager.getDefaultSharedPreferences(requireContext())
+                                    .getBoolean("host_mode", false));
+                    Toast.makeText(requireContext(),
+                            getString(R.string.proxy_new_password, newPwd),
+                            Toast.LENGTH_LONG).show();
+                    return true;
+                });
+            }
             Preference tor = findPreference(Tor.KEY);
             if (tor != null) {
                 tor.setOnPreferenceChangeListener((preference, value) -> {
@@ -195,6 +209,7 @@ public class SettingsActivity extends AppCompatActivity {
             if (host != null) {
                 host.setOnPreferenceChangeListener((preference, value) -> {
                     if (!(Boolean) value) {
+                        Manager.getInstance().onHostModeChanged(requireContext(), false);
                         return true;
                     }
                     // Opening the node to the network is the user's call, asked for each time.
@@ -204,6 +219,7 @@ public class SettingsActivity extends AppCompatActivity {
                             .setNegativeButton(android.R.string.cancel, null)
                             .setPositiveButton(R.string.host_mode, (d, w) -> {
                                 host.setChecked(true);
+                                Manager.getInstance().onHostModeChanged(requireContext(), true);
                                 showAddress();
                             })
                             .show();
@@ -381,29 +397,34 @@ public class SettingsActivity extends AppCompatActivity {
                 return;
             }
             String found = Manager.localAddress();
-            String url = "http://" + found + ":" + Manager.WEB_PORT + "/";
+            // Use the proxy URL with Basic Auth password so the PC connection is protected.
+            String pwd = HostProxy.getOrCreatePassword(requireContext());
+            String proxyUrl = "http://freenet:" + pwd + "@" + found + ":" + HostProxy.PORT + "/";
             StringBuilder list = new StringBuilder();
             for (String one : all) {
-                list.append("http://").append(one.substring(one.indexOf(": ") + 2))
-                        .append(':').append(Manager.WEB_PORT).append("/   (")
-                        .append(one, 0, one.indexOf(':')).append(")\n");
+                String ip = one.substring(one.indexOf(": ") + 2);
+                String iface = one.substring(0, one.indexOf(':'));
+                list.append("http://freenet:").append(pwd).append("@")
+                        .append(ip).append(':').append(HostProxy.PORT)
+                        .append("/  (").append(iface).append(")\n");
             }
             TextView shown = new TextView(requireContext());
             int padding = Math.round(20 * getResources().getDisplayMetrics().density);
             shown.setPadding(padding, padding, padding, padding);
             shown.setTextIsSelectable(true);
-            shown.setTextSize(16);
+            shown.setTextSize(13);
             shown.setTypeface(Typeface.MONOSPACE);
             String network = found.substring(0, found.lastIndexOf('.') + 1) + "x";
             shown.setText(list + "\n" + getString(R.string.host_same_network, network)
-                    + "\n\n" + getString(R.string.host_restart_node));
+                    + "\n\n" + getString(R.string.host_restart_node)
+                    + "\n\n" + getString(R.string.proxy_password_hint));
             new AlertDialog.Builder(requireContext())
                     .setTitle(R.string.host_address)
                     .setView(shown)
                     .setNegativeButton(android.R.string.ok, null)
                     .setPositiveButton(R.string.host_copy_address, (d, w) -> {
                         requireContext().getSystemService(ClipboardManager.class)
-                                .setPrimaryClip(ClipData.newPlainText("Freenet", url));
+                                .setPrimaryClip(ClipData.newPlainText("Freenet", proxyUrl));
                         Toast.makeText(requireContext(), R.string.host_address_copied,
                                 Toast.LENGTH_SHORT).show();
                     })
