@@ -1,6 +1,7 @@
 package org.freenetproject.mobile.ui.bootstrap.activity;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -15,6 +16,8 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.activity.OnBackPressedCallback;
@@ -38,6 +41,23 @@ public class BootstrapActivity extends AppCompatActivity {
         TextView address = findViewById(R.id.web_address);
         findViewById(R.id.web_back).setOnClickListener(
                 v -> getOnBackPressedDispatcher().onBackPressed());
+        ImageButton editUrl = findViewById(R.id.web_edit_url);
+        editUrl.setOnClickListener(v -> {
+            EditText input = new EditText(this);
+            input.setText(address.getText());
+            input.setSelection(input.getText().length());
+            input.setSingleLine(true);
+            input.setHint(R.string.web_edit_url_hint);
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.web_edit_url_title)
+                    .setView(input)
+                    .setPositiveButton(android.R.string.ok, (d, w) -> {
+                        String url = input.getText().toString().trim();
+                        if (!url.isEmpty()) web.loadUrl(url);
+                    })
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show();
+        });
         WebSettings settings = web.getSettings();
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         settings.setTextZoom(Integer.parseInt(preferences.getString("web_text_size", "100")));

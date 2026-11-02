@@ -24,12 +24,23 @@
             android:id="@+id/web_address"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="12dp"
+            android:layout_marginEnd="4dp"
             android:layout_weight="1"
             android:ellipsize="middle"
             android:singleLine="true"
             android:textColor="@color/colorTextSecondary"
             android:textSize="13sp" />
+
+        <ImageButton
+            android:id="@+id/web_edit_url"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/web_edit_url"
+            android:src="@drawable/ic_baseline_edit_24"
+            app:tint="@color/colorTextSecondary"
+            xmlns:app="http://schemas.android.com/apk/res-auto" />
     </LinearLayout>
 
     <WebView
