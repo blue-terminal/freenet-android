@@ -39,6 +39,7 @@ import org.freenetproject.mobile.ui.bootstrap.activity.BootstrapActivity;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,6 +55,8 @@ import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /** Writes HTML websites on the phone and publishes them on Freenet with fdev. */
 public class SitesActivity extends AppCompatActivity {
@@ -75,6 +78,8 @@ public class SitesActivity extends AppCompatActivity {
 
     private final ActivityResultLauncher<Uri> folderPicker = registerForActivityResult(
             new ActivityResultContracts.OpenDocumentTree(), this::importFolder);
+    private final ActivityResultLauncher<String[]> zipPicker = registerForActivityResult(
+            new ActivityResultContracts.OpenDocument(), this::importZip);
     private final ActivityResultLauncher<String[]> videoPicker = registerForActivityResult(
             new ActivityResultContracts.OpenDocument(), this::addVideo);
     private Spinner siteSpinner;
@@ -117,6 +122,12 @@ public class SitesActivity extends AppCompatActivity {
         tools.addView(button(R.string.sites_open_folder, v -> folderPicker.launch(null)), weight());
         tools.addView(button(R.string.sites_delete, v -> askDeleteSite()), weight());
         root.addView(tools);
+
+        LinearLayout clone = new LinearLayout(this);
+        clone.addView(button(R.string.sites_from_zip, v -> zipPicker.launch(
+                new String[] {"application/zip", "application/x-zip-compressed",
+                        "application/octet-stream"})), weight());
+        root.addView(clone);
 
         LinearLayout video = new LinearLayout(this);
         video.addView(button(R.string.sites_video_site, v -> askNewVideoSite()), weight());
@@ -530,6 +541,125 @@ public class SitesActivity extends AppCompatActivity {
                 runOnUiThread(() -> message.setText(e.getMessage()));
             }
         }, "freenet-import").start();
+    }
+
+    /**
+     * Copies a website out of a zip file into a new site, ready to publish. Everything a
+     * static site needs is kept: pages, style sheets, scripts, images. Only the entries that
+     * would step outside the site\'s folder are refused, because a zip chooses its own paths.
+     */
+    private void importZip(Uri archive) {
+        if (archive == null) {
+            return;
+        }
+        String clean = String.valueOf(nameOf(archive)).toLowerCase(Locale.ROOT)
+                .replaceAll("\\.zip$", "").replaceAll("[^a-z0-9-]+", "-")
+                .replaceAll("^-+|-+$", "");
+        String base = clean.isEmpty() ? "sito" : clean.substring(0, Math.min(clean.length(), 34));
+        String name = base;
+        for (int n = 2; sites().contains(name); n++) {
+            name = base + "-" + n;
+        }
+        String site = name;
+        message.setText(R.string.sites_importing);
+        new Thread(() -> {
+            File target = new File(sitesDir(), site);
+            try {
+                unzip(archive, target);
+                liftSingleFolder(target);
+                if (!new File(target, INDEX).isFile()) {
+                    Vault.deleteTree(target);
+                    runOnUiThread(() -> message.setText(R.string.sites_no_index));
+                    return;
+                }
+                runOnUiThread(() -> {
+                    save();
+                    refreshSites(site);
+                    message.setText(getString(R.string.sites_imported, site));
+                });
+            } catch (IOException | RuntimeException e) {
+                Vault.deleteTree(target);
+                String reason = e.getMessage();
+                runOnUiThread(() -> message.setText(reason));
+            }
+        }, "freenet-zip").start();
+    }
+
+    /** Writes every file of the archive under the site folder, encrypted like the rest. */
+    private void unzip(Uri archive, File target) throws IOException {
+        Files.createDirectories(target.toPath());
+        String root = target.getCanonicalPath() + File.separator;
+        long total = 0;
+        try (InputStream raw = getContentResolver().openInputStream(archive)) {
+            if (raw == null) {
+                throw new IOException(getString(R.string.sites_zip_unreadable));
+            }
+            ZipInputStream zip = new ZipInputStream(raw);
+            ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                String path = entry.getName();
+                if (path.startsWith("__MACOSX/") || path.endsWith(".DS_Store")) {
+                    continue;
+                }
+                File file = new File(target, path);
+                // A zip may name "../something": such an entry must not be written at all.
+                if (!file.getCanonicalPath().startsWith(root)) {
+                    throw new IOException(getString(R.string.sites_zip_bad_path, path));
+                }
+                if (entry.isDirectory()) {
+                    Files.createDirectories(file.toPath());
+                    continue;
+                }
+                Files.createDirectories(file.getParentFile().toPath());
+                File plain = new File(target, path + ".part");
+                try (OutputStream out = new FileOutputStream(plain)) {
+                    byte[] buffer = new byte[64 * 1024];
+                    int read;
+                    while ((read = zip.read(buffer)) > 0) {
+                        total += read;
+                        if (total > MAX_IMPORT_BYTES) {
+                            throw new IOException(getString(R.string.sites_too_large));
+                        }
+                        out.write(buffer, 0, read);
+                    }
+                }
+                try (InputStream in = new FileInputStream(plain);
+                     OutputStream out = new FileOutputStream(file)) {
+                    vault.encrypt(in, out);
+                } finally {
+                    plain.delete();
+                }
+            }
+        }
+    }
+
+    /**
+     * A site zipped on a computer usually holds one folder with everything inside it. When
+     * that is the shape, its content is moved up, so index.html is where fdev expects it.
+     */
+    private void liftSingleFolder(File target) throws IOException {
+        File[] children = target.listFiles();
+        if (children == null || children.length != 1 || !children[0].isDirectory()
+                || new File(target, INDEX).isFile()) {
+            return;
+        }
+        File inner = children[0];
+        File[] moving = inner.listFiles();
+        if (moving == null) {
+            return;
+        }
+        for (File file : moving) {
+            if (!file.renameTo(new File(target, file.getName()))) {
+                throw new IOException(getString(R.string.sites_zip_unreadable));
+            }
+        }
+        inner.delete();
+    }
+
+    /** The document\'s display name, which is all the picker tells us about the file. */
+    private String nameOf(Uri document) {
+        DocumentFile file = DocumentFile.fromSingleUri(this, document);
+        return file == null || file.getName() == null ? "sito" : file.getName();
     }
 
     private void copyTree(DocumentFile from, File to, long[] total) throws IOException {

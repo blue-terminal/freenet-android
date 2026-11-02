@@ -153,10 +153,17 @@ public class SettingsActivity extends AppCompatActivity {
                     return true;
                 });
             }
-            Preference video = findPreference("video_site");
-            if (video != null) {
-                video.setOnPreferenceClickListener(preference -> {
+            Preference zip = findPreference("site_zip");
+            if (zip != null) {
+                zip.setOnPreferenceClickListener(preference -> {
                     startActivity(new Intent(requireContext(), SitesActivity.class));
+                    return true;
+                });
+            }
+            Preference news = findPreference("news");
+            if (news != null) {
+                news.setOnPreferenceClickListener(preference -> {
+                    showText(R.string.news, R.string.news_text);
                     return true;
                 });
             }
@@ -321,6 +328,22 @@ public class SettingsActivity extends AppCompatActivity {
             }
         }
 
+        /** A plain scrollable dialog, for the texts that are too long for a summary. */
+        private void showText(int title, int body) {
+            TextView shown = new TextView(requireContext());
+            int padding = Math.round(16 * getResources().getDisplayMetrics().density);
+            shown.setPadding(padding, padding, padding, padding);
+            shown.setTextIsSelectable(true);
+            shown.setText(body);
+            ScrollView scroll = new ScrollView(requireContext());
+            scroll.addView(shown);
+            new AlertDialog.Builder(requireContext())
+                    .setTitle(title)
+                    .setView(scroll)
+                    .setNegativeButton(android.R.string.ok, null)
+                    .show();
+        }
+
         /**
          * The commands that install the ghostkey tool on a computer, scrollable and with a
          * button that copies them. The phone already carries the tool: this is for the PC,
@@ -362,9 +385,10 @@ public class SettingsActivity extends AppCompatActivity {
             int padding = Math.round(20 * getResources().getDisplayMetrics().density);
             shown.setPadding(padding, padding, padding, padding);
             shown.setTextIsSelectable(true);
-            shown.setTextSize(20);
+            shown.setTextSize(16);
             shown.setTypeface(Typeface.MONOSPACE);
-            shown.setText(url);
+            String network = found.substring(0, found.lastIndexOf('.') + 1) + "x";
+            shown.setText(url + "\n\n" + getString(R.string.host_same_network, network));
             new AlertDialog.Builder(requireContext())
                     .setTitle(R.string.host_address)
                     .setView(shown)
