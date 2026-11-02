@@ -636,15 +636,28 @@ public class SettingsActivity extends AppCompatActivity {
 
         /** Returns true if the device has root (su binary accessible). */
         private boolean hasRoot() {
-            try {
-                Process p = Runtime.getRuntime().exec("su -c id");
-                BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                String line = br.readLine();
-                p.waitFor();
-                return line != null && line.contains("uid=0");
-            } catch (Exception e) {
-                return false;
+            // Try several su paths common on custom ROMs
+            String[] suCandidates = {"su", "/system/bin/su", "/system/xbin/su", "/sbin/su"};
+            for (String su : suCandidates) {
+                try {
+                    Process p = Runtime.getRuntime().exec(new String[]{su, "-c", "id"});
+                    BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                    String line = br.readLine();
+                    int exit = p.waitFor();
+                    if (line != null && line.contains("uid=0")) return true;
+                    if (exit == 0) return true; // some ROMs print nothing but exit 0
+                } catch (Exception ignored) {}
             }
+            // Fallback: check if su binary exists
+            java.io.File[] suFiles = {
+                new java.io.File("/system/bin/su"),
+                new java.io.File("/system/xbin/su"),
+                new java.io.File("/sbin/su")
+            };
+            for (java.io.File f : suFiles) {
+                if (f.exists()) return true;
+            }
+            return false;
         }
 
         /** Generates a random locally-administered MAC and sets it via root. */
