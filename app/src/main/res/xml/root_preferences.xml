@@ -222,6 +222,13 @@
             app:summary="@string/auto_update_summary"
             />
 
+        <SwitchPreferenceCompat
+            app:key="beta_channel"
+            app:title="@string/beta_channel"
+            app:summary="@string/beta_channel_summary"
+            app:defaultValue="false"
+            />
+
 
         <Preference
             app:key="update_background"
