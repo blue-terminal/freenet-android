@@ -10,4 +10,9 @@
     <color name="colorTextSecondary">#C3D2EC</color>
     <color name="colorError">#F87171</color>
     <color name="colorWarning">#FBBF24</color>
+
+    <!-- LED theme: deep black background, neon borders -->
+    <color name="colorLedBackground">#050508</color>
+    <color name="colorLedSurface">#0D0D12</color>
+    <color name="colorLedLine">#1A1A2E</color>
 </resources>
