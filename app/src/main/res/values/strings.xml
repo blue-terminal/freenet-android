@@ -131,7 +131,7 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     <string name="ghost_working">Generating…</string>
     <string name="ghost_done">Test key created.\nCheck with the key made here: %1$s\nIt replaces the previous test key.</string>
     <string name="ghost_failed">Could not create the key: %1$s</string>
-    <string name="ghost_copy">Copy certificate</string>
+    <string name="ghost_copy">Copy full key</string>
     <string name="dev_disk">Disk space for network content</string>
     <string name="dev_threads">Background threads</string>
     <string name="dev_copy_log">Copy the log</string>
@@ -149,4 +149,5 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
         <item>8</item>
         <item>16</item>
     </string-array>
+    <string name="ghost_copied">Key copied. It contains the secret part: do not share it.</string>
 </resources>
