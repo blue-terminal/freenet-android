@@ -54,4 +54,5 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
     <string name="update_downloading">Sto scaricando l\'aggiornamento…</string>
     <string name="open_freenet">Apri Freenet</string>
     <string name="press_to_start">Premi il pulsante qui sopra per avviare Freenet</string>
+    <string name="web_back">Indietro</string>
 </resources>

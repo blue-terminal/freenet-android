@@ -13,6 +13,7 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.TextView;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
@@ -31,7 +32,9 @@ public class BootstrapActivity extends AppCompatActivity {
         setContentView(R.layout.activity_bootstrap);
 
         WebView web = findViewById(R.id.bootstrap_webview);
-        web.setFitsSystemWindows(true);
+        TextView address = findViewById(R.id.web_address);
+        findViewById(R.id.web_back).setOnClickListener(
+                v -> getOnBackPressedDispatcher().onBackPressed());
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -45,6 +48,12 @@ public class BootstrapActivity extends AppCompatActivity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 return openOutside(request.getUrl());
+            }
+
+            @Override
+            public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
+                // Only the address: the query can hold the node's access token.
+                address.setText(Uri.parse(url).buildUpon().clearQuery().build().toString());
             }
         });
         web.setWebChromeClient(new WebChromeClient() {
