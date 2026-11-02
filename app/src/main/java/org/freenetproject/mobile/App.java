@@ -15,6 +15,7 @@ import org.freenetproject.mobile.update.UpdateWorker;
 public class App extends Application {
     public static final String KEY_LANGUAGE = "language";
     public static final String KEY_COLOR = "color";
+    public static final String KEY_BLOCK_SCREENSHOTS = "dev_block_screenshots";
     private static final String KEY_MINIMAL_DESIGN = "minimal_design";
 
     @Override
@@ -27,6 +28,14 @@ public class App extends Application {
         applyLanguage(preferences.getString(KEY_LANGUAGE, ""));
         registerActivityLifecycleCallbacks(new ColorApplier());
         UpdateWorker.schedule(this, preferences.getBoolean("auto_update", true));
+    }
+
+    public static void applyScreenshotBlock(Activity activity, boolean block) {
+        if (block) {
+            activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        } else {
+            activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        }
     }
 
     /** An empty value follows the language of the phone. */
@@ -59,9 +68,7 @@ public class App extends Application {
                     .getString(KEY_COLOR, "blue");
             activity.getTheme().applyStyle(colorStyle(color), true);
             SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activity);
-            if (preferences.getBoolean("dev_block_screenshots", false)) {
-                activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
-            }
+            applyScreenshotBlock(activity, preferences.getBoolean(KEY_BLOCK_SCREENSHOTS, false));
             if (!preferences.getBoolean("dev_animations", true)) {
                 activity.getWindow().setWindowAnimations(0);
             }
@@ -73,6 +80,9 @@ public class App extends Application {
 
         @Override
         public void onActivityResumed(Activity activity) {
+            // A screen left open while the option changed must follow it too.
+            applyScreenshotBlock(activity, PreferenceManager.getDefaultSharedPreferences(activity)
+                    .getBoolean(KEY_BLOCK_SCREENSHOTS, false));
         }
 
         @Override
