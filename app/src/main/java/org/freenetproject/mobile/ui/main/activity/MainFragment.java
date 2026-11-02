@@ -3,6 +3,7 @@ package org.freenetproject.mobile.ui.main.activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -26,6 +27,10 @@ import org.freenetproject.mobile.ui.settings.activity.SettingsActivity;
 import org.freenetproject.mobile.ui.sites.SitesActivity;
 
 public class MainFragment extends Fragment {
+    private static final String GHOST_KEY_URL = "https://freenet.org/ghostkey/";
+    private static final String RIVER_URL = Manager.WEB_URL
+            + "v1/contract/web/raAqMhMG7KUpXBU2SxgCQ3Vh4PYjttxdSWd9ftV7RLv/";
+
     private static int actionIcon(Manager.Status status) {
         switch (status) {
             case STARTED:
@@ -83,6 +88,13 @@ public class MainFragment extends Fragment {
         updateSharedPreferences(manager, view);
         updateSettings(manager, view);
         updateAbout(manager, view);
+        view.findViewById(R.id.ghostkey_button).setOnClickListener(v ->
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(GHOST_KEY_URL))));
+        Button river = view.findViewById(R.id.river_button);
+        river.setOnClickListener(v -> startActivity(new Intent(getContext(), BootstrapActivity.class)
+                .putExtra(BootstrapActivity.EXTRA_URL, RIVER_URL)));
+        manager.getStatus().observe(getViewLifecycleOwner(), status ->
+                river.setEnabled(status.equals(Manager.Status.STARTED)));
         Button web = view.findViewById(R.id.web_button);
         web.setOnClickListener(v -> startActivity(new Intent(getContext(), BootstrapActivity.class)));
         manager.getStatus().observe(getViewLifecycleOwner(), status ->
