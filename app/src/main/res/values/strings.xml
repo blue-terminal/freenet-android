@@ -94,4 +94,7 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
         <item>Green</item>
     </string-array>
     <string name="update_unreachable">Could not reach GitHub. Try again later.</string>
+    <string name="use_from_pc">Use from PC</string>
+    <string name="pc_copy">Copy command</string>
+    <string name="pc_help">The phone stays the server and you use Freenet in the PC browser.\n\n1. Start Freenet here.\n2. Connect the phone with a USB cable and turn on USB debugging.\n3. On the PC run:\n%1$s\n4. In the PC browser open:\n%2$s\n\nOnly the USB cable is supported: the node has no password, and over the network anyone could reach your data and keys.</string>
 </resources>
