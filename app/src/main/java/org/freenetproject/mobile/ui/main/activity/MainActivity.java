@@ -12,6 +12,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import org.freenetproject.mobile.R;
+import org.freenetproject.mobile.update.Updater;
 
 public class MainActivity extends AppCompatActivity {
     @Override
@@ -19,6 +20,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         PreferenceManager.setDefaultValues(this, R.xml.root_preferences, false);
+        Updater.autoCheck(this);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
