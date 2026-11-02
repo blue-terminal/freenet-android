@@ -105,6 +105,36 @@
             android:textSize="14sp" />
     </LinearLayout>
 
+    <LinearLayout
+        android:id="@+id/extra_buttons"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toTopOf="@+id/web_button"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/river_button"
+            style="@style/AppTheme.Button.Tonal"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:enabled="false"
+            android:text="@string/river_chat" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/ghostkey_button"
+            style="@style/AppTheme.Button.Tonal"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:text="@string/ghost_key" />
+    </LinearLayout>
+
     <com.google.android.material.button.MaterialButton
         android:id="@+id/web_button"
         android:layout_width="0dp"

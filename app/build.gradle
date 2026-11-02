@@ -17,8 +17,8 @@ android {
         applicationId "local.freenet.mobile"
         minSdk 26
         targetSdk 34
-        versionCode 405
-        versionName "0.4.5-freenet-$freenetVersion"
+        versionCode 500
+        versionName "0.5.0-freenet-$freenetVersion"
         buildConfigField "String", "FREENET_VERSION", "\"$freenetVersion\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -42,10 +42,25 @@ android {
         }
     }
 
+    // The key stays outside the repository. Without it the build uses the debug key.
+    def signingFile = new File(System.getProperty('user.home'), '.config/freenet-android/firma.properties')
+    if (signingFile.exists()) {
+        def signing = new Properties()
+        signingFile.withInputStream { signing.load(it) }
+        signingConfigs {
+            own {
+                storeFile new File(signingFile.parentFile, 'firma.jks')
+                storePassword signing.storePassword
+                keyAlias signing.keyAlias
+                keyPassword signing.storePassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
-            signingConfig signingConfigs.debug
+            signingConfig signingFile.exists() ? signingConfigs.own : signingConfigs.debug
         }
     }
 }
