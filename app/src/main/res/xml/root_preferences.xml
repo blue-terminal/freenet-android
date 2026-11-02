@@ -43,6 +43,19 @@
             app:useSimpleSummaryProvider="true"
             />
 
+        <Preference
+            app:key="logo_custom_pick"
+            app:title="@string/logo_custom_pick"
+            app:summary="@string/logo_custom_pick_summary"
+            />
+
+        <EditTextPreference
+            app:key="app_custom_name"
+            app:title="@string/app_custom_name"
+            app:summary="@string/app_custom_name_summary"
+            app:useSimpleSummaryProvider="true"
+            />
+
         <ListPreference
             app:key="timer_color"
             app:title="@string/timer_color"
