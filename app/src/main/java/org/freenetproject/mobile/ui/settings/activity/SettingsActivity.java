@@ -17,9 +17,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
+import androidx.preference.SwitchPreferenceCompat;
 
 import org.freenetproject.mobile.App;
 import org.freenetproject.mobile.BuildConfig;
+import org.freenetproject.mobile.net.Tor;
 import org.freenetproject.mobile.R;
 import org.freenetproject.mobile.services.node.Manager;
 import org.freenetproject.mobile.ui.bootstrap.activity.BootstrapActivity;
@@ -131,6 +133,55 @@ public class SettingsActivity extends AppCompatActivity {
             if (generator != null) {
                 generator.setOnPreferenceClickListener(preference -> {
                     startActivity(new Intent(requireContext(), GhostKeyActivity.class));
+                    return true;
+                });
+            }
+            Preference tor = findPreference(Tor.KEY);
+            if (tor != null) {
+                tor.setOnPreferenceChangeListener((preference, value) -> {
+                    Tor.setEnabled((Boolean) value);
+                    if ((Boolean) value) {
+                        Toast.makeText(requireContext(), R.string.tor_mode_on,
+                                Toast.LENGTH_LONG).show();
+                    }
+                    return true;
+                });
+            }
+            SwitchPreferenceCompat host = findPreference("host_mode");
+            if (host != null) {
+                host.setOnPreferenceChangeListener((preference, value) -> {
+                    if (!(Boolean) value) {
+                        return true;
+                    }
+                    // Opening the node to the network is the user's call, asked for each time.
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle(R.string.host_mode)
+                            .setMessage(R.string.host_mode_warning)
+                            .setNegativeButton(android.R.string.cancel, null)
+                            .setPositiveButton(R.string.host_mode, (d, w) -> {
+                                host.setChecked(true);
+                                String address = Manager.localAddress();
+                                Toast.makeText(requireContext(),
+                                        address == null
+                                                ? getString(R.string.host_mode_no_network)
+                                                : getString(R.string.host_mode_on,
+                                                        "http://" + address + ":"
+                                                                + Manager.WEB_PORT + "/"),
+                                        Toast.LENGTH_LONG).show();
+                            })
+                            .show();
+                    return false;
+                });
+            }
+            Preference saving = findPreference("saving_mode");
+            if (saving != null) {
+                saving.setOnPreferenceChangeListener((preference, value) -> {
+                    // The new value is stored after this listener, so reschedule just after it.
+                    requireView().post(() -> UpdateWorker.schedule(requireContext(),
+                            PreferenceManager.getDefaultSharedPreferences(requireContext())
+                                    .getBoolean("auto_update", true)));
+                    Toast.makeText(requireContext(), R.string.saving_mode_restart,
+                            Toast.LENGTH_LONG).show();
                     return true;
                 });
             }

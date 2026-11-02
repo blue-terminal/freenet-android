@@ -15,6 +15,8 @@ import java.nio.file.StandardCopyOption;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.freenetproject.mobile.net.Tor;
+
 import javax.net.ssl.HttpsURLConnection;
 
 /**
@@ -90,7 +92,7 @@ final class Gateways {
     }
 
     private static String fetch(String url) throws IOException {
-        HttpsURLConnection connection = (HttpsURLConnection) new URL(url).openConnection();
+        HttpsURLConnection connection = Tor.open(url);
         connection.setConnectTimeout(TIMEOUT_MILLIS);
         connection.setReadTimeout(TIMEOUT_MILLIS);
         connection.setInstanceFollowRedirects(false); // the addresses must come from this host

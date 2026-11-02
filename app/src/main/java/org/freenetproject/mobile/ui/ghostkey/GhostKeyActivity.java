@@ -128,7 +128,11 @@ public class GhostKeyActivity extends AppCompatActivity {
         Toast.makeText(this, R.string.ghost_copied, Toast.LENGTH_SHORT).show();
     }
 
-    /** Checks the chain from Freenet's master key: the tool's default, with no key given. */
+    /**
+     * Checks the chain from Freenet's master key (the tool's default, with no key given).
+     * If that fails and a test key was made on this phone, checks it against that key too,
+     * so a test certificate is told apart from a broken one.
+     */
     private void verify() {
         Matcher block = CERTIFICATE.matcher(certificateInput.getText());
         if (!block.find()) {
@@ -146,7 +150,7 @@ public class GhostKeyActivity extends AppCompatActivity {
                 shown = getString(R.string.ghost_verify_valid,
                         run("verify-ghost-key", "--ghost-certificate", file.getPath()).trim());
             } catch (IOException | InterruptedException e) {
-                shown = getString(R.string.ghost_verify_invalid, e.getMessage());
+                shown = verifyWithOwnKey(file, e);
             } finally {
                 file.delete();
             }
@@ -156,6 +160,27 @@ public class GhostKeyActivity extends AppCompatActivity {
                 verifyResult.setText(result);
             });
         }, "ghost-key-verify").start();
+    }
+
+    /**
+     * Second pass: the certificate did not come from Freenet, so it is checked against the
+     * master key the generator left in app storage. Tells "test key made here" apart from
+     * "certificate is broken".
+     */
+    private String verifyWithOwnKey(File certificate, Exception first) {
+        File own = new File(new File(new File(getFilesDir(), "ghostkey"), "master"),
+                "master_verifying_key.pem");
+        if (own.isFile() && own.length() > 0) {
+            try {
+                String output = run("verify-ghost-key",
+                        "--master-verifying-key", own.getPath(),
+                        "--ghost-certificate", certificate.getPath()).trim();
+                return getString(R.string.ghost_verify_local, output);
+            } catch (IOException | InterruptedException ignored) {
+                // Not this phone's test key either: report the Freenet result below.
+            }
+        }
+        return getString(R.string.ghost_verify_invalid, first.getMessage());
     }
 
     private void generate() {

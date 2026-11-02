@@ -17,6 +17,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.FileProvider;
 import androidx.preference.PreferenceManager;
 
+import org.freenetproject.mobile.net.Tor;
 import org.freenetproject.mobile.BuildConfig;
 import org.freenetproject.mobile.R;
 import org.freenetproject.mobile.ui.settings.activity.SettingsActivity;
@@ -327,7 +328,7 @@ public final class Updater {
     }
 
     private static HttpsURLConnection open(String url) throws IOException {
-        HttpsURLConnection connection = (HttpsURLConnection) new URL(url).openConnection();
+        HttpsURLConnection connection = Tor.open(url);
         connection.setConnectTimeout(TIMEOUT_MILLIS);
         connection.setReadTimeout(TIMEOUT_MILLIS);
         connection.setRequestProperty("User-Agent", "freenet-android-updater");
