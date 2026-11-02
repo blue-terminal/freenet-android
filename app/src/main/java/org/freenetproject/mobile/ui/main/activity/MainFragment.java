@@ -38,6 +38,26 @@ public class MainFragment extends Fragment {
         }
     }
 
+    private int statusColor(Manager.Status status) {
+        int color;
+        switch (status) {
+            case STARTED:
+                color = R.color.colorAccent;
+                break;
+            case ERROR:
+                color = R.color.colorError;
+                break;
+            case PAUSED:
+            case STARTING_UP:
+                color = R.color.colorWarning;
+                break;
+            default:
+                color = android.R.color.white;
+                break;
+        }
+        return requireContext().getColor(color);
+    }
+
     @Override
     public View onCreateView(
             LayoutInflater inflater, ViewGroup container,
@@ -99,6 +119,7 @@ public class MainFragment extends Fragment {
     private void updateStatus(Manager m, View view) {
         TextView statusText = view.findViewById(R.id.node_status);
         m.getStatus().observe(getViewLifecycleOwner(), status -> {
+            statusText.setTextColor(statusColor(status));
             if (status.equals(Manager.Status.STARTED)) {
                 statusText.setText(R.string.node_running);
             } else if (status.equals(Manager.Status.STARTING_UP)) {
