@@ -106,7 +106,20 @@
     </LinearLayout>
 
     <com.google.android.material.button.MaterialButton
+        android:id="@+id/web_button"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:layout_marginBottom="12dp"
+        android:enabled="false"
+        android:text="@string/open_freenet"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toTopOf="@+id/sites_button"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/sites_button"
+        style="@style/AppTheme.Button.Tonal"
         android:layout_width="0dp"
         android:layout_height="56dp"
         android:text="@string/sites_title"
