@@ -64,4 +64,6 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
     <string name="river_chat">Chat River</string>
     <string name="sites_copy_link">Copia link</string>
     <string name="sites_link_copied">Link copiato:\n%1$s</string>
+    <string name="river_joining">Entro nella stanza, può volerci un momento…</string>
+    <string name="river_join_failed">Invito non ottenuto: %1$s</string>
 </resources>
