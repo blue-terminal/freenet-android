@@ -78,11 +78,13 @@ public class VideoCallActivity extends AppCompatActivity {
     private void loadCall(String room) {
         // Jitsi Meet: open-source E2E encrypted video call
         // Room name based on time slot — shared across all app users in the same slot
-        String url = "https://meet.jit.si/" + room
+        // meet.ffmuc.net: Jitsi pubblico (Freifunk Monaco) senza account richiesto
+        String url = "https://meet.ffmuc.net/" + room
                 + "#config.startWithAudioMuted=false"
                 + "&config.startWithVideoMuted=false"
                 + "&config.disableDeepLinking=true"
                 + "&config.prejoinPageEnabled=false"
+                + "&config.requireDisplayName=false"
                 + "&config.toolbarButtons=[%22microphone%22,%22camera%22,%22hangup%22]";
         webView.loadUrl(url);
     }
