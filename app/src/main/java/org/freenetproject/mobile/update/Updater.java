@@ -128,7 +128,7 @@ public final class Updater {
     /** Returns false when GitHub could not be reached, so the check can be tried again. */
     static boolean notifyIfNew(Context context) {
         try {
-            Release release = newestRelease();
+            Release release = newestRelease(context);
             if (release != null) {
                 showNotification(context, release);
             }
@@ -174,7 +174,7 @@ public final class Updater {
     public static void check(Activity activity, boolean showResult) {
         new Thread(() -> {
             try {
-                Release release = newestRelease();
+                Release release = newestRelease(activity);
                 activity.runOnUiThread(() -> {
                     if (activity.isFinishing()) {
                         return;
@@ -195,9 +195,9 @@ public final class Updater {
         }, "freenet-update-check").start();
     }
 
-    private static Release newestRelease() throws IOException, JSONException {
+    private static Release newestRelease(Context context) throws IOException, JSONException {
         try {
-            return fromManifest();
+            return fromManifest(context);
         } catch (IOException | JSONException first) {
             Log.w(TAG, "Update file not available, trying the GitHub API", first);
             try {
@@ -239,23 +239,35 @@ public final class Updater {
         return found;
     }
 
-    private static Release fromManifest() throws IOException, JSONException {
+    private static Release fromManifest(Context context) throws IOException, JSONException {
+        boolean betaChannel = PreferenceManager.getDefaultSharedPreferences(context)
+                .getBoolean("beta_channel", false);
         JSONObject manifest = new JSONObject(fetchText(MANIFEST_URL));
-        String tag = manifest.getString("version");
+
+        // On beta channel, prefer the beta entry if it exists and is newer
+        if (betaChannel && manifest.has("beta")) {
+            Release r = releaseFromManifestNode(manifest.getJSONObject("beta"));
+            if (r != null) return r;
+        }
+        return releaseFromManifestNode(manifest);
+    }
+
+    private static Release releaseFromManifestNode(JSONObject node) throws IOException, JSONException {
+        String tag = node.getString("version");
         int[] version = parseVersion(tag);
         int[] current = parseVersion(BuildConfig.VERSION_NAME);
         if (version == null || current == null || compare(version, current) <= 0) {
             return null;
         }
-        JSONObject asset = manifest.getJSONObject("assets").optJSONObject(Build.SUPPORTED_ABIS[0]);
-        if (asset == null) {
-            return null;
-        }
+        JSONObject asset = node.getJSONObject("assets").optJSONObject(Build.SUPPORTED_ABIS[0]);
+        if (asset == null) return null;
+        String sha = asset.optString("sha256", "");
+        if (sha.isEmpty()) return null; // beta not yet published
         Release release = new Release();
         release.version = tag;
         release.url = asset.getString("url");
-        release.sha256 = asset.getString("sha256").toLowerCase(Locale.ROOT);
-        release.notes = manifest.optString("notes", "");
+        release.sha256 = sha.toLowerCase(Locale.ROOT);
+        release.notes = node.optString("notes", "");
         if (!release.url.startsWith(DOWNLOAD_PREFIX)) {
             throw new IOException("Unexpected download address");
         }
