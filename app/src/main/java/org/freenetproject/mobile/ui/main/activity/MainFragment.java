@@ -166,6 +166,11 @@ public class MainFragment extends Fragment {
                 web.setEnabled(status.equals(Manager.Status.STARTED)));
         view.findViewById(R.id.sites_button).setOnClickListener(v ->
                 startActivity(new Intent(getActivity(), SitesActivity.class)));
+
+        Button videoCall = view.findViewById(R.id.video_call_button);
+        videoCall.setOnClickListener(v -> startActivity(new Intent(getContext(), VideoCallActivity.class)));
+        manager.getStatus().observe(getViewLifecycleOwner(), status ->
+                videoCall.setEnabled(status.equals(Manager.Status.STARTED)));
         updateControls(manager, view);
         updateStatus(manager, view);
         updateStatusDetail(manager, view);
