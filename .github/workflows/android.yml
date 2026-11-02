@@ -1,0 +1,27 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ master, develop, nuova-freenet ]
+  pull_request:
+    branches: [ master, develop ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: set up JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 21
+    - name: Download and verify Freenet
+      run: ./prepara-freenet.sh
+    - name: Build with Gradle
+      run: ./gradlew assembleRelease
