@@ -132,6 +132,12 @@
             />
 
         <Preference
+            app:key="ghost_install"
+            app:title="@string/ghost_install"
+            app:summary="@string/ghost_install_summary"
+            />
+
+        <Preference
             app:key="ghost_generator"
             app:title="@string/ghost_generator"
             app:summary="@string/ghost_generator_summary"
