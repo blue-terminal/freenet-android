@@ -129,20 +129,6 @@
             android:text="@string/river_chat" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/ghostkey_button"
-            android:insetLeft="0dp"
-            android:paddingStart="2dp"
-            android:paddingEnd="2dp"
-            android:textSize="13sp"
-            style="@style/AppTheme.Button.Tonal"
-            android:layout_width="0dp"
-            android:layout_height="44dp"
-            android:layout_marginStart="4dp"
-            android:layout_marginEnd="4dp"
-            android:layout_weight="1"
-            android:text="@string/ghost_key" />
-
-        <com.google.android.material.button.MaterialButton
             android:id="@+id/pc_button"
             android:insetLeft="0dp"
             android:paddingStart="2dp"
