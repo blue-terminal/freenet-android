@@ -5,8 +5,10 @@ import android.content.ClipDescription;
 import android.content.ClipboardManager;
 import android.os.Bundle;
 import android.os.PersistableBundle;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -27,12 +29,22 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Makes local test keys with the ghostkey tool. Valid Ghost Keys are signed by Freenet after a
  * donation: these are signed by a master key made here, so Freenet rejects them.
  */
 public class GhostKeyActivity extends AppCompatActivity {
+    // Only the certificate: a pasted secret key must not end up in the temporary file.
+    private static final Pattern CERTIFICATE = Pattern.compile(
+            "-----BEGIN GHOSTKEY_CERTIFICATE_V1-----.*?-----END GHOSTKEY_CERTIFICATE_V1-----",
+            Pattern.DOTALL);
+
+    private EditText certificateInput;
+    private Button verifyButton;
+    private TextView verifyResult;
     private TextView result;
     private Button generateButton;
     private Button copyButton;
@@ -66,6 +78,26 @@ public class GhostKeyActivity extends AppCompatActivity {
         copyButton.setOnClickListener(v -> copyKey());
         root.addView(copyButton);
 
+        TextView verifyTitle = new TextView(this);
+        verifyTitle.setText(R.string.ghost_verify_help);
+        verifyTitle.setPadding(0, padding, 0, 0);
+        root.addView(verifyTitle);
+
+        certificateInput = new EditText(this);
+        certificateInput.setHint(R.string.ghost_verify_hint);
+        certificateInput.setMinLines(4);
+        certificateInput.setGravity(Gravity.TOP | Gravity.START);
+        root.addView(certificateInput);
+
+        verifyButton = new MaterialButton(this);
+        verifyButton.setText(R.string.ghost_verify);
+        verifyButton.setOnClickListener(v -> verify());
+        root.addView(verifyButton);
+
+        verifyResult = new TextView(this);
+        verifyResult.setTextIsSelectable(true);
+        root.addView(verifyResult);
+
         ScrollView scroll = new ScrollView(this);
         scroll.setFitsSystemWindows(true);
         scroll.addView(root);
@@ -81,6 +113,36 @@ public class GhostKeyActivity extends AppCompatActivity {
         clip.getDescription().setExtras(extras);
         getSystemService(ClipboardManager.class).setPrimaryClip(clip);
         Toast.makeText(this, R.string.ghost_copied, Toast.LENGTH_SHORT).show();
+    }
+
+    /** Checks the chain from Freenet's master key: the tool's default, with no key given. */
+    private void verify() {
+        Matcher block = CERTIFICATE.matcher(certificateInput.getText());
+        if (!block.find()) {
+            verifyResult.setText(R.string.ghost_verify_no_certificate);
+            return;
+        }
+        String text = block.group() + "\n";
+        verifyButton.setEnabled(false);
+        verifyResult.setText(R.string.ghost_working);
+        new Thread(() -> {
+            String shown;
+            File file = new File(getCacheDir(), "certificate-to-verify.pem");
+            try {
+                Files.write(file.toPath(), text.getBytes(StandardCharsets.UTF_8));
+                shown = getString(R.string.ghost_verify_valid,
+                        run("verify-ghost-key", "--ghost-certificate", file.getPath()).trim());
+            } catch (IOException | InterruptedException e) {
+                shown = getString(R.string.ghost_verify_invalid, e.getMessage());
+            } finally {
+                file.delete();
+            }
+            String result = shown;
+            runOnUiThread(() -> {
+                verifyButton.setEnabled(true);
+                verifyResult.setText(result);
+            });
+        }, "ghost-key-verify").start();
     }
 
     private void generate() {

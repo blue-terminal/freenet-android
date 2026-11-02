@@ -144,4 +144,10 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
     <string name="ghost_copied">Chiave copiata. Contiene la parte segreta: non condividerla.</string>
     <string name="ghost_official">Ghost Key valida</string>
     <string name="ghost_official_summary">Apre qui la pagina di Freenet. Una chiave valida richiede una donazione.</string>
+    <string name="ghost_verify_help">Controlla un certificato con la chiave di Freenet. Le chiavi di prova create qui risultano sempre non valide.</string>
+    <string name="ghost_verify_hint">Incolla il certificato Ghost Key</string>
+    <string name="ghost_verify">Verifica certificato</string>
+    <string name="ghost_verify_no_certificate">Nel testo non trovo un certificato Ghost Key.</string>
+    <string name="ghost_verify_valid">Valido per Freenet.\n%1$s</string>
+    <string name="ghost_verify_invalid">Non valido per Freenet.\n%1$s</string>
 </resources>
