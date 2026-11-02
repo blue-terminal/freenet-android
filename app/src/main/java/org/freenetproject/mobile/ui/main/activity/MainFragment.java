@@ -32,6 +32,8 @@ import androidx.preference.PreferenceManager;
 
 import org.freenetproject.mobile.BuildConfig;
 import org.freenetproject.mobile.R;
+
+import java.util.Calendar;
 import org.freenetproject.mobile.services.node.Manager;
 import org.freenetproject.mobile.ui.about.activity.AboutActivity;
 import org.freenetproject.mobile.ui.bootstrap.activity.BootstrapActivity;
@@ -396,6 +398,20 @@ public class MainFragment extends Fragment {
         boolean pcVisible = prefs.getBoolean("btn_pc", true);
         view.findViewById(R.id.extra_buttons)
                 .setVisibility(riverVisible || pcVisible ? View.VISIBLE : View.GONE);
+
+        // Seasonal overlay
+        SeasonalOverlayView overlay = view.findViewById(R.id.seasonal_overlay);
+        if (overlay != null) overlay.setSeason(detectSeason());
+    }
+
+    private static SeasonalOverlayView.Season detectSeason() {
+        Calendar c = Calendar.getInstance();
+        int month = c.get(Calendar.MONTH); // 0-based
+        int day   = c.get(Calendar.DAY_OF_MONTH);
+        if (month == Calendar.OCTOBER && day == 31) return SeasonalOverlayView.Season.HALLOWEEN;
+        if (month == Calendar.APRIL   && day == 1)  return SeasonalOverlayView.Season.FISH;
+        if (month == Calendar.DECEMBER && (day >= 24 && day <= 26)) return SeasonalOverlayView.Season.SNOW;
+        return SeasonalOverlayView.Season.NONE;
     }
 
     private static void applyBtnVisibility(View view, int id, boolean visible) {
