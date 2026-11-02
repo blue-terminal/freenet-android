@@ -25,11 +25,16 @@ public class MainActivity extends AppCompatActivity {
         PreferenceManager.setDefaultValues(this, R.xml.root_preferences, false);
         shownColor = PreferenceManager.getDefaultSharedPreferences(this)
                 .getString(App.KEY_COLOR, "teal");
-        Updater.autoCheck(this);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Updater.autoCheck(this);
     }
 
     @Override

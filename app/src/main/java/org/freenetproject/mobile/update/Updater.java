@@ -20,7 +20,6 @@ import androidx.preference.PreferenceManager;
 import org.freenetproject.mobile.BuildConfig;
 import org.freenetproject.mobile.R;
 import org.freenetproject.mobile.ui.settings.activity.SettingsActivity;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -49,8 +48,9 @@ import javax.net.ssl.HttpsURLConnection;
  */
 public final class Updater {
     private static final String TAG = "Freenet";
-    private static final String RELEASES_API =
-            "https://api.github.com/repos/blue-terminal/freenet-android/releases?per_page=10";
+    // Not the GitHub API: it allows 60 requests an hour per network, shared by all its devices.
+    private static final String MANIFEST_URL =
+            "https://raw.githubusercontent.com/blue-terminal/freenet-android/main/update.json";
     private static final String DOWNLOAD_PREFIX =
             "https://github.com/blue-terminal/freenet-android/releases/download/";
     private static final Pattern VERSION = Pattern.compile("^v?(\\d+)\\.(\\d+)\\.(\\d+)");
@@ -83,28 +83,26 @@ public final class Updater {
         check(activity, false);
     }
 
-    /** From the background service: a system notification, since no window may be open. */
-    public static void notifyInBackground(Context context) {
-        if (!PreferenceManager.getDefaultSharedPreferences(context).getBoolean("auto_update", true)) {
-            return;
-        }
-        new Thread(() -> {
-            try {
-                Release release = newestRelease();
-                if (release != null) {
-                    showNotification(context, release);
-                }
-            } catch (IOException | JSONException e) {
-                Log.w(TAG, "Background update check failed", e);
+    /** Returns false when GitHub could not be reached, so the check can be tried again. */
+    static boolean notifyIfNew(Context context) {
+        try {
+            Release release = newestRelease();
+            if (release != null) {
+                showNotification(context, release);
             }
-        }, "freenet-update-notify").start();
+            return true;
+        } catch (IOException | JSONException e) {
+            Log.w(TAG, "Background update check failed", e);
+            return false;
+        }
     }
 
     private static void showNotification(Context context, Release release) {
         NotificationManager manager = context.getSystemService(NotificationManager.class);
         manager.createNotificationChannel(new NotificationChannel(CHANNEL_ID,
                 context.getString(R.string.updates), NotificationManager.IMPORTANCE_DEFAULT));
-        Intent open = new Intent(context, SettingsActivity.class);
+        Intent open = new Intent(context, SettingsActivity.class)
+                .putExtra(SettingsActivity.EXTRA_CHECK_UPDATE, true);
         manager.notify(NOTIFICATION_ID, new Notification.Builder(context, CHANNEL_ID)
                 .setContentTitle(context.getString(R.string.update_available_title))
                 .setContentText(release.version)
@@ -126,56 +124,39 @@ public final class Updater {
                     if (release != null) {
                         askToInstall(activity, release);
                     } else if (showResult) {
-                        toast(activity, activity.getString(R.string.update_none));
+                        toast(activity, activity.getString(R.string.update_none, BuildConfig.VERSION_NAME));
                     }
                 });
             } catch (IOException | JSONException e) {
                 Log.w(TAG, "Update check failed", e);
                 if (showResult) {
                     activity.runOnUiThread(() -> toast(activity,
-                            activity.getString(R.string.update_failed, e.getMessage())));
+                            activity.getString(R.string.update_unreachable)));
                 }
             }
         }, "freenet-update-check").start();
     }
 
     private static Release newestRelease() throws IOException, JSONException {
-        JSONArray releases = new JSONArray(fetchText(RELEASES_API));
-        int[] newest = parseVersion(BuildConfig.VERSION_NAME);
-        Release found = null;
-        for (int i = 0; i < releases.length(); i++) {
-            JSONObject item = releases.getJSONObject(i);
-            int[] version = parseVersion(item.getString("tag_name"));
-            if (item.getBoolean("draft") || version == null || newest == null
-                    || compare(version, newest) <= 0) {
-                continue;
-            }
-            Release candidate = assetForThisPhone(item);
-            if (candidate != null) {
-                newest = version;
-                found = candidate;
-            }
+        JSONObject manifest = new JSONObject(fetchText(MANIFEST_URL));
+        String tag = manifest.getString("version");
+        int[] version = parseVersion(tag);
+        int[] current = parseVersion(BuildConfig.VERSION_NAME);
+        if (version == null || current == null || compare(version, current) <= 0) {
+            return null;
         }
-        return found;
-    }
-
-    private static Release assetForThisPhone(JSONObject item) throws JSONException {
-        String abi = Build.SUPPORTED_ABIS[0];
-        JSONArray assets = item.getJSONArray("assets");
-        for (int i = 0; i < assets.length(); i++) {
-            JSONObject asset = assets.getJSONObject(i);
-            String url = asset.getString("browser_download_url");
-            String digest = asset.optString("digest", "");
-            if (asset.getString("name").endsWith(abi + "-release.apk")
-                    && url.startsWith(DOWNLOAD_PREFIX) && digest.startsWith("sha256:")) {
-                Release release = new Release();
-                release.version = item.getString("tag_name");
-                release.url = url;
-                release.sha256 = digest.substring("sha256:".length()).toLowerCase(Locale.ROOT);
-                return release;
-            }
+        JSONObject asset = manifest.getJSONObject("assets").optJSONObject(Build.SUPPORTED_ABIS[0]);
+        if (asset == null) {
+            return null;
         }
-        return null;
+        Release release = new Release();
+        release.version = tag;
+        release.url = asset.getString("url");
+        release.sha256 = asset.getString("sha256").toLowerCase(Locale.ROOT);
+        if (!release.url.startsWith(DOWNLOAD_PREFIX)) {
+            throw new IOException("Unexpected download address");
+        }
+        return release;
     }
 
     private static int[] parseVersion(String text) {
@@ -275,7 +256,6 @@ public final class Updater {
 
     private static String fetchText(String url) throws IOException {
         HttpsURLConnection connection = open(url);
-        connection.setRequestProperty("Accept", "application/vnd.github+json");
         try (InputStream in = connection.getInputStream()) {
             if (connection.getResponseCode() != HttpsURLConnection.HTTP_OK) {
                 throw new IOException("HTTP " + connection.getResponseCode());
