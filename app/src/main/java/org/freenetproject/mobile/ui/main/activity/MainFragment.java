@@ -83,6 +83,10 @@ public class MainFragment extends Fragment {
         updateSharedPreferences(manager, view);
         updateSettings(manager, view);
         updateAbout(manager, view);
+        Button web = view.findViewById(R.id.web_button);
+        web.setOnClickListener(v -> startActivity(new Intent(getContext(), BootstrapActivity.class)));
+        manager.getStatus().observe(getViewLifecycleOwner(), status ->
+                web.setEnabled(status.equals(Manager.Status.STARTED)));
         view.findViewById(R.id.sites_button).setOnClickListener(v ->
                 startActivity(new Intent(getActivity(), SitesActivity.class)));
         updateControls(manager, view);
@@ -156,6 +160,8 @@ public class MainFragment extends Fragment {
                 detailText.setText(reason.isEmpty()
                         ? getString(R.string.error_detail)
                         : getString(R.string.error_detail) + "\n" + reason);
+            } else if (status.equals(Manager.Status.STOPPED)) {
+                detailText.setText(R.string.press_to_start);
             } else {
                 detailText.setText("");
             }

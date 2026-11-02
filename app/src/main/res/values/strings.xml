@@ -60,4 +60,6 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     <string name="update_available">Version %1$s is ready on GitHub. Download it now?</string>
     <string name="update_download">Download</string>
     <string name="update_downloading">Downloading the update…</string>
+    <string name="open_freenet">Open Freenet</string>
+    <string name="press_to_start">Press the button above to start Freenet</string>
 </resources>
