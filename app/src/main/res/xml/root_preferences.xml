@@ -87,6 +87,12 @@
             app:summary="@string/host_mode_summary"
             />
 
+        <Preference
+            app:key="host_address"
+            app:title="@string/host_address"
+            app:summary="@string/host_address_summary"
+            />
+
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/updates">
@@ -101,6 +107,12 @@
         <Preference
             app:key="check_update"
             app:title="@string/check_update"
+            />
+
+        <Preference
+            app:key="update_background"
+            app:title="@string/update_background"
+            app:summary="@string/update_background_summary"
             />
 
     </PreferenceCategory>
