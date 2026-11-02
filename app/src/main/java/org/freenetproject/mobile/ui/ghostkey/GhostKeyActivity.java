@@ -23,13 +23,17 @@ import org.freenetproject.mobile.R;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,6 +61,7 @@ public class GhostKeyActivity extends AppCompatActivity {
     private Button generateButton;
     private Button copyButton;
     private Button shareButton;
+    private Button historyButton;
     private Button deleteButton;
     private String certificate = null;
 
@@ -93,6 +98,12 @@ public class GhostKeyActivity extends AppCompatActivity {
         shareButton.setVisibility(ownKey().isFile() ? View.VISIBLE : View.GONE);
         shareButton.setOnClickListener(v -> sharePublicKey());
         root.addView(shareButton);
+
+        historyButton = new MaterialButton(this);
+        historyButton.setText(R.string.ghost_history);
+        historyButton.setVisibility(historyFile().isFile() ? View.VISIBLE : View.GONE);
+        historyButton.setOnClickListener(v -> showHistory());
+        root.addView(historyButton);
 
         deleteButton = new MaterialButton(this);
         deleteButton.setText(R.string.ghost_delete);
@@ -314,6 +325,7 @@ public class GhostKeyActivity extends AppCompatActivity {
                         + "\n" + new String(Files.readAllBytes(
                                 new File(ghost, "ghost_key_signing_key.pem").toPath()),
                                 StandardCharsets.UTF_8).trim() + "\n";
+                remember(new String(Files.readAllBytes(cert.toPath()), StandardCharsets.UTF_8));
                 text = getString(R.string.ghost_done, firstLine(local));
             } catch (IOException | InterruptedException e) {
                 text = getString(R.string.ghost_failed, e.getMessage());
@@ -326,9 +338,60 @@ public class GhostKeyActivity extends AppCompatActivity {
                 certificate = ready;
                 copyButton.setVisibility(ready == null ? View.GONE : View.VISIBLE);
                 shareButton.setVisibility(ready == null ? View.GONE : View.VISIBLE);
+                historyButton.setVisibility(historyFile().isFile() ? View.VISIBLE : View.GONE);
                 deleteButton.setVisibility(ready == null ? View.GONE : View.VISIBLE);
             });
         }, "ghost-key").start();
+    }
+
+    /** One line per key made here: when it was made and how it starts. No secrets. */
+    private File historyFile() {
+        return new File(getFilesDir(), "ghostkey-history.txt");
+    }
+
+    /**
+     * Writes down a key that has just been made. Only the date and the first characters of
+     * the certificate go in, enough to tell the keys apart without keeping a copy of them.
+     */
+    private void remember(String certificatePem) {
+        String start = certificatePem.replaceAll("-----[A-Z_0-9 ]+-----", "")
+                .replaceAll("\\s", "");
+        String mark = start.length() > 12 ? start.substring(0, 12) : start;
+        String line = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.ROOT).format(new Date())
+                + "  " + mark + "…\n";
+        try (FileWriter writer = new FileWriter(historyFile(), true)) {
+            writer.write(line);
+        } catch (IOException ignored) {
+            // The history is a convenience: a key is made whether it can be written or not.
+        }
+    }
+
+    private void showHistory() {
+        String text;
+        try {
+            text = new String(Files.readAllBytes(historyFile().toPath()), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            text = "";
+        }
+        if (text.trim().isEmpty()) {
+            text = getString(R.string.ghost_history_empty);
+        }
+        TextView shown = new TextView(this);
+        int padding = Math.round(16 * getResources().getDisplayMetrics().density);
+        shown.setPadding(padding, padding, padding, padding);
+        shown.setTextIsSelectable(true);
+        shown.setText(text);
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(shown);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.ghost_history)
+                .setView(scroll)
+                .setNegativeButton(android.R.string.ok, null)
+                .setPositiveButton(R.string.ghost_history_clear, (dialog, which) -> {
+                    historyFile().delete();
+                    historyButton.setVisibility(View.GONE);
+                })
+                .show();
     }
 
     private static File folder(File base, String name) throws IOException {

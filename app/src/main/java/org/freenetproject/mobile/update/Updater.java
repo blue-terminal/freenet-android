@@ -66,7 +66,9 @@ public final class Updater {
     /** Written whether the check found something or not, so the setting can show it. */
     public static final String LAST_RESULT = "update_last_result";
     private static final long AUTO_CHECK_INTERVAL = TimeUnit.MINUTES.toMillis(10);
-    private static final String CHANNEL_ID = "FREENET UPDATES";
+    // The name carries a 2: a channel's importance cannot be raised once Android has it,
+    // so the high-importance channel has to be a new one.
+    private static final String CHANNEL_ID = "FREENET UPDATES 2";
     private static final int NOTIFICATION_ID = 2;
 
     private Updater() {
@@ -117,7 +119,7 @@ public final class Updater {
     private static void showNotification(Context context, Release release) {
         NotificationManager manager = context.getSystemService(NotificationManager.class);
         manager.createNotificationChannel(new NotificationChannel(CHANNEL_ID,
-                context.getString(R.string.updates), NotificationManager.IMPORTANCE_DEFAULT));
+                context.getString(R.string.updates), NotificationManager.IMPORTANCE_HIGH));
         Intent open = new Intent(context, SettingsActivity.class)
                 .putExtra(SettingsActivity.EXTRA_CHECK_UPDATE, true);
         manager.notify(NOTIFICATION_ID, new Notification.Builder(context, CHANNEL_ID)
@@ -125,6 +127,7 @@ public final class Updater {
                 .setContentText(release.version)
                 .setSmallIcon(R.drawable.ic_freenet_logo_notification)
                 .setAutoCancel(true)
+                .setPriority(Notification.PRIORITY_HIGH)
                 .setContentIntent(PendingIntent.getActivity(context, 1, open,
                         PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
                 .build());

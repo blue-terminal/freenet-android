@@ -60,6 +60,12 @@ public class Notification {
                 .setContentTitle(title)
                 .setContentText(text)
                 .setOngoing(true)
+                // Android lets this one be swiped away: bring it back while the node runs.
+                .setDeleteIntent(PendingIntent.getBroadcast(
+                        context,
+                        2,
+                        new Intent(context.getApplicationContext(), Restore.class),
+                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
                 .setSmallIcon(R.drawable.ic_freenet_logo_notification)
                 .setContentIntent(PendingIntent.getActivity(
                         context,
