@@ -255,4 +255,6 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     </string-array>
     <string name="notification_stop">Stop</string>
     <string name="space_sound_desc">Space sound</string>
+    <string name="led_theme">LED theme</string>
+    <string name="led_theme_summary">Futuristic dark background with neon outlines</string>
 </resources>
