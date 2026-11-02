@@ -23,7 +23,7 @@
 <h3>Freenet mobile v%1$s</h3>
 <p>Fa girare <a href="https://freenet.org">Freenet</a> v%2$s sul telefono. È una versione non ufficiale, non fatta da The Freenet Project.</p>
 <p>Telemetria e aggiornamenti automatici sono spenti. L\'interfaccia web si raggiunge solo da questo telefono.</p>
-<p>Codice dell\'app: GNU GPL v2, basato su <a href="https://github.com/freenet-mobile/app">freenet-mobile/app</a>.<br>
+<p>Codice dell\'app: GNU GPL v3, basato su <a href="https://github.com/freenet-mobile/app">freenet-mobile/app</a>.<br>
 Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">freenet/freenet-core</a>.</p>
 ]]></string>
     <string name="sites_title">Crea un sito</string>
@@ -42,4 +42,14 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
     <string name="sites_publishing">Pubblicazione in corso, può volerci qualche minuto…</string>
     <string name="sites_published">Pubblicato. Indirizzo copiato:\n%1$s</string>
     <string name="sites_publish_failed">Pubblicazione non riuscita: %1$s</string>
+    <string name="updates">Aggiornamenti</string>
+    <string name="auto_update">Controlla da solo</string>
+    <string name="auto_update_summary">Una volta al giorno, quando apri l\'app, chiede a GitHub se c\'è una nuova versione. Prima di installare confermi sempre tu.</string>
+    <string name="check_update">Controlla aggiornamenti</string>
+    <string name="update_none">Hai già l\'ultima versione.</string>
+    <string name="update_failed">Aggiornamento non riuscito: %1$s</string>
+    <string name="update_available_title">Nuova versione disponibile</string>
+    <string name="update_available">La versione %1$s è pronta su GitHub. La scarico?</string>
+    <string name="update_download">Scarica</string>
+    <string name="update_downloading">Sto scaricando l\'aggiornamento…</string>
 </resources>

@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:name=".App"
@@ -20,6 +21,16 @@
         <meta-data
             android:name="android.webkit.WebView.MetricsOptOut"
             android:value="true" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/update_paths" />
+        </provider>
 
         <activity
             android:name=".ui.acknowledgement.activity.AcknowledgementActivity"
@@ -41,6 +52,7 @@
             android:name=".ui.bootstrap.activity.BootstrapActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:label=""
+            android:windowSoftInputMode="adjustResize"
             android:parentActivityName=".ui.main.activity.MainActivity"
             android:theme="@style/AppTheme.NoActionBar" />
 

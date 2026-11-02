@@ -29,7 +29,7 @@
 <h3>Freenet mobile v%1$s</h3>
 <p>Runs <a href="https://freenet.org">Freenet</a> v%2$s on your phone. This is an unofficial build, not made by The Freenet Project.</p>
 <p>Telemetry and automatic updates are turned off. The web interface can only be reached from this phone.</p>
-<p>App code: GNU GPL v2, based on <a href="https://github.com/freenet-mobile/app">freenet-mobile/app</a>.<br>
+<p>App code: GNU GPL v3, based on <a href="https://github.com/freenet-mobile/app">freenet-mobile/app</a>.<br>
 Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">freenet/freenet-core</a>.</p>
 ]]></string>
     <string name="acknowledgement_text"><![CDATA[I understand that this app connects my phone to a peer-to-peer network and shares data with other people. <a href="https://freenet.org">Learn more about Freenet</a>.]]></string>
@@ -50,4 +50,14 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     <string name="sites_publishing">Publishing, this can take a few minutes…</string>
     <string name="sites_published">Published. Address copied:\n%1$s</string>
     <string name="sites_publish_failed">Publishing failed: %1$s</string>
+    <string name="updates">Updates</string>
+    <string name="auto_update">Check automatically</string>
+    <string name="auto_update_summary">Once a day, when the app opens, it asks GitHub if there is a new version. You always confirm before installing.</string>
+    <string name="check_update">Check for updates</string>
+    <string name="update_none">You have the latest version.</string>
+    <string name="update_failed">Update failed: %1$s</string>
+    <string name="update_available_title">New version available</string>
+    <string name="update_available">Version %1$s is ready on GitHub. Download it now?</string>
+    <string name="update_download">Download</string>
+    <string name="update_downloading">Downloading the update…</string>
 </resources>
