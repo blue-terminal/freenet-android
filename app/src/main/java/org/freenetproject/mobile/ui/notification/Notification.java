@@ -5,6 +5,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.drawable.Icon;
 
 import org.freenetproject.mobile.R;
 import org.freenetproject.mobile.services.node.Manager;
@@ -56,11 +57,20 @@ public class Notification {
     }
 
     private static android.app.Notification build(Context context, String title, String text) {
+        PendingIntent stopIntent = PendingIntent.getBroadcast(
+                context,
+                3,
+                new Intent(context.getApplicationContext(), StopAction.class),
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        android.app.Notification.Action stopAction = new android.app.Notification.Action.Builder(
+                Icon.createWithResource(context, R.drawable.ic_baseline_power_settings_new_24),
+                context.getString(R.string.notification_stop),
+                stopIntent).build();
         return new android.app.Notification.Builder(context, CHANNEL_ID)
                 .setContentTitle(title)
                 .setContentText(text)
                 .setOngoing(true)
-                // Android lets this one be swiped away: bring it back while the node runs.
+                .addAction(stopAction)
                 .setDeleteIntent(PendingIntent.getBroadcast(
                         context,
                         2,
