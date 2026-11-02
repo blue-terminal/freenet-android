@@ -38,16 +38,10 @@ public class Notification {
             case STARTED:
                 title = context.getString(R.string.node_running);
                 long ms = Manager.getInstance().uptimeMs();
-                if (ms > 0) {
-                    long s = ms / 1000;
-                    long h = s / 3600;
-                    long min = (s % 3600) / 60;
-                    long sec = s % 60;
-                    text = String.format(java.util.Locale.ROOT, "%02d:%02d:%02d", h, min, sec);
-                } else {
-                    text = context.getString(R.string.connected_to_the_network);
-                }
-                break;
+                long startWhen = ms > 0 ? System.currentTimeMillis() - ms : 0;
+                context.getSystemService(NotificationManager.class)
+                        .notify(ID, build(context, title, "", startWhen));
+                return;
             case PAUSED:
                 title = context.getString(R.string.node_paused);
                 text = context.getString(R.string.battery_and_data);
@@ -66,6 +60,10 @@ public class Notification {
     }
 
     private static android.app.Notification build(Context context, String title, String text) {
+        return build(context, title, text, 0);
+    }
+
+    private static android.app.Notification build(Context context, String title, String text, long startMs) {
         PendingIntent stopIntent = PendingIntent.getBroadcast(
                 context,
                 3,
@@ -75,7 +73,7 @@ public class Notification {
                 Icon.createWithResource(context, R.drawable.ic_baseline_power_settings_new_24),
                 context.getString(R.string.notification_stop),
                 stopIntent).build();
-        return new android.app.Notification.Builder(context, CHANNEL_ID)
+        android.app.Notification.Builder builder = new android.app.Notification.Builder(context, CHANNEL_ID)
                 .setContentTitle(title)
                 .setContentText(text)
                 .setOngoing(true)
@@ -90,8 +88,11 @@ public class Notification {
                         context,
                         0,
                         new Intent(context.getApplicationContext(), MainActivity.class),
-                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
-                .build();
+                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+        if (startMs > 0) {
+            builder.setWhen(startMs).setUsesChronometer(true).setShowWhen(true);
+        }
+        return builder.build();
     }
 
     /**
