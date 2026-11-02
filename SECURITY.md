@@ -6,7 +6,7 @@ Questa è una versione di prova, non ufficiale, e non è prodotta da The Freenet
 
 | Versione       | Correzioni di sicurezza |
 | -------------- | ----------------------- |
-| 0.4.5          | Sì                      |
+| 0.5.0          | Sì                      |
 | Precedenti     | No                      |
 
 Conviene usare sempre l'ultima versione della pagina
@@ -33,7 +33,8 @@ Se la vulnerabilità è in Freenet stesso, segnalala al progetto
 
 - Le altre app sullo stesso telefono possono raggiungere il nodo su `127.0.0.1:7509`, e da lì
   arrivare a dati e chiavi di Freenet.
-- Gli APK sono firmati con una chiave di prova, non adatta alla distribuzione.
+- I file dei siti e le chiavi per aggiornarli sono cifrati sul telefono con AES-256 e una chiave del sistema Android. Durante la pubblicazione restano in chiaro per poco tempo, nella cartella privata dell'app. I siti pubblicati sono pubblici e non sono cifrati.
+- Se la chiave del sistema Android si perde, i siti salvati non si possono più aprire.
 - La versione di Freenet inclusa è fissa e non si aggiorna da sola: si aggiorna con una nuova
   versione dell'app.
 - I programmi `freenet` e `fdev` sono quelli ufficiali già compilati: se ne verificano le

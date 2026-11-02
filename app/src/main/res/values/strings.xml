@@ -68,4 +68,8 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     <string name="sites_importing">Copying the folder…</string>
     <string name="sites_imported">Folder imported as site: %1$s</string>
     <string name="sites_too_large">Folder too large: the limit is 200 MB.</string>
+    <string name="ghost_key">Ghost Key</string>
+    <string name="river_chat">River chat</string>
+    <string name="sites_copy_link">Copy link</string>
+    <string name="sites_link_copied">Link copied:\n%1$s</string>
 </resources>
