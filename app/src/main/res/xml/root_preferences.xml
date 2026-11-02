@@ -104,10 +104,6 @@
             app:summary="@string/auto_update_summary"
             />
 
-        <Preference
-            app:key="check_update"
-            app:title="@string/check_update"
-            />
 
         <Preference
             app:key="update_background"
@@ -234,6 +230,11 @@
             app:key="news"
             app:title="@string/news"
             app:summary="@string/news_summary"
+            />
+
+        <Preference
+            app:key="check_update"
+            app:title="@string/check_update"
             />
 
         <Preference
