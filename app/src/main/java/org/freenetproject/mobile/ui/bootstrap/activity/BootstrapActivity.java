@@ -30,6 +30,8 @@ import org.freenetproject.mobile.services.node.Manager;
 /** Shows the node's web interface, where the Freenet apps such as River run. */
 public class BootstrapActivity extends AppCompatActivity {
     public static final String EXTRA_URL = "url";
+    private WebView webView;
+    private SharedPreferences preferences;
 
     @SuppressLint("SetJavaScriptEnabled") // Freenet apps need it; they only load from the local node
     @Override
@@ -39,6 +41,9 @@ public class BootstrapActivity extends AppCompatActivity {
 
         WebView web = findViewById(R.id.bootstrap_webview);
         TextView address = findViewById(R.id.web_address);
+        // Store web ref for onResume text-zoom updates
+        webView = web;
+        preferences = PreferenceManager.getDefaultSharedPreferences(this);
         findViewById(R.id.web_back).setOnClickListener(
                 v -> getOnBackPressedDispatcher().onBackPressed());
         ImageButton editUrl = findViewById(R.id.web_edit_url);
@@ -126,6 +131,15 @@ public class BootstrapActivity extends AppCompatActivity {
         });
         String url = getIntent().getStringExtra(EXTRA_URL);
         web.loadUrl(url != null ? url : Manager.WEB_URL);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (webView != null && preferences != null) {
+            webView.getSettings().setTextZoom(
+                    Integer.parseInt(preferences.getString("web_text_size", "100")));
+        }
     }
 
     /** Returns false for the local node, which stays in the app. Anything else leaves it. */

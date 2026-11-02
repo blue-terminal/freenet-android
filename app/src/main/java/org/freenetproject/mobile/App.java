@@ -17,6 +17,7 @@ public class App extends Application {
     public static final String KEY_LANGUAGE = "language";
     public static final String KEY_COLOR = "color";
     public static final String KEY_LED = "led_theme";
+    public static final String KEY_COLORBLIND = "colorblind_mode";
     public static final String KEY_BLOCK_SCREENSHOTS = "dev_block_screenshots";
     private static final String KEY_MINIMAL_DESIGN = "minimal_design";
 
@@ -72,6 +73,9 @@ public class App extends Application {
             activity.getTheme().applyStyle(colorStyle(color), true);
             if (preferences.getBoolean(KEY_LED, false)) {
                 activity.getTheme().applyStyle(R.style.Theme_Led, true);
+            }
+            if (preferences.getBoolean(KEY_COLORBLIND, false)) {
+                activity.getTheme().applyStyle(R.style.Theme_Colorblind, true);
             }
             applyScreenshotBlock(activity, preferences.getBoolean(KEY_BLOCK_SCREENSHOTS, false));
             if (!preferences.getBoolean("dev_animations", true)) {

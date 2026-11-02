@@ -34,6 +34,13 @@
             app:defaultValue="false"
             />
 
+        <SwitchPreferenceCompat
+            app:key="colorblind_mode"
+            app:title="@string/colorblind_mode"
+            app:summary="@string/colorblind_mode_summary"
+            app:defaultValue="false"
+            />
+
         <ListPreference
             app:key="logo_style"
             app:title="@string/logo_style"
