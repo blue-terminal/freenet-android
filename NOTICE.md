@@ -15,6 +15,7 @@ il motore originale è stato sostituito, e sono stati aggiunti l'editor HTML e l
 - **Freenet** (`freenet` e `fdev`): GNU AGPL, The Freenet Project. Codice su
   [freenet/freenet-core](https://github.com/freenet/freenet-core). Chi distribuisce l'APK deve
   rendere disponibile anche il codice di Freenet, per la versione inclusa.
+- **ghostkey** 0.1.8: strumento di The Freenet Project, per le chiavi di prova.
 - **Librerie AndroidX e Material Components**: Apache License 2.0, Google.
 
 Questa app non è prodotta né approvata da The Freenet Project.

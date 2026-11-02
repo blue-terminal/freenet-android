@@ -35,6 +35,7 @@ public class Manager {
     private static final int STARTUP_TIMEOUT_SECONDS = 180;
     private static final int STOP_TIMEOUT_SECONDS = 10;
     private static final int LOG_TAIL_BYTES = 4096;
+    private static final int LOG_COPY_BYTES = 64 * 1024;
     private static final String MIN_CONNECTIONS_WHEN_LIMITED = "5";
     private static final int BLOCKED_BY_ANDROID_CODE = 128 + 31; // SIGSYS
 
@@ -147,6 +148,14 @@ public class Manager {
         env.put("FREENET_TELEMETRY_ENABLED", "false");
         // Only the phone itself can reach the node's web interface and its keys.
         env.put("FREENET_WS_API_ADDRESS", "127.0.0.1");
+        String disk = preferences.getString("dev_disk", "");
+        if (!disk.isEmpty()) {
+            env.put("MAX_HOSTING_DISK", disk);
+        }
+        String threads = preferences.getString("dev_threads", "");
+        if (!threads.isEmpty()) {
+            env.put("MAX_BLOCKING_THREADS", threads);
+        }
         env.put("LOG_LEVEL", preferences.getString("dev_log", "warn"));
         builder.redirectErrorStream(true);
         builder.redirectOutput(logFile);
@@ -249,6 +258,20 @@ public class Manager {
 
     public synchronized void clearPauses() {
         pauses.clear();
+    }
+
+    /** The end of the node's log, to copy into a bug report. */
+    public static String logTail(Context context) {
+        File file = new File(context.getFilesDir(), "freenet.log");
+        try (RandomAccessFile tail = new RandomAccessFile(file, "r")) {
+            long start = Math.max(0, tail.length() - LOG_COPY_BYTES);
+            byte[] bytes = new byte[(int) (tail.length() - start)];
+            tail.seek(start);
+            tail.readFully(bytes);
+            return new String(bytes, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            return "";
+        }
     }
 
     /** The last line of the node's log, to explain an error. */
