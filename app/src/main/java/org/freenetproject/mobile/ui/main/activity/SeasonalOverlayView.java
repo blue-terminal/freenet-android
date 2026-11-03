@@ -19,7 +19,7 @@ import java.util.Random;
  */
 public class SeasonalOverlayView extends View {
 
-    public enum Season { NONE, SNOW, FISH, HALLOWEEN }
+    public enum Season { NONE, SNOW, FISH, HALLOWEEN, BIRTHDAY, NEW_YEAR, SUMMER, SPRING }
 
     private Season season = Season.NONE;
     private final List<Particle> particles = new ArrayList<>();
@@ -64,7 +64,9 @@ public class SeasonalOverlayView extends View {
         p.x = rng.nextFloat() * getWidth();
         switch (season) {
             case SNOW:
-                p.emoji = rng.nextInt(3) == 0 ? "❄" : "❅";
+                String[] snowEmojis = {"❄","❅","❆","🎅","🦌","🎄","⛄","🎁"};
+                // more snowflakes than Santas
+                p.emoji = rng.nextInt(5) < 3 ? snowEmojis[rng.nextInt(3)] : snowEmojis[3 + rng.nextInt(5)];
                 p.size = 18 + rng.nextInt(20);
                 p.vy = 1.5f + rng.nextFloat() * 2f;
                 p.vx = (rng.nextFloat() - 0.5f) * 1.2f;
@@ -72,7 +74,8 @@ public class SeasonalOverlayView extends View {
                 p.alpha = 180 + rng.nextInt(75);
                 break;
             case FISH:
-                p.emoji = rng.nextInt(2) == 0 ? "🐟" : "🐠";
+                String[] fishEmojis = {"🐟","🐠","🐡","🦈","🐙","🦑","🦐","🐬"};
+                p.emoji = fishEmojis[rng.nextInt(fishEmojis.length)];
                 p.size = 22 + rng.nextInt(18);
                 p.vx = (rng.nextBoolean() ? 1 : -1) * (1.5f + rng.nextFloat() * 2f);
                 p.x = p.vx > 0 ? -p.size : getWidth() + p.size;
@@ -81,10 +84,48 @@ public class SeasonalOverlayView extends View {
                 p.alpha = 200 + rng.nextInt(55);
                 break;
             case HALLOWEEN:
-                p.emoji = rng.nextInt(3) == 0 ? "🕷" : (rng.nextInt(2) == 0 ? "💀" : "🦇");
+                String[] hwEmojis = {"🧟","💀","🦇","🕷","👻","🕸","🎃","🧛"};
+                p.emoji = hwEmojis[rng.nextInt(hwEmojis.length)];
                 p.size = 20 + rng.nextInt(22);
                 p.vy = 1.2f + rng.nextFloat() * 1.8f;
                 p.vx = (rng.nextFloat() - 0.5f) * 1.5f;
+                p.y = -p.size;
+                p.alpha = 190 + rng.nextInt(65);
+                break;
+            case BIRTHDAY:
+                String[] bEmojis = {"🎉","🎊","🎈","🎂","🎁","✨"};
+                p.emoji = bEmojis[rng.nextInt(bEmojis.length)];
+                p.size = 22 + rng.nextInt(20);
+                p.vy = 1.0f + rng.nextFloat() * 2.0f;
+                p.vx = (rng.nextFloat() - 0.5f) * 2.5f;
+                p.y = -p.size;
+                p.alpha = 200 + rng.nextInt(55);
+                break;
+            case NEW_YEAR:
+                String[] nyEmojis = {"🎆","🎇","✨","⭐","🌟","💫"};
+                p.emoji = nyEmojis[rng.nextInt(nyEmojis.length)];
+                p.size = 18 + rng.nextInt(22);
+                p.vy = -(2.0f + rng.nextFloat() * 2.5f); // sale verso l'alto
+                p.vx = (rng.nextFloat() - 0.5f) * 2.0f;
+                p.y = getHeight() + p.size;
+                p.alpha = 220 + rng.nextInt(35);
+                break;
+            case SUMMER:
+                String[] sumEmojis = {"☀","🌊","🐚","🏄","🌴","⛱"};
+                p.emoji = sumEmojis[rng.nextInt(sumEmojis.length)];
+                p.size = 20 + rng.nextInt(22);
+                p.vx = (rng.nextBoolean() ? 1 : -1) * (1.0f + rng.nextFloat() * 1.5f);
+                p.x = p.vx > 0 ? -p.size : getWidth() + p.size;
+                p.y = getHeight() * 0.3f + rng.nextFloat() * (getHeight() * 0.6f);
+                p.vy = (rng.nextFloat() - 0.5f) * 0.8f;
+                p.alpha = 200 + rng.nextInt(55);
+                break;
+            case SPRING:
+                String[] spEmojis = {"🌸","🌺","🦋","🌼","🌷","🌿"};
+                p.emoji = spEmojis[rng.nextInt(spEmojis.length)];
+                p.size = 18 + rng.nextInt(18);
+                p.vy = 0.8f + rng.nextFloat() * 1.5f;
+                p.vx = (rng.nextFloat() - 0.5f) * 2.0f;
                 p.y = -p.size;
                 p.alpha = 190 + rng.nextInt(65);
                 break;

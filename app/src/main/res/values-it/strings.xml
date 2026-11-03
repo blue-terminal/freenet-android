@@ -290,6 +290,30 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
     <string name="show_version">Mostra sempre la versione</string>
     <string name="show_timer">Mostra timer in home</string>
     <string name="show_timer_summary">Nasconde il timer dalla schermata principale (rimane nella notifica)</string>
+    <string name="app_theme">Tema</string>
+    <string name="app_theme_summary">Colori e particelle stagionali</string>
+    <string-array name="theme_names">
+        <item>Automatico</item>
+        <item>Nessuno</item>
+        <item>Natale ❄️🎅</item>
+        <item>Halloween 🎃🧟</item>
+        <item>Pesce d\'Aprile 🐟</item>
+        <item>Compleanno 🎉🎂</item>
+        <item>Capodanno 🎆✨</item>
+        <item>Estate ☀️🌊</item>
+        <item>Primavera 🌸🦋</item>
+    </string-array>
+    <string-array name="theme_values">
+        <item>auto</item>
+        <item>none</item>
+        <item>natale</item>
+        <item>halloween</item>
+        <item>pesce_aprile</item>
+        <item>compleanno</item>
+        <item>capodanno</item>
+        <item>estate</item>
+        <item>primavera</item>
+    </string-array>
     <string name="btn_river_pref">Mostra pulsante River</string>
     <string name="btn_pc_pref">Mostra pulsante PC</string>
     <string name="btn_web_pref">Mostra pulsante Apri Freenet</string>
