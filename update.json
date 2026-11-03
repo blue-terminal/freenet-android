@@ -1,14 +1,14 @@
 {
-  "version": "v1.4.2",
-  "notes": "• Tema manuale nelle impostazioni (Natale, Halloween, Capodanno, Compleanno, Estate, Primavera…)\n• Particelle a tema: Babbo Natale ❄️, zombi 🧟, pesci colorati 🐟, coriandoli 🎉…\n• Fix modalità daltonico: ora sovrascrive sempre i colori stagionali",
+  "version": "v1.4.3",
+  "notes": "• Effetti grafici canvas per ogni tema: fiocchi di neve disegnati, pesci colorati con occhi e pinne, pipistrelli/fantasmi/zucche di Halloween, coriandoli, scintille, sole con raggi, petali e fiori\n• Temi stagionali manuali in Impostazioni → Aspetto → Tema",
   "assets": {
     "arm64-v8a": {
-      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.2/freenet-mobile-v1.4.2-freenet-0.2.154-arm64-v8a-release.apk",
-      "sha256": "ba6dbb78e0fe622118210983ce04eeaa5ca3d2989f6bfc75d6433ee024880036"
+      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.3/freenet-mobile-v1.4.3-freenet-0.2.154-arm64-v8a-release.apk",
+      "sha256": "8674e7ee2ab71475b8906edffa7c6bb2b1f2daee28f75597468b4ff9183ae07d"
     },
     "x86_64": {
-      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.2/freenet-mobile-v1.4.2-freenet-0.2.154-x86_64-release.apk",
-      "sha256": "b1392706b3f4fa1399f49a8d10c12f6465b0acad5734b655bf536f7e5ddb28bf"
+      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.3/freenet-mobile-v1.4.3-freenet-0.2.154-x86_64-release.apk",
+      "sha256": "253c3a1e15f6b61e927481ce0690fb43a4bc8eec91af7f35cbd25d4fc469b54a"
     }
   },
   "beta": {
