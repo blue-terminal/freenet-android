@@ -49,14 +49,27 @@ public class App extends Application {
         AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag));
     }
 
-    private static int seasonalStyle() {
-        Calendar c = Calendar.getInstance();
-        int month = c.get(Calendar.MONTH);
-        int day   = c.get(Calendar.DAY_OF_MONTH);
-        if (month == Calendar.OCTOBER  && day == 31)                    return R.style.Theme_Halloween;
-        if (month == Calendar.DECEMBER && day >= 24 && day <= 26)       return R.style.Theme_Christmas;
-        if (month == Calendar.APRIL    && day == 1)                     return R.style.Theme_AprilFools;
-        return 0;
+    private static int seasonalStyle(SharedPreferences prefs) {
+        String pref = prefs.getString("app_theme", "auto");
+        switch (pref) {
+            case "natale":       return R.style.Theme_Christmas;
+            case "halloween":    return R.style.Theme_Halloween;
+            case "pesce_aprile": return R.style.Theme_AprilFools;
+            case "compleanno":   return R.style.Theme_Birthday;
+            case "capodanno":    return R.style.Theme_NewYear;
+            case "estate":       return R.style.Theme_Summer;
+            case "primavera":    return R.style.Theme_Spring;
+            case "none":         return 0;
+            default: // auto
+                Calendar c = Calendar.getInstance();
+                int month = c.get(Calendar.MONTH);
+                int day   = c.get(Calendar.DAY_OF_MONTH);
+                if (month == Calendar.OCTOBER  && day == 31)              return R.style.Theme_Halloween;
+                if (month == Calendar.DECEMBER && day >= 24 && day <= 26) return R.style.Theme_Christmas;
+                if (month == Calendar.APRIL    && day == 1)               return R.style.Theme_AprilFools;
+                if (month == Calendar.JANUARY  && day == 1)               return R.style.Theme_NewYear;
+                return 0;
+        }
     }
 
     private static int colorStyle(String name) {
@@ -86,12 +99,13 @@ public class App extends Application {
             if (preferences.getBoolean(KEY_LED, false)) {
                 activity.getTheme().applyStyle(R.style.Theme_Led, true);
             }
-            if (preferences.getBoolean(KEY_COLORBLIND, false)) {
-                activity.getTheme().applyStyle(R.style.Theme_Colorblind, true);
-            }
-            int seasonStyle = seasonalStyle();
+            int seasonStyle = seasonalStyle(preferences);
             if (seasonStyle != 0) {
                 activity.getTheme().applyStyle(seasonStyle, true);
+            }
+            // Colorblind applied last so it always overrides seasonal/accent colors
+            if (preferences.getBoolean(KEY_COLORBLIND, false)) {
+                activity.getTheme().applyStyle(R.style.Theme_Colorblind, true);
             }
             applyScreenshotBlock(activity, preferences.getBoolean(KEY_BLOCK_SCREENSHOTS, false));
             if (!preferences.getBoolean("dev_animations", true)) {

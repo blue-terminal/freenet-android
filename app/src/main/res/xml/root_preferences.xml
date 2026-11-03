@@ -88,6 +88,16 @@
             app:defaultValue="true"
             />
 
+        <ListPreference
+            app:key="app_theme"
+            app:title="@string/app_theme"
+            app:summary="@string/app_theme_summary"
+            app:defaultValue="auto"
+            app:entries="@array/theme_names"
+            app:entryValues="@array/theme_values"
+            app:useSimpleSummaryProvider="true"
+            />
+
         <SwitchPreferenceCompat
             app:key="btn_river"
             app:title="@string/btn_river_pref"
