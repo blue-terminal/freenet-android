@@ -4,7 +4,7 @@ App Android che fa girare sul telefono la nuova [Freenet](https://freenet.org) e
 app, come River. Nasce da [freenet-mobile/app](https://github.com/freenet-mobile/app), che usava
 la vecchia rete (oggi Hyphanet). Non è un'app di The Freenet Project.
 
-<img src="docs/schermata-principale.png" width="240" alt="Schermata principale"> <img src="docs/schermata-crea-sito.png" width="240" alt="Editor per creare un sito">
+<img src="docs/schermata-principale.png" width="240" alt="Schermata principale"> <img src="docs/schermata-impostazioni.png" width="240" alt="Impostazioni tema"> <img src="docs/schermata-crea-sito.png" width="240" alt="Editor per creare un sito">
 
 ## Versione attuale: v1.4.4
 
