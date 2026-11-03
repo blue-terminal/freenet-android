@@ -6,6 +6,10 @@ la vecchia rete (oggi Hyphanet). Non è un'app di The Freenet Project.
 
 <img src="docs/schermata-principale.png" width="240" alt="Schermata principale"> <img src="docs/schermata-crea-sito.png" width="240" alt="Editor per creare un sito">
 
+## Versione attuale: v1.4.4
+
+Scarica l'APK dalla pagina [Releases](https://github.com/blue-terminal/freenet-android/releases/latest).
+
 ## Cosa cambia rispetto all'originale
 
 - Il motore `fred` è sostituito dal programma ufficiale `freenet` (vedi `prepara-freenet.sh`).
@@ -17,6 +21,9 @@ la vecchia rete (oggi Hyphanet). Non è un'app di The Freenet Project.
 
 - Ha uno stile scuro nuovo.
 - Può cercare e scaricare da sola le nuove versioni da GitHub. L'installazione la confermi sempre tu.
+- **Temi stagionali** con grafica canvas: fiocchi di neve, pesci, pipistrelli, coriandoli e altro — oppure scegli il tema manualmente in Impostazioni → Aspetto → Tema.
+- **Videochiamata** integrata (meet.ffmuc.net, nessun account richiesto).
+- **Modalità daltonico** che ha sempre la precedenza sui temi stagionali.
 
 ## Compilare
 
