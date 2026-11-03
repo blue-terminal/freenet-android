@@ -45,6 +45,11 @@ non sono nel repository: li scarica `prepara-freenet.sh`, che ne controlla le im
 - La versione di Freenet è fissa: per aggiornarla va cambiata in `prepara-freenet.sh` e
   `app/build.gradle`.
 
+## Autori
+
+- [desyncr](https://github.com/desyncr) — progetto originale [freenet-mobile/app](https://github.com/freenet-mobile/app)
+- [blue-terminal](https://github.com/blue-terminal) — questa versione
+
 ## Licenza
 
 GPL v3 (`LICENSE`). Autori originali, Freenet (AGPL) e altri componenti sono in `NOTICE.md`.
