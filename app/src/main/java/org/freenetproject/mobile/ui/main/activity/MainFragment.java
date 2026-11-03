@@ -404,8 +404,8 @@ public class MainFragment extends Fragment {
         view.findViewById(R.id.extra_buttons)
                 .setVisibility(riverVisible || pcVisible ? View.VISIBLE : View.GONE);
 
-        // Seasonal overlay
-        SeasonalOverlayView overlay = view.findViewById(R.id.seasonal_overlay);
+        // Seasonal overlay lives in the Activity window to cover the full screen
+        SeasonalOverlayView overlay = requireActivity().findViewById(R.id.seasonal_overlay);
         if (overlay != null) overlay.setSeason(detectSeason(requireContext()));
     }
 

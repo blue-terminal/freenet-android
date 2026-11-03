@@ -27,14 +27,14 @@ public class SeasonalOverlayView extends View {
     private final Random rng = new Random();
     private boolean running = false;
 
-    private static final int PARTICLE_COUNT = 30;
+    private static final int PARTICLE_COUNT = 28;
     private static final long FRAME_MS = 40; // ~25 fps
 
     public SeasonalOverlayView(Context context) { super(context); init(); }
     public SeasonalOverlayView(Context context, AttributeSet attrs) { super(context, attrs); init(); }
 
     private void init() {
-        tintPaint.setColor(Color.argb(45, 160, 0, 0));
+        tintPaint.setColor(Color.argb(45, 150, 0, 0));
         setLayerType(LAYER_TYPE_SOFTWARE, null);
     }
 
@@ -57,12 +57,18 @@ public class SeasonalOverlayView extends View {
         }
     };
 
+    private int pick(int[][] palette) {
+        int[] c = palette[rng.nextInt(palette.length)];
+        return Color.rgb(c[0], c[1], c[2]);
+    }
+
     private void spawnParticle() {
         Particle p = new Particle();
         p.x = rng.nextFloat() * getWidth();
+
         switch (season) {
             case SNOW: {
-                p.type = rng.nextInt(3); // 0=snowflake, 1=snowflake2, 2=circle snow
+                p.type = rng.nextInt(3); // 0=snowflake+branches, 1=plain 6-arm, 2=snow-ball
                 p.size = 16 + rng.nextInt(24);
                 p.vy = 1.5f + rng.nextFloat() * 2f;
                 p.vx = (rng.nextFloat() - 0.5f) * 1.2f;
@@ -74,16 +80,17 @@ public class SeasonalOverlayView extends View {
                 break;
             }
             case FISH: {
-                p.type = rng.nextInt(3); // 0=fish, 1=fish small, 2=bubble
-                p.size = 28 + rng.nextInt(22);
-                p.vx = (rng.nextBoolean() ? 1 : -1) * (1.5f + rng.nextFloat() * 2f);
-                p.x = p.vx > 0 ? -p.size : getWidth() + p.size;
+                p.type = rng.nextInt(3); // 0/1=fish variants, 2=bubble
+                p.size = 28 + rng.nextInt(20);
+                p.dir = rng.nextBoolean() ? 1f : -1f;
+                p.vx = p.dir * (1.5f + rng.nextFloat() * 2f);
+                p.x = p.dir > 0 ? -p.size : getWidth() + p.size;
                 p.y = 80 + rng.nextFloat() * (getHeight() - 160);
                 p.vy = (rng.nextFloat() - 0.5f) * 0.6f;
                 p.alpha = 200 + rng.nextInt(55);
                 int[][] fc = {{255,120,40},{40,150,255},{255,220,0},{0,200,180},{255,80,80},{200,100,255}};
-                int[] c = fc[rng.nextInt(fc.length)];
-                p.color = Color.argb(p.alpha, c[0], c[1], c[2]);
+                p.color = Color.argb(p.alpha, 0, 0, 0); // overridden in draw
+                p.baseColor = pick(fc);
                 break;
             }
             case HALLOWEEN: {
@@ -92,38 +99,38 @@ public class SeasonalOverlayView extends View {
                 p.vy = 1.0f + rng.nextFloat() * 1.5f;
                 p.vx = (rng.nextFloat() - 0.5f) * 1.5f;
                 p.y = -p.size;
-                p.alpha = 200 + rng.nextInt(55);
+                p.alpha = 210 + rng.nextInt(45);
                 p.rotation = (rng.nextFloat() - 0.5f) * 20f;
-                p.vr = (rng.nextFloat() - 0.5f) * 2f;
+                p.vr = (rng.nextFloat() - 0.5f) * 1.5f;
                 if (p.type == 0) p.color = Color.argb(p.alpha, 30, 5, 50);
-                else if (p.type == 1) p.color = Color.argb(p.alpha, 230, 240, 255);
-                else p.color = Color.argb(p.alpha, 220, 90, 0);
+                else if (p.type == 1) p.color = Color.argb(p.alpha, 235, 245, 255);
+                else p.color = Color.argb(p.alpha, 220, 88, 0);
                 break;
             }
             case BIRTHDAY: {
-                p.type = rng.nextInt(4); // 0=rect, 1=circle, 2=star, 3=ribbon
+                p.type = rng.nextInt(4); // 0=rect, 1=circle, 2=star5, 3=ribbon
                 p.size = 14 + rng.nextInt(20);
                 p.vy = 1.0f + rng.nextFloat() * 2.0f;
                 p.vx = (rng.nextFloat() - 0.5f) * 2.5f;
                 p.y = -p.size;
-                p.alpha = 210 + rng.nextInt(45);
+                p.alpha = 215 + rng.nextInt(40);
                 int[][] cc = {{255,50,100},{50,200,255},{255,220,0},{180,50,255},{0,230,130},{255,100,50}};
-                int[] c = cc[rng.nextInt(cc.length)];
-                p.color = Color.argb(p.alpha, c[0], c[1], c[2]);
+                p.color = Color.argb(p.alpha, 0, 0, 0);
+                p.baseColor = pick(cc);
                 p.rotation = rng.nextFloat() * 360f;
                 p.vr = (rng.nextFloat() - 0.5f) * 8f;
                 break;
             }
             case NEW_YEAR: {
-                p.type = rng.nextInt(3); // 0=sparkle 4pt, 1=star 6pt, 2=burst circle
+                p.type = rng.nextInt(3); // 0=sparkle4, 1=star6, 2=burst
                 p.size = 16 + rng.nextInt(26);
-                p.vy = -(2.0f + rng.nextFloat() * 2.5f);
+                p.vy = -(2.0f + rng.nextFloat() * 2.5f); // upward
                 p.vx = (rng.nextFloat() - 0.5f) * 2.0f;
                 p.y = getHeight() + p.size;
                 p.alpha = 220 + rng.nextInt(35);
                 int[][] nc = {{255,215,0},{255,255,200},{200,200,255},{255,255,255},{255,180,0}};
-                int[] c = nc[rng.nextInt(nc.length)];
-                p.color = Color.argb(p.alpha, c[0], c[1], c[2]);
+                p.color = Color.argb(p.alpha, 0, 0, 0);
+                p.baseColor = pick(nc);
                 p.rotation = rng.nextFloat() * 360f;
                 p.vr = (rng.nextFloat() - 0.5f) * 5f;
                 break;
@@ -131,28 +138,29 @@ public class SeasonalOverlayView extends View {
             case SUMMER: {
                 p.type = rng.nextInt(3); // 0=sun, 1=wave, 2=bubble
                 p.size = 20 + rng.nextInt(22);
-                p.vx = (rng.nextBoolean() ? 1 : -1) * (1.0f + rng.nextFloat() * 1.5f);
-                p.x = p.vx > 0 ? -p.size : getWidth() + p.size;
+                p.dir = rng.nextBoolean() ? 1f : -1f;
+                p.vx = p.dir * (1.0f + rng.nextFloat() * 1.5f);
+                p.x = p.dir > 0 ? -p.size : getWidth() + p.size;
                 p.y = getHeight() * 0.2f + rng.nextFloat() * (getHeight() * 0.7f);
                 p.vy = (rng.nextFloat() - 0.5f) * 0.8f;
                 p.alpha = 200 + rng.nextInt(55);
-                if (p.type == 0) p.color = Color.argb(p.alpha, 255, 220, 0);
+                if (p.type == 0) p.color = Color.argb(p.alpha, 255, 215, 0);
                 else if (p.type == 1) p.color = Color.argb(p.alpha, 0, 160, 220);
-                else p.color = Color.argb(p.alpha, 120, 210, 255);
+                else p.color = Color.argb(p.alpha, 130, 210, 255);
                 p.rotation = rng.nextFloat() * 360f;
                 p.vr = (rng.nextFloat() - 0.5f) * 3f;
                 break;
             }
             case SPRING: {
-                p.type = rng.nextInt(3); // 0=petal, 1=flower, 2=leaf
+                p.type = rng.nextInt(3); // 0=petal, 1=flower5, 2=leaf
                 p.size = 16 + rng.nextInt(22);
                 p.vy = 0.8f + rng.nextFloat() * 1.5f;
                 p.vx = (rng.nextFloat() - 0.5f) * 2.0f;
                 p.y = -p.size;
                 p.alpha = 200 + rng.nextInt(55);
-                if (p.type == 0) p.color = Color.argb(p.alpha, 255, 150, 190);
-                else if (p.type == 1) p.color = Color.argb(p.alpha, 255, 180, 220);
-                else p.color = Color.argb(p.alpha, 100, 200, 80);
+                if (p.type == 0) p.color = Color.argb(p.alpha, 255, 145, 188);
+                else if (p.type == 1) p.color = Color.argb(p.alpha, 255, 175, 215);
+                else p.color = Color.argb(p.alpha, 90, 195, 70);
                 p.rotation = rng.nextFloat() * 360f;
                 p.vr = (rng.nextFloat() - 0.5f) * 4f;
                 break;
@@ -170,8 +178,6 @@ public class SeasonalOverlayView extends View {
             canvas.save();
             canvas.translate(p.x, p.y);
             canvas.rotate(p.rotation);
-            paint.setAlpha(p.alpha);
-            paint.setColor(p.color);
             drawShape(canvas, p);
             canvas.restore();
         }
@@ -179,13 +185,13 @@ public class SeasonalOverlayView extends View {
 
     private void drawShape(Canvas canvas, Particle p) {
         switch (season) {
-            case SNOW:     drawSnow(canvas, p);     break;
-            case FISH:     drawFish(canvas, p);     break;
-            case HALLOWEEN:drawHalloween(canvas, p);break;
-            case BIRTHDAY: drawConfetti(canvas, p); break;
-            case NEW_YEAR: drawSparkle(canvas, p);  break;
-            case SUMMER:   drawSummer(canvas, p);   break;
-            case SPRING:   drawSpring(canvas, p);   break;
+            case SNOW:     drawSnow(canvas, p);      break;
+            case FISH:     drawFish(canvas, p);      break;
+            case HALLOWEEN:drawHalloween(canvas, p); break;
+            case BIRTHDAY: drawConfetti(canvas, p);  break;
+            case NEW_YEAR: drawSparkle(canvas, p);   break;
+            case SUMMER:   drawSummer(canvas, p);    break;
+            case SPRING:   drawSpring(canvas, p);    break;
         }
     }
 
@@ -197,23 +203,28 @@ public class SeasonalOverlayView extends View {
         if (p.type == 2) {
             paint.setStyle(Paint.Style.FILL);
             canvas.drawCircle(0, 0, s * 0.4f, paint);
+            // shine dot
+            paint.setColor(Color.argb(p.alpha / 2, 255, 255, 255));
+            canvas.drawCircle(-s * 0.12f, -s * 0.12f, s * 0.12f, paint);
             return;
         }
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeCap(Paint.Cap.ROUND);
         paint.setStrokeWidth(Math.max(1.5f, s * 0.09f));
-        // 6 arms
+        // 6 arms (3 full lines crossing at center)
         for (int i = 0; i < 3; i++) {
             canvas.drawLine(-s * 0.5f, 0, s * 0.5f, 0, paint);
             canvas.rotate(60f);
         }
         if (p.type == 0) {
-            // small branch pairs at 1/3 and 2/3 of each arm
-            canvas.rotate(-120f);
+            // branches at 40% and 75% of each arm
+            canvas.rotate(-120f); // reset to 0°
             for (int i = 0; i < 6; i++) {
-                float b = s * 0.28f;
-                canvas.drawLine(b, 0, b * 0.65f, -b * 0.35f, paint);
-                canvas.drawLine(b, 0, b * 0.65f,  b * 0.35f, paint);
+                float b1 = s * 0.22f, b2 = s * 0.38f;
+                canvas.drawLine(b1, 0, b1 * 0.7f, -b1 * 0.4f, paint);
+                canvas.drawLine(b1, 0, b1 * 0.7f,  b1 * 0.4f, paint);
+                canvas.drawLine(b2, 0, b2 * 0.7f, -b2 * 0.38f, paint);
+                canvas.drawLine(b2, 0, b2 * 0.7f,  b2 * 0.38f, paint);
                 canvas.rotate(60f);
             }
         }
@@ -222,59 +233,64 @@ public class SeasonalOverlayView extends View {
     // ── FISH ─────────────────────────────────────────────────────────────────
     private void drawFish(Canvas canvas, Particle p) {
         float s = p.size;
-        float dir = p.vx >= 0 ? 1f : -1f;
-        canvas.scale(dir, 1f);
+        int baseAlpha = p.alpha;
+        int bc = p.baseColor;
+        int r = Color.red(bc), g = Color.green(bc), b = Color.blue(bc);
 
         if (p.type == 2) { // bubble
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(s * 0.07f);
-            paint.setColor(p.color);
-            paint.setAlpha(p.alpha);
-            canvas.drawCircle(0, 0, s * 0.35f, paint);
+            paint.setColor(Color.argb(baseAlpha, 130, 210, 255));
+            canvas.drawCircle(0, 0, s * 0.38f, paint);
             paint.setStyle(Paint.Style.FILL);
-            paint.setAlpha(p.alpha / 4);
-            canvas.drawCircle(-s * 0.1f, -s * 0.1f, s * 0.1f, paint);
+            paint.setColor(Color.argb(baseAlpha / 4, 200, 240, 255));
+            canvas.drawCircle(0, 0, s * 0.38f, paint);
+            paint.setColor(Color.argb(baseAlpha / 2, 255, 255, 255));
+            canvas.drawCircle(-s * 0.1f, -s * 0.12f, s * 0.1f, paint);
             return;
         }
 
-        paint.setStyle(Paint.Style.FILL);
-        paint.setColor(p.color);
-        paint.setAlpha(p.alpha);
+        canvas.scale(p.dir, 1f);
 
         // tail
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(Color.argb(baseAlpha, (int)(r * 0.8f), (int)(g * 0.8f), (int)(b * 0.8f)));
         Path tail = new Path();
         tail.moveTo(s * 0.3f, 0);
-        tail.lineTo(s * 0.7f, -s * 0.28f);
-        tail.lineTo(s * 0.7f,  s * 0.28f);
+        tail.lineTo(s * 0.72f, -s * 0.3f);
+        tail.lineTo(s * 0.72f,  s * 0.3f);
         tail.close();
         canvas.drawPath(tail, paint);
 
         // body
-        canvas.drawOval(new RectF(-s * 0.5f, -s * 0.24f, s * 0.35f, s * 0.24f), paint);
+        paint.setColor(Color.argb(baseAlpha, r, g, b));
+        canvas.drawOval(new RectF(-s * 0.52f, -s * 0.25f, s * 0.35f, s * 0.25f), paint);
+
+        // belly lighter stripe
+        paint.setColor(Color.argb(baseAlpha / 3, 255, 255, 255));
+        canvas.drawOval(new RectF(-s * 0.4f, s * 0.05f, s * 0.15f, s * 0.22f), paint);
 
         // dorsal fin
-        paint.setAlpha(p.alpha - 50);
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(Color.argb(baseAlpha - 60, r, g, b));
         Path fin = new Path();
-        fin.moveTo(-s * 0.05f, -s * 0.24f);
-        fin.lineTo(s * 0.08f, -s * 0.48f);
-        fin.lineTo(s * 0.22f, -s * 0.24f);
+        fin.moveTo(-s * 0.06f, -s * 0.25f);
+        fin.lineTo(s * 0.08f, -s * 0.5f);
+        fin.lineTo(s * 0.22f, -s * 0.25f);
         fin.close();
         canvas.drawPath(fin, paint);
 
-        // eye white
+        // eye sclera
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(Color.WHITE);
-        paint.setAlpha(p.alpha);
-        canvas.drawCircle(-s * 0.28f, -s * 0.07f, s * 0.08f, paint);
+        paint.setAlpha(baseAlpha);
+        canvas.drawCircle(-s * 0.3f, -s * 0.07f, s * 0.09f, paint);
         // pupil
         paint.setColor(Color.BLACK);
-        canvas.drawCircle(-s * 0.28f, -s * 0.07f, s * 0.045f, paint);
-
-        // stripe
-        paint.setColor(Color.argb(p.alpha / 3, 255, 255, 255));
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(s * 0.06f);
-        canvas.drawOval(new RectF(-s * 0.1f, -s * 0.2f, s * 0.1f, s * 0.2f), paint);
+        canvas.drawCircle(-s * 0.3f, -s * 0.07f, s * 0.05f, paint);
+        // eye shine
+        paint.setColor(Color.WHITE);
+        canvas.drawCircle(-s * 0.33f, -s * 0.1f, s * 0.025f, paint);
     }
 
     // ── HALLOWEEN ────────────────────────────────────────────────────────────
@@ -282,95 +298,99 @@ public class SeasonalOverlayView extends View {
         float s = p.size;
         paint.setColor(p.color);
         paint.setAlpha(p.alpha);
-        paint.setStyle(Paint.Style.FILL);
 
-        if (p.type == 0) { // bat silhouette
+        if (p.type == 0) { // bat
+            paint.setStyle(Paint.Style.FILL);
             Path bat = new Path();
-            // left wing
             bat.moveTo(0, 0);
-            bat.cubicTo(-s * 0.15f, -s * 0.25f, -s * 0.55f, -s * 0.45f, -s * 0.8f, -s * 0.08f);
-            bat.cubicTo(-s * 0.6f, -s * 0.55f, -s * 0.25f, -s * 0.65f, -s * 0.08f, -s * 0.18f);
+            // left wing
+            bat.cubicTo(-s * 0.12f, -s * 0.22f, -s * 0.5f, -s * 0.42f, -s * 0.82f, -s * 0.08f);
+            bat.cubicTo(-s * 0.62f, -s * 0.52f, -s * 0.28f, -s * 0.62f, -s * 0.08f, -s * 0.16f);
             // right wing (mirror)
-            bat.lineTo(s * 0.08f, -s * 0.18f);
-            bat.cubicTo(s * 0.25f, -s * 0.65f, s * 0.6f, -s * 0.55f, s * 0.8f, -s * 0.08f);
-            bat.cubicTo(s * 0.55f, -s * 0.45f, s * 0.15f, -s * 0.25f, 0, 0);
+            bat.lineTo(s * 0.08f, -s * 0.16f);
+            bat.cubicTo(s * 0.28f, -s * 0.62f, s * 0.62f, -s * 0.52f, s * 0.82f, -s * 0.08f);
+            bat.cubicTo(s * 0.5f, -s * 0.42f, s * 0.12f, -s * 0.22f, 0, 0);
             canvas.drawPath(bat, paint);
-            // body
-            canvas.drawOval(new RectF(-s * 0.12f, -s * 0.06f, s * 0.12f, s * 0.2f), paint);
+            // body oval
+            canvas.drawOval(new RectF(-s * 0.12f, -s * 0.08f, s * 0.12f, s * 0.22f), paint);
             // ears
             Path ears = new Path();
-            ears.moveTo(-s * 0.07f, -s * 0.06f); ears.lineTo(-s * 0.12f, -s * 0.22f); ears.lineTo(-s * 0.01f, -s * 0.06f);
-            ears.moveTo(s * 0.07f, -s * 0.06f);  ears.lineTo(s * 0.12f, -s * 0.22f);  ears.lineTo(s * 0.01f, -s * 0.06f);
+            ears.moveTo(-s * 0.08f, -s * 0.08f);
+            ears.lineTo(-s * 0.14f, -s * 0.26f);
+            ears.lineTo(-s * 0.02f, -s * 0.08f);
+            ears.moveTo(s * 0.08f, -s * 0.08f);
+            ears.lineTo(s * 0.14f, -s * 0.26f);
+            ears.lineTo(s * 0.02f, -s * 0.08f);
             canvas.drawPath(ears, paint);
-            // red eyes
-            paint.setColor(Color.argb(p.alpha, 220, 0, 0));
-            canvas.drawCircle(-s * 0.04f, s * 0.04f, s * 0.03f, paint);
-            canvas.drawCircle( s * 0.04f, s * 0.04f, s * 0.03f, paint);
+            // glowing red eyes
+            paint.setColor(Color.argb(p.alpha, 230, 20, 0));
+            canvas.drawCircle(-s * 0.04f, s * 0.04f, s * 0.035f, paint);
+            canvas.drawCircle( s * 0.04f, s * 0.04f, s * 0.035f, paint);
 
         } else if (p.type == 1) { // ghost
+            paint.setStyle(Paint.Style.FILL);
             Path ghost = new Path();
-            ghost.addArc(new RectF(-s * 0.38f, -s * 0.5f, s * 0.38f, s * 0.05f), 180, 180);
+            ghost.moveTo(-s * 0.38f, s * 0.42f);
+            ghost.lineTo(-s * 0.38f, -s * 0.08f);
+            ghost.addArc(new RectF(-s * 0.38f, -s * 0.5f, s * 0.38f, s * 0.08f), 180, 180);
             ghost.lineTo(s * 0.38f, s * 0.42f);
-            ghost.cubicTo(s * 0.22f, s * 0.22f, s * 0.06f, s * 0.48f, -s * 0.12f, s * 0.3f);
-            ghost.cubicTo(-s * 0.28f, s * 0.12f, -s * 0.38f, s * 0.34f, -s * 0.38f, s * 0.42f);
+            // wavy bottom
+            ghost.cubicTo(s * 0.28f, s * 0.22f, s * 0.1f, s * 0.5f, -s * 0.04f, s * 0.3f);
+            ghost.cubicTo(-s * 0.18f, s * 0.1f, -s * 0.28f, s * 0.38f, -s * 0.38f, s * 0.42f);
             ghost.close();
             canvas.drawPath(ghost, paint);
-            // wavy bottom shadow
-            paint.setAlpha(p.alpha / 3);
+            // shadow overlay for depth
+            paint.setColor(Color.argb(p.alpha / 5, 100, 100, 150));
             canvas.drawPath(ghost, paint);
-            paint.setAlpha(p.alpha);
-            // dark eyes
-            paint.setColor(Color.argb(p.alpha, 50, 0, 80));
-            canvas.drawOval(new RectF(-s * 0.2f, -s * 0.2f, -s * 0.05f, -s * 0.05f), paint);
-            canvas.drawOval(new RectF(s * 0.05f, -s * 0.2f, s * 0.2f, -s * 0.05f), paint);
-            // smile
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(s * 0.05f);
-            paint.setStrokeCap(Paint.Cap.ROUND);
-            Path smile = new Path();
-            smile.moveTo(-s * 0.15f, s * 0.07f);
-            smile.cubicTo(-s * 0.07f, s * 0.18f, s * 0.07f, s * 0.18f, s * 0.15f, s * 0.07f);
-            canvas.drawPath(smile, paint);
+            // eyes
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(Color.argb(p.alpha, 50, 20, 90));
+            canvas.drawOval(new RectF(-s * 0.22f, -s * 0.22f, -s * 0.06f, -s * 0.05f), paint);
+            canvas.drawOval(new RectF(s * 0.06f, -s * 0.22f, s * 0.22f, -s * 0.05f), paint);
+            // O-shaped surprised mouth
+            canvas.drawOval(new RectF(-s * 0.1f, s * 0.04f, s * 0.1f, s * 0.2f), paint);
 
         } else { // pumpkin
-            // ribs
             paint.setStyle(Paint.Style.FILL);
-            paint.setColor(p.color);
-            paint.setAlpha(p.alpha);
-            for (float ox : new float[]{-s*0.28f, -s*0.1f, s*0.1f, s*0.28f}) {
+            // 4 ribs
+            float[] ribOffsets = {-s * 0.27f, -s * 0.09f, s * 0.09f, s * 0.27f};
+            for (float ox : ribOffsets) {
+                paint.setColor(p.color);
+                paint.setAlpha(p.alpha);
                 canvas.drawOval(new RectF(ox - s * 0.2f, -s * 0.38f, ox + s * 0.2f, s * 0.35f), paint);
             }
             // darken edges
             paint.setColor(Color.argb(p.alpha / 3, 0, 0, 0));
-            canvas.drawOval(new RectF(-s * 0.45f, -s * 0.38f, -s * 0.2f, s * 0.35f), paint);
-            canvas.drawOval(new RectF(s * 0.2f, -s * 0.38f, s * 0.45f, s * 0.35f), paint);
+            canvas.drawOval(new RectF(-s * 0.47f, -s * 0.38f, -s * 0.22f, s * 0.35f), paint);
+            canvas.drawOval(new RectF(s * 0.22f, -s * 0.38f, s * 0.47f, s * 0.35f), paint);
             // stem
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(s * 0.09f);
             paint.setStrokeCap(Paint.Cap.ROUND);
-            paint.setColor(Color.argb(p.alpha, 80, 150, 30));
+            paint.setColor(Color.argb(p.alpha, 70, 140, 25));
             canvas.drawLine(0, -s * 0.38f, s * 0.06f, -s * 0.56f, paint);
-            // face: triangle eyes
+            // triangle eyes
             paint.setStyle(Paint.Style.FILL);
-            paint.setColor(Color.argb(p.alpha, 10, 5, 0));
+            paint.setColor(Color.argb(p.alpha, 10, 4, 0));
             Path eye = new Path();
-            eye.moveTo(-s * 0.22f, -s * 0.1f); eye.lineTo(-s * 0.12f, -s * 0.22f); eye.lineTo(-s * 0.02f, -s * 0.1f); eye.close();
+            eye.moveTo(-s * 0.23f, -s * 0.08f); eye.lineTo(-s * 0.13f, -s * 0.22f); eye.lineTo(-s * 0.03f, -s * 0.08f); eye.close();
             canvas.drawPath(eye, paint);
             eye.reset();
-            eye.moveTo(s * 0.02f, -s * 0.1f); eye.lineTo(s * 0.12f, -s * 0.22f); eye.lineTo(s * 0.22f, -s * 0.1f); eye.close();
+            eye.moveTo(s * 0.03f, -s * 0.08f); eye.lineTo(s * 0.13f, -s * 0.22f); eye.lineTo(s * 0.23f, -s * 0.08f); eye.close();
             canvas.drawPath(eye, paint);
             // jagged mouth
             Path mouth = new Path();
-            mouth.moveTo(-s * 0.28f, s * 0.08f);
-            mouth.lineTo(-s * 0.18f, s * 0.2f);
-            mouth.lineTo(-s * 0.1f,  s * 0.1f);
-            mouth.lineTo(0,           s * 0.22f);
-            mouth.lineTo(s * 0.1f,   s * 0.1f);
-            mouth.lineTo(s * 0.18f,  s * 0.2f);
-            mouth.lineTo(s * 0.28f,  s * 0.08f);
+            mouth.moveTo(-s * 0.28f, s * 0.1f);
+            mouth.lineTo(-s * 0.18f, s * 0.22f);
+            mouth.lineTo(-s * 0.09f, s * 0.1f);
+            mouth.lineTo(0f,          s * 0.24f);
+            mouth.lineTo(s * 0.09f,  s * 0.1f);
+            mouth.lineTo(s * 0.18f,  s * 0.22f);
+            mouth.lineTo(s * 0.28f,  s * 0.1f);
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(s * 0.07f);
             paint.setStrokeJoin(Paint.Join.ROUND);
+            paint.setStrokeCap(Paint.Cap.ROUND);
             canvas.drawPath(mouth, paint);
         }
     }
@@ -378,24 +398,25 @@ public class SeasonalOverlayView extends View {
     // ── BIRTHDAY CONFETTI ────────────────────────────────────────────────────
     private void drawConfetti(Canvas canvas, Particle p) {
         float s = p.size;
-        paint.setColor(p.color);
+        int bc = p.baseColor;
+        paint.setColor(Color.argb(p.alpha, Color.red(bc), Color.green(bc), Color.blue(bc)));
         paint.setAlpha(p.alpha);
         if (p.type == 0) {
             paint.setStyle(Paint.Style.FILL);
-            canvas.drawRect(-s * 0.42f, -s * 0.2f, s * 0.42f, s * 0.2f, paint);
+            canvas.drawRect(-s * 0.44f, -s * 0.22f, s * 0.44f, s * 0.22f, paint);
         } else if (p.type == 1) {
             paint.setStyle(Paint.Style.FILL);
             canvas.drawCircle(0, 0, s * 0.32f, paint);
         } else if (p.type == 2) {
             paint.setStyle(Paint.Style.FILL);
-            drawStar(canvas, 5, s * 0.42f, s * 0.18f, paint);
+            drawStar(canvas, 5, s * 0.44f, s * 0.19f, paint);
         } else { // curly ribbon
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(s * 0.14f);
+            paint.setStrokeWidth(s * 0.15f);
             paint.setStrokeCap(Paint.Cap.ROUND);
             Path ribbon = new Path();
-            ribbon.moveTo(-s * 0.42f, 0);
-            ribbon.cubicTo(-s * 0.2f, -s * 0.28f, s * 0.2f, s * 0.28f, s * 0.42f, 0);
+            ribbon.moveTo(-s * 0.44f, 0);
+            ribbon.cubicTo(-s * 0.2f, -s * 0.3f, s * 0.2f, s * 0.3f, s * 0.44f, 0);
             canvas.drawPath(ribbon, paint);
         }
     }
@@ -403,27 +424,31 @@ public class SeasonalOverlayView extends View {
     // ── NEW YEAR SPARKLES ────────────────────────────────────────────────────
     private void drawSparkle(Canvas canvas, Particle p) {
         float s = p.size;
-        paint.setColor(p.color);
+        int bc = p.baseColor;
+        paint.setColor(Color.argb(p.alpha, Color.red(bc), Color.green(bc), Color.blue(bc)));
         paint.setAlpha(p.alpha);
-        if (p.type == 0) { // 4-point sparkle
+        if (p.type == 0) { // 4-point diamond sparkle
             paint.setStyle(Paint.Style.FILL);
             Path sp = new Path();
-            sp.moveTo(0, -s * 0.5f); sp.lineTo(s * 0.1f, -s * 0.1f);
-            sp.lineTo(s * 0.5f, 0);  sp.lineTo(s * 0.1f,  s * 0.1f);
-            sp.lineTo(0,  s * 0.5f); sp.lineTo(-s * 0.1f,  s * 0.1f);
-            sp.lineTo(-s * 0.5f, 0); sp.lineTo(-s * 0.1f, -s * 0.1f);
+            sp.moveTo(0, -s * 0.52f); sp.lineTo(s * 0.11f, -s * 0.11f);
+            sp.lineTo(s * 0.52f, 0);  sp.lineTo(s * 0.11f,  s * 0.11f);
+            sp.lineTo(0,  s * 0.52f); sp.lineTo(-s * 0.11f,  s * 0.11f);
+            sp.lineTo(-s * 0.52f, 0); sp.lineTo(-s * 0.11f, -s * 0.11f);
             sp.close();
             canvas.drawPath(sp, paint);
+            // inner glow circle
+            paint.setColor(Color.argb(p.alpha / 2, 255, 255, 255));
+            canvas.drawCircle(0, 0, s * 0.12f, paint);
         } else if (p.type == 1) { // 6-point star
             paint.setStyle(Paint.Style.FILL);
-            drawStar(canvas, 6, s * 0.46f, s * 0.2f, paint);
-        } else { // burst ring
+            drawStar(canvas, 6, s * 0.48f, s * 0.22f, paint);
+        } else { // circle burst
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(s * 0.09f);
             paint.setStrokeCap(Paint.Cap.ROUND);
             canvas.drawCircle(0, 0, s * 0.3f, paint);
             for (int i = 0; i < 8; i++) {
-                canvas.drawLine(s * 0.42f, 0, s * 0.6f, 0, paint);
+                canvas.drawLine(s * 0.44f, 0, s * 0.62f, 0, paint);
                 canvas.rotate(45f);
             }
         }
@@ -434,14 +459,14 @@ public class SeasonalOverlayView extends View {
         float s = p.size;
         paint.setColor(p.color);
         paint.setAlpha(p.alpha);
-        if (p.type == 0) { // sun with rays
+        if (p.type == 0) { // sun
             paint.setStyle(Paint.Style.FILL);
             canvas.drawCircle(0, 0, s * 0.3f, paint);
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(s * 0.09f);
             paint.setStrokeCap(Paint.Cap.ROUND);
             for (int i = 0; i < 8; i++) {
-                canvas.drawLine(s * 0.4f, 0, s * 0.58f, 0, paint);
+                canvas.drawLine(s * 0.42f, 0, s * 0.6f, 0, paint);
                 canvas.rotate(45f);
             }
         } else if (p.type == 1) { // wave
@@ -449,20 +474,20 @@ public class SeasonalOverlayView extends View {
             paint.setStrokeWidth(s * 0.13f);
             paint.setStrokeCap(Paint.Cap.ROUND);
             Path wave = new Path();
-            wave.moveTo(-s * 0.5f, 0);
-            wave.cubicTo(-s * 0.25f, -s * 0.32f, s * 0.25f, s * 0.32f, s * 0.5f, 0);
+            wave.moveTo(-s * 0.52f, 0);
+            wave.cubicTo(-s * 0.26f, -s * 0.33f, s * 0.26f, s * 0.33f, s * 0.52f, 0);
             canvas.drawPath(wave, paint);
-            // second wave below
             paint.setAlpha(p.alpha / 2);
-            canvas.translate(0, s * 0.2f);
-            canvas.drawPath(wave, paint);
+            canvas.save(); canvas.translate(0, s * 0.22f); canvas.drawPath(wave, paint); canvas.restore();
         } else { // bubble
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(s * 0.09f);
             canvas.drawCircle(0, 0, s * 0.38f, paint);
             paint.setStyle(Paint.Style.FILL);
-            paint.setAlpha(p.alpha / 4);
-            canvas.drawCircle(-s * 0.1f, -s * 0.13f, s * 0.1f, paint);
+            paint.setAlpha(p.alpha / 5);
+            canvas.drawCircle(0, 0, s * 0.38f, paint);
+            paint.setAlpha(p.alpha / 2);
+            canvas.drawCircle(-s * 0.1f, -s * 0.12f, s * 0.1f, paint);
         }
     }
 
@@ -471,34 +496,34 @@ public class SeasonalOverlayView extends View {
         float s = p.size;
         paint.setColor(p.color);
         paint.setAlpha(p.alpha);
-        if (p.type == 0) { // elongated petal
+        if (p.type == 0) { // teardrop petal
             paint.setStyle(Paint.Style.FILL);
             Path petal = new Path();
-            petal.moveTo(0, -s * 0.48f);
-            petal.cubicTo(s * 0.22f, -s * 0.2f, s * 0.22f, s * 0.1f, 0, s * 0.12f);
-            petal.cubicTo(-s * 0.22f, s * 0.1f, -s * 0.22f, -s * 0.2f, 0, -s * 0.48f);
+            petal.moveTo(0, -s * 0.5f);
+            petal.cubicTo( s * 0.24f, -s * 0.22f,  s * 0.24f, s * 0.1f, 0, s * 0.14f);
+            petal.cubicTo(-s * 0.24f,  s * 0.1f, -s * 0.24f, -s * 0.22f, 0, -s * 0.5f);
             canvas.drawPath(petal, paint);
         } else if (p.type == 1) { // 5-petal flower
             paint.setStyle(Paint.Style.FILL);
             for (int i = 0; i < 5; i++) {
-                canvas.drawOval(new RectF(-s * 0.12f, -s * 0.42f, s * 0.12f, 0), paint);
+                canvas.drawOval(new RectF(-s * 0.13f, -s * 0.44f, s * 0.13f, 0), paint);
                 canvas.rotate(72f);
             }
-            paint.setColor(Color.argb(p.alpha, 255, 240, 80));
-            canvas.drawCircle(0, 0, s * 0.15f, paint);
+            paint.setColor(Color.argb(p.alpha, 255, 238, 70));
+            canvas.drawCircle(0, 0, s * 0.16f, paint);
         } else { // leaf
             paint.setStyle(Paint.Style.FILL);
             Path leaf = new Path();
-            leaf.moveTo(0, -s * 0.48f);
-            leaf.cubicTo(s * 0.28f, -s * 0.2f, s * 0.28f, s * 0.15f, 0, s * 0.12f);
-            leaf.cubicTo(-s * 0.28f, s * 0.15f, -s * 0.28f, -s * 0.2f, 0, -s * 0.48f);
+            leaf.moveTo(0, -s * 0.5f);
+            leaf.cubicTo( s * 0.3f, -s * 0.22f,  s * 0.3f, s * 0.14f, 0, s * 0.14f);
+            leaf.cubicTo(-s * 0.3f,  s * 0.14f, -s * 0.3f, -s * 0.22f, 0, -s * 0.5f);
             canvas.drawPath(leaf, paint);
             // center vein
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(s * 0.045f);
-            paint.setColor(Color.argb(p.alpha / 2, 30, 100, 10));
             paint.setStrokeCap(Paint.Cap.ROUND);
-            canvas.drawLine(0, -s * 0.42f, 0, s * 0.08f, paint);
+            paint.setColor(Color.argb(p.alpha / 2, 30, 100, 10));
+            canvas.drawLine(0, -s * 0.44f, 0, s * 0.1f, paint);
         }
     }
 
@@ -519,8 +544,8 @@ public class SeasonalOverlayView extends View {
     }
 
     private static class Particle {
-        float x, y, vx, vy, size, rotation, vr;
-        int alpha, type, color;
+        float x, y, vx, vy, size, rotation, vr, dir;
+        int alpha, type, color, baseColor;
 
         void step() {
             x += vx;
@@ -529,7 +554,10 @@ public class SeasonalOverlayView extends View {
         }
 
         boolean dead(int w, int h) {
-            return y > h + size * 2 || y < -h || x < -size * 3 || x > w + size * 3;
+            return y > h + size * 2
+                || y < -size * 3
+                || x < -size * 3
+                || x > w + size * 3;
         }
     }
 }
