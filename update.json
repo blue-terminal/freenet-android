@@ -1,14 +1,14 @@
 {
-  "version": "v1.3.0",
-  "notes": "• Videochiamata P2P con gente a caso\n• Stanze via Jitsi Meet (WebRTC E2E cifrato)\n• La stanza cambia ogni 30 min, nessun account richiesto",
+  "version": "v1.4.0",
+  "notes": "• Videochiamata P2P senza account (meet.ffmuc.net)\n• Temi stagionali: neve, pesce d'aprile, halloween\n• Canale beta nelle impostazioni",
   "assets": {
     "arm64-v8a": {
-      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.3.0/freenet-mobile-v1.3.0-freenet-0.2.154-arm64-v8a-release-signed.apk",
-      "sha256": "e8e024c3b8c907d700da7fe2606d98987835a135ffc50fdaf21d2fe3c73386c2"
+      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.0/freenet-mobile-v1.4.0-freenet-0.2.154-arm64-v8a-release-signed.apk",
+      "sha256": "a73e26ee9e1ed2bb361444b38b00ac31daf8563ca86ee93376e10fd677794fd8"
     },
     "x86_64": {
-      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.3.0/freenet-mobile-v1.3.0-freenet-0.2.154-x86_64-release-signed.apk",
-      "sha256": "c5a4c471a01b31a9ff21059a9c442c4e7bd752926a338d660e3ac1af2be0135a"
+      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.0/freenet-mobile-v1.4.0-freenet-0.2.154-x86_64-release-signed.apk",
+      "sha256": "6a0f480bd1da0a8e56665f81fe343c1ce1c44608d59ae057caf54b59d3888565"
     }
   },
   "beta": {
