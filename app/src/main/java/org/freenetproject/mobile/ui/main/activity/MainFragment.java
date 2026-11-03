@@ -406,17 +406,31 @@ public class MainFragment extends Fragment {
 
         // Seasonal overlay
         SeasonalOverlayView overlay = view.findViewById(R.id.seasonal_overlay);
-        if (overlay != null) overlay.setSeason(detectSeason());
+        if (overlay != null) overlay.setSeason(detectSeason(requireContext()));
     }
 
-    private static SeasonalOverlayView.Season detectSeason() {
-        Calendar c = Calendar.getInstance();
-        int month = c.get(Calendar.MONTH); // 0-based
-        int day   = c.get(Calendar.DAY_OF_MONTH);
-        if (month == Calendar.OCTOBER && day == 31) return SeasonalOverlayView.Season.HALLOWEEN;
-        if (month == Calendar.APRIL   && day == 1)  return SeasonalOverlayView.Season.FISH;
-        if (month == Calendar.DECEMBER && (day >= 24 && day <= 26)) return SeasonalOverlayView.Season.SNOW;
-        return SeasonalOverlayView.Season.NONE;
+    private static SeasonalOverlayView.Season detectSeason(Context ctx) {
+        String pref = PreferenceManager.getDefaultSharedPreferences(ctx)
+                .getString("app_theme", "auto");
+        switch (pref) {
+            case "natale":       return SeasonalOverlayView.Season.SNOW;
+            case "halloween":    return SeasonalOverlayView.Season.HALLOWEEN;
+            case "pesce_aprile": return SeasonalOverlayView.Season.FISH;
+            case "compleanno":   return SeasonalOverlayView.Season.BIRTHDAY;
+            case "capodanno":    return SeasonalOverlayView.Season.NEW_YEAR;
+            case "estate":       return SeasonalOverlayView.Season.SUMMER;
+            case "primavera":    return SeasonalOverlayView.Season.SPRING;
+            case "none":         return SeasonalOverlayView.Season.NONE;
+            default: // auto — segue il calendario
+                Calendar c = Calendar.getInstance();
+                int month = c.get(Calendar.MONTH);
+                int day   = c.get(Calendar.DAY_OF_MONTH);
+                if (month == Calendar.OCTOBER  && day == 31)              return SeasonalOverlayView.Season.HALLOWEEN;
+                if (month == Calendar.APRIL    && day == 1)               return SeasonalOverlayView.Season.FISH;
+                if (month == Calendar.DECEMBER && day >= 24 && day <= 26) return SeasonalOverlayView.Season.SNOW;
+                if (month == Calendar.JANUARY  && day == 1)               return SeasonalOverlayView.Season.NEW_YEAR;
+                return SeasonalOverlayView.Season.NONE;
+        }
     }
 
     private static void applyBtnVisibility(View view, int id, boolean visible) {
