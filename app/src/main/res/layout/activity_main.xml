@@ -13,4 +13,10 @@
 
     <include layout="@layout/content_main" />
 
+    <org.freenetproject.mobile.ui.main.activity.SeasonalOverlayView
+        android:id="@+id/seasonal_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

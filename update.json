@@ -1,14 +1,14 @@
 {
-  "version": "v1.4.3",
-  "notes": "• Effetti grafici canvas per ogni tema: fiocchi di neve disegnati, pesci colorati con occhi e pinne, pipistrelli/fantasmi/zucche di Halloween, coriandoli, scintille, sole con raggi, petali e fiori\n• Temi stagionali manuali in Impostazioni → Aspetto → Tema",
+  "version": "v1.4.4",
+  "notes": "• Fix overlay a schermo intero: i temi stagionali ora coprono tutta la finestra\n• Grafica canvas per ogni tema: fiocchi di neve, pesci colorati, pipistrelli/fantasmi/zucche, coriandoli, scintille, sole, petali\n• Fix modalità daltonico: ha sempre la precedenza sui temi stagionali\n• Fix particelle capodanno: rimangono sullo schermo correttamente\n• Temi stagionali manuali in Impostazioni → Aspetto → Tema",
   "assets": {
     "arm64-v8a": {
-      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.3/freenet-mobile-v1.4.3-freenet-0.2.154-arm64-v8a-release.apk",
-      "sha256": "8674e7ee2ab71475b8906edffa7c6bb2b1f2daee28f75597468b4ff9183ae07d"
+      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.4/freenet-mobile-v1.4.4-freenet-0.2.154-arm64-v8a-release.apk",
+      "sha256": "2d4c0c8f3805afac5c78f757475781fa71a175defe28ac4ba53de1698d5cb8cf"
     },
     "x86_64": {
-      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.3/freenet-mobile-v1.4.3-freenet-0.2.154-x86_64-release.apk",
-      "sha256": "253c3a1e15f6b61e927481ce0690fb43a4bc8eec91af7f35cbd25d4fc469b54a"
+      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.4/freenet-mobile-v1.4.4-freenet-0.2.154-x86_64-release.apk",
+      "sha256": "7520594e29f085af982290d04cbb17d06c05511b1e3d43e07805f0d11da4b7b0"
     }
   },
   "beta": {
