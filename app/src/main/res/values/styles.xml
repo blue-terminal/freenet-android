@@ -167,4 +167,56 @@
         <item name="colorSurface">#0A0F6E</item>
     </style>
 
+    <!-- Compleanno: sfondo viola scuro, accento rosa/giallo festa -->
+    <style name="Theme.Birthday" parent="">
+        <item name="colorPrimary">#FF69B4</item>
+        <item name="colorPrimaryVariant">#FF69B4</item>
+        <item name="colorSecondary">#FFD700</item>
+        <item name="colorAccent">#FF69B4</item>
+        <item name="android:colorBackground">#1A0033</item>
+        <item name="android:windowBackground">#1A0033</item>
+        <item name="android:statusBarColor">#1A0033</item>
+        <item name="android:navigationBarColor">#1A0033</item>
+        <item name="colorSurface">#2D0050</item>
+    </style>
+
+    <!-- Capodanno: sfondo notte stellata, accento oro/argento -->
+    <style name="Theme.NewYear" parent="">
+        <item name="colorPrimary">#FFD700</item>
+        <item name="colorPrimaryVariant">#FFD700</item>
+        <item name="colorSecondary">#C0C0C0</item>
+        <item name="colorAccent">#FFD700</item>
+        <item name="android:colorBackground">#05050F</item>
+        <item name="android:windowBackground">#05050F</item>
+        <item name="android:statusBarColor">#05050F</item>
+        <item name="android:navigationBarColor">#05050F</item>
+        <item name="colorSurface">#0D0D20</item>
+    </style>
+
+    <!-- Estate: sfondo oceano, accento sole/turchese -->
+    <style name="Theme.Summer" parent="">
+        <item name="colorPrimary">#FFD700</item>
+        <item name="colorPrimaryVariant">#FFD700</item>
+        <item name="colorSecondary">#00CED1</item>
+        <item name="colorAccent">#FFD700</item>
+        <item name="android:colorBackground">#001F3F</item>
+        <item name="android:windowBackground">#001F3F</item>
+        <item name="android:statusBarColor">#001F3F</item>
+        <item name="android:navigationBarColor">#001F3F</item>
+        <item name="colorSurface">#002B55</item>
+    </style>
+
+    <!-- Primavera: sfondo verde notte, accento rosa fiore/verde menta -->
+    <style name="Theme.Spring" parent="">
+        <item name="colorPrimary">#FF85C2</item>
+        <item name="colorPrimaryVariant">#FF85C2</item>
+        <item name="colorSecondary">#90EE90</item>
+        <item name="colorAccent">#FF85C2</item>
+        <item name="android:colorBackground">#0A1A08</item>
+        <item name="android:windowBackground">#0A1A08</item>
+        <item name="android:statusBarColor">#0A1A08</item>
+        <item name="android:navigationBarColor">#0A1A08</item>
+        <item name="colorSurface">#142810</item>
+    </style>
+
 </resources>

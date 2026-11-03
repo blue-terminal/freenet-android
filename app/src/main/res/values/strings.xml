@@ -298,6 +298,30 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     <string name="show_version">Always show version</string>
     <string name="show_timer">Show timer in home</string>
     <string name="show_timer_summary">Hide the uptime timer from the main screen (still shown in notification)</string>
+    <string name="app_theme">Theme</string>
+    <string name="app_theme_summary">Seasonal colors and particles</string>
+    <string-array name="theme_names">
+        <item>Automatic</item>
+        <item>None</item>
+        <item>Christmas ❄️🎅</item>
+        <item>Halloween 🎃🧟</item>
+        <item>April Fools 🐟</item>
+        <item>Birthday 🎉🎂</item>
+        <item>New Year 🎆✨</item>
+        <item>Summer ☀️🌊</item>
+        <item>Spring 🌸🦋</item>
+    </string-array>
+    <string-array name="theme_values">
+        <item>auto</item>
+        <item>none</item>
+        <item>natale</item>
+        <item>halloween</item>
+        <item>pesce_aprile</item>
+        <item>compleanno</item>
+        <item>capodanno</item>
+        <item>estate</item>
+        <item>primavera</item>
+    </string-array>
     <string name="btn_river_pref">Show River button</string>
     <string name="btn_pc_pref">Show PC button</string>
     <string name="btn_web_pref">Show Open Freenet button</string>
