@@ -74,6 +74,9 @@ public class BootstrapActivity extends AppCompatActivity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        // Consente alle pagine in file:// (asset locali come loading.html / web70_preview.html)
+        // di fare fetch verso il nodo Freenet su 127.0.0.1 e nodi remoti sulla LAN.
+        settings.setAllowUniversalAccessFromFileURLs(true);
         // Freenet opens links between its apps as new windows, from inside sandboxed frames.
         settings.setSupportMultipleWindows(true);
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
@@ -142,9 +145,13 @@ public class BootstrapActivity extends AppCompatActivity {
         }
     }
 
-    /** Returns false for the local node, which stays in the app. Anything else leaves it. */
+    /** Returns false for local/LAN Freenet nodes (any host on WEB_PORT). Anything else leaves the app. */
     private boolean openOutside(Uri url) {
         if ("127.0.0.1".equals(url.getHost()) && url.getPort() == Manager.WEB_PORT) {
+            return false;
+        }
+        // LAN Freenet nodes (192.168.x.x:7509, 10.x.x.x:7509 …) stay in the WebView
+        if (url.getPort() == Manager.WEB_PORT) {
             return false;
         }
         // Invite form and Ghost Key page stay in the app: the address bar shows where you are.
