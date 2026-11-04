@@ -111,11 +111,12 @@ function updateClock() {
 updateClock();
 setInterval(updateClock, 1000);
 
-async function detectNode() {
+async function detectNode(timeoutMs) {
+  const to = timeoutMs || 1500;
   for (const base of LOCAL_NODES) {
     try {
       const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 1500);
+      const t = setTimeout(() => ctrl.abort(), to);
       const r = await fetch(base + '/v1/version', { signal: ctrl.signal });
       clearTimeout(t);
       if (r.ok) return base;
@@ -127,7 +128,7 @@ async function detectNode() {
     const base = 'http://' + remIp + ':7509';
     try {
       const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 1500);
+      const t = setTimeout(() => ctrl.abort(), to);
       const r = await fetch(base + '/v1/version', { signal: ctrl.signal });
       clearTimeout(t);
       if (r.ok) return base;
@@ -146,6 +147,17 @@ function openWeb7() {
 }
 
 async function tryConnect() {
+  // Prima verifica veloce (500ms per nodo) — se il nodo è già su, apre subito
+  const found = await detectNode(attempts === 1 ? 500 : 1500);
+  if (found) {
+    nodeUrl = found;
+    nfEl.textContent = '✓ Nodo Freenet attivo — ' + found.replace('http://', '');
+    nfEl.classList.add('show');
+    stEl.textContent = 'Connesso!';
+    btnO.classList.add('show');
+    openWeb7(); // apre subito, senza attesa
+    return;
+  }
   attempts++;
   const statusMsgs = [
     'Connessione a Freenet',
@@ -158,17 +170,6 @@ async function tryConnect() {
   const idx = Math.min(Math.floor(attempts / 5), statusMsgs.length - 1);
   stEl.innerHTML = statusMsgs[idx]
     + '<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>';
-
-  const found = await detectNode();
-  if (found) {
-    nodeUrl = found;
-    nfEl.textContent = '✓ Nodo Freenet attivo — ' + found.replace('http://', '');
-    nfEl.classList.add('show');
-    stEl.textContent = 'Connesso! Apertura in corso…';
-    btnO.classList.add('show');
-    setTimeout(openWeb7, 1200);
-    return;
-  }
   if (attempts >= MAX_ATTEMPTS) {
     stEl.textContent = 'Nodo non trovato';
     nfEl.textContent = '⚠ Avvia il nodo Freenet e riprova';
