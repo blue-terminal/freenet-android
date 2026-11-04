@@ -567,17 +567,12 @@ public class MainFragment extends Fragment {
     private void updateWeb70Button(Manager m, View view) {
         Button btn = view.findViewById(R.id.web70_button);
         btn.setOnClickListener(v -> {
-            if (m != null && m.isRunning()) {
-                // Nodo attivo: apri il Browser Freenet Web 7.0
-                startActivity(new Intent(getContext(), BootstrapActivity.class)
-                        .putExtra(BootstrapActivity.EXTRA_URL,
-                                Manager.WEB_URL + "v1/contract/web/browser-fn/"));
-            } else {
-                // Nodo non attivo: mostra pagina "in arrivo" locale
-                startActivity(new Intent(getContext(), BootstrapActivity.class)
-                        .putExtra(BootstrapActivity.EXTRA_URL,
-                                "file:///android_asset/web70_preview.html"));
-            }
+            // Mostra sempre la pagina di caricamento con timer:
+            // loading.html rileva il nodo e reindirizza automaticamente quando pronto.
+            // Se il nodo è già attivo salta il timer (3 secondi), altrimenti conta 3 minuti.
+            startActivity(new Intent(getContext(), BootstrapActivity.class)
+                    .putExtra(BootstrapActivity.EXTRA_URL,
+                            "file:///android_asset/loading.html"));
         });
     }
 }
