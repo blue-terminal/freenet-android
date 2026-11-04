@@ -367,7 +367,7 @@ public class SettingsActivity extends AppCompatActivity {
             if (check != null) {
                 showLastCheck(check);
                 check.setOnPreferenceClickListener(preference -> {
-                    Updater.check(requireActivity(), true);
+                    Updater.check(requireActivity(), true, () -> showLastCheck(check));
                     return true;
                 });
             }

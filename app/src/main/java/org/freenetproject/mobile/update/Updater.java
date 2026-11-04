@@ -125,6 +125,32 @@ public final class Updater {
         check(activity, false);
     }
 
+    /** Manual check with an optional callback fired on the UI thread when done. */
+    public static void check(Activity activity, boolean showResult, Runnable onDone) {
+        new Thread(() -> {
+            try {
+                Release release = newestRelease(activity);
+                activity.runOnUiThread(() -> {
+                    if (activity.isFinishing()) return;
+                    if (release != null) {
+                        askToInstall(activity, release);
+                    } else if (showResult) {
+                        toast(activity, activity.getString(R.string.update_none, BuildConfig.VERSION_NAME));
+                    }
+                    if (onDone != null) onDone.run();
+                });
+            } catch (IOException | JSONException e) {
+                Log.w(TAG, "Update check failed", e);
+                if (showResult) {
+                    activity.runOnUiThread(() -> {
+                        toast(activity, activity.getString(R.string.update_unreachable, describe(e)));
+                        if (onDone != null) onDone.run();
+                    });
+                }
+            }
+        }, "freenet-update-check").start();
+    }
+
     /** Returns false when GitHub could not be reached, so the check can be tried again. */
     static boolean notifyIfNew(Context context) {
         try {
@@ -172,27 +198,7 @@ public final class Updater {
     }
 
     public static void check(Activity activity, boolean showResult) {
-        new Thread(() -> {
-            try {
-                Release release = newestRelease(activity);
-                activity.runOnUiThread(() -> {
-                    if (activity.isFinishing()) {
-                        return;
-                    }
-                    if (release != null) {
-                        askToInstall(activity, release);
-                    } else if (showResult) {
-                        toast(activity, activity.getString(R.string.update_none, BuildConfig.VERSION_NAME));
-                    }
-                });
-            } catch (IOException | JSONException e) {
-                Log.w(TAG, "Update check failed", e);
-                if (showResult) {
-                    activity.runOnUiThread(() -> toast(activity,
-                            activity.getString(R.string.update_unreachable, describe(e))));
-                }
-            }
-        }, "freenet-update-check").start();
+        check(activity, showResult, null);
     }
 
     private static Release newestRelease(Context context) throws IOException, JSONException {
@@ -221,9 +227,11 @@ public final class Updater {
             JSONArray assets = item.getJSONArray("assets");
             for (int j = 0; j < assets.length(); j++) {
                 JSONObject asset = assets.getJSONObject(j);
+                String assetName = asset.getString("name");
                 String digest = asset.optString("digest", "");
-                if (asset.getString("name").endsWith(Build.SUPPORTED_ABIS[0] + "-release.apk")
-                        && digest.startsWith("sha256:")) {
+                boolean nameMatch = assetName.endsWith(Build.SUPPORTED_ABIS[0] + "-release.apk")
+                        || assetName.endsWith(Build.SUPPORTED_ABIS[0] + "-release-signed.apk");
+                if (nameMatch && digest.startsWith("sha256:")) {
                     found = new Release();
                     found.version = item.getString("tag_name");
                     found.url = asset.getString("browser_download_url");
