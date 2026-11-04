@@ -33,27 +33,34 @@ html, body { height: 100%; overflow: hidden; }
 body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; display: flex; flex-direction: column; }
 
 /* ── TOPBAR ── */
+/* barra di avanzamento caricamento */
+#progress-bar { position: fixed; top: 0; left: 0; height: 3px; width: 0%; background: var(--accent); z-index: 999; transition: width .3s, opacity .4s; opacity: 0; border-radius: 0 2px 2px 0; }
+#progress-bar.loading { opacity: 1; }
+
 .topbar {
   display: flex; align-items: center; gap: 8px;
   padding: 7px 12px; background: var(--bg2);
   border-bottom: 1px solid var(--border); flex-shrink: 0; z-index: 50;
 }
 .nav-btn {
-  width: 30px; height: 30px; border-radius: 50%;
-  background: var(--bg3); border: none; color: var(--text2);
-  font-size: 14px; cursor: pointer; flex-shrink: 0;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: none; border: none; color: var(--text2);
+  font-size: 16px; cursor: pointer; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s;
 }
-.nav-btn:hover { background: var(--accent); color: #fff; }
+.nav-btn:hover:not(:disabled) { background: var(--bg3); color: var(--text); }
+.nav-btn:disabled { opacity: .28; cursor: default; }
 
 .addr-wrap {
   flex: 1; display: flex; align-items: center; gap: 6px;
   background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 20px; padding: 0 12px; height: 34px; transition: border .2s;
+  border-radius: 20px; padding: 0 12px; height: 34px; transition: border .2s, box-shadow .2s;
 }
-.addr-wrap:focus-within { border-color: var(--accent); }
-.addr-lock { font-size: 12px; color: var(--green); flex-shrink: 0; }
-#addr { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-size: 13px; }
+.addr-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(10,132,255,.15); }
+.addr-lock { font-size: 13px; flex-shrink: 0; }
+#addr { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-size: 13px; cursor: pointer; }
+#addr:focus { cursor: text; }
 .addr-go { background: var(--accent); border: none; color: #fff; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; cursor: pointer; }
 
 .topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; position: relative; }
@@ -160,16 +167,20 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 </head>
 <body>
 
+<div id="progress-bar"></div>
+
 <!-- ══ TOPBAR ══ -->
 <div class="topbar">
-  <button class="nav-btn" onclick="goBack()" title="Indietro">‹</button>
-  <button class="nav-btn" onclick="goForward()" title="Avanti">›</button>
-  <button class="nav-btn" onclick="reload()" title="Ricarica">↺</button>
+  <button class="nav-btn" id="btn-back" onclick="goBack()" title="Indietro" disabled>‹</button>
+  <button class="nav-btn" id="btn-fwd" onclick="goForward()" title="Avanti" disabled>›</button>
+  <button class="nav-btn" id="btn-reload" onclick="reload()" title="Ricarica">↺</button>
 
   <div class="addr-wrap">
-    <span class="addr-lock">🔒</span>
-    <input id="addr" type="text" value="freenet://home" spellcheck="false" onkeydown="if(event.key==='Enter')navigate()">
-    <button class="addr-go" onclick="navigate()">Vai</button>
+    <span class="addr-lock" id="addr-lock">🌍</span>
+    <input id="addr" type="text" value="freenet://home" spellcheck="false"
+      onfocus="this.select()"
+      onkeydown="if(event.key==='Enter')navigate();if(event.key==='Escape')this.blur()">
+    <button class="addr-go" onclick="navigate()">→</button>
   </div>
 
   <div class="topbar-right">
@@ -571,16 +582,41 @@ function archiveSite(url, title) {
 // ── navigation ────────────────────────────────────────────────────────────────
 let history_ = ['freenet://home'], histIdx = 0;
 
+function updateNavUI(url) {
+  document.getElementById('btn-back').disabled  = histIdx <= 0;
+  document.getElementById('btn-fwd').disabled   = histIdx >= history_.length - 1;
+  const lock = document.getElementById('addr-lock');
+  if (!url || url === 'freenet://home') lock.textContent = '🌍';
+  else if (url.startsWith('freenet://'))      lock.textContent = '🔒';
+  else if (url.startsWith('https://'))        lock.textContent = '🔒';
+  else                                        lock.textContent = '⚠️';
+  document.getElementById('addr').value = url || 'freenet://home';
+}
+
+let _progressTimer = null;
+function showProgress() {
+  const bar = document.getElementById('progress-bar');
+  bar.style.width = '0%'; bar.classList.add('loading');
+  let w = 10;
+  _progressTimer = setInterval(() => { w = Math.min(w + (90 - w) * .08 + 1, 88); bar.style.width = w + '%'; }, 120);
+}
+function hideProgress() {
+  clearInterval(_progressTimer);
+  const bar = document.getElementById('progress-bar');
+  bar.style.width = '100%';
+  setTimeout(() => { bar.classList.remove('loading'); bar.style.width = '0%'; }, 400);
+}
+
 function navigate(url) {
   url = url || document.getElementById('addr').value.trim();
   if (!url) return;
-  document.getElementById('addr').value = url;
   histIdx++; history_.splice(histIdx); history_.push(url);
   archiveSite(url, url);
+  updateNavUI(url);
   loadUrl(url);
 }
-function goBack()    { if (histIdx > 0) loadUrl(history_[--histIdx], true); }
-function goForward() { if (histIdx < history_.length-1) loadUrl(history_[++histIdx], true); }
+function goBack()    { if (histIdx > 0) { const url = history_[--histIdx]; updateNavUI(url); loadUrl(url, true); } }
+function goForward() { if (histIdx < history_.length-1) { const url = history_[++histIdx]; updateNavUI(url); loadUrl(url, true); } }
 function reload()    { loadUrl(history_[histIdx], true); }
 
 function loadUrl(url, skipHist) {
@@ -607,6 +643,11 @@ function loadUrl(url, skipHist) {
   frame.style.display = 'block';
 
   if (nodeOnline) {
+    showProgress();
+    const reloadBtn = document.getElementById('btn-reload');
+    reloadBtn.textContent = '✕';
+    reloadBtn.onclick = () => { frame.src = 'about:blank'; hideProgress(); reloadBtn.textContent = '↺'; reloadBtn.onclick = reload; };
+    frame.onload = () => { hideProgress(); reloadBtn.textContent = '↺'; reloadBtn.onclick = reload; };
     frame.src = target;
   } else {
     // Nodo offline: pagina utile con istruzioni e link alle app locali sempre disponibili
