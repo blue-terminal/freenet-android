@@ -144,6 +144,7 @@ public class MainFragment extends Fragment {
         updateSharedPreferences(manager, view);
         updateSettings(manager, view);
         updateAbout(manager, view);
+        updateWeb70Button(manager, view);
         view.findViewById(R.id.pc_button).setOnClickListener(v -> showPcHelp());
         updateUptime(Manager.getInstance(), view);
         applyAppearance(view);
@@ -560,6 +561,19 @@ public class MainFragment extends Fragment {
         Button settings = view.findViewById(R.id.about_button);
         settings.setOnClickListener(view1 -> {
             startActivity(new Intent(getActivity(), AboutActivity.class));
+        });
+    }
+
+    private void updateWeb70Button(Manager m, View view) {
+        Button btn = view.findViewById(R.id.web70_button);
+        btn.setOnClickListener(v -> {
+            if (m != null && m.isRunning()) {
+                startActivity(new Intent(getContext(), BootstrapActivity.class)
+                        .putExtra(BootstrapActivity.EXTRA_URL,
+                                Manager.WEB_URL + "v1/contract/web/browser-fn/"));
+            } else {
+                Toast.makeText(getContext(), R.string.web70_coming_soon, Toast.LENGTH_SHORT).show();
+            }
         });
     }
 }
