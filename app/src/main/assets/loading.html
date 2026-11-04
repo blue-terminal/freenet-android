@@ -140,10 +140,13 @@ async function detectNode(timeoutMs) {
 function openWeb7() {
   if (done) return;
   done = true;
-  const url = nodeUrl
-    ? nodeUrl + '/v1/contract/web/browser-fn/'
-    : 'file:///android_asset/web70_preview.html';
-  window.location.href = url;
+  // Se trovato su LAN (non 127.0.0.1), salva IP per Web 7.0
+  if (nodeUrl && !nodeUrl.includes('127.0.0.1') && !nodeUrl.includes('localhost')) {
+    const ip = nodeUrl.replace(/^https?:\/\//, '').split(':')[0];
+    try { localStorage.setItem('fn_remote_node', ip); } catch {}
+  }
+  // Vai sempre a Web 7.0 — gestisce da sola stato online/offline
+  window.location.href = 'file:///android_asset/index.html';
 }
 
 async function tryConnect() {

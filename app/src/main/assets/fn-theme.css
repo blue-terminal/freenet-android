@@ -1,0 +1,62 @@
+/* Freenet Web 7.0 — design tokens e stili comuni */
+:root {
+  --bg:     #0d1b2a;
+  --bg2:    #112240;
+  --bg3:    #1a3358;
+  --accent: #0a84ff;
+  --red:    #e53935;
+  --green:  #00c896;
+  --warn:   #ff9f0a;
+  --danger: #ff453a;
+  --text:   #e8edf4;
+  --text2:  #8fa8c8;
+  --border: #1e3a5f;
+  --r:      10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* ── TOPBAR comune ── */
+.fn-topbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 18px; background: var(--bg2);
+  border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100;
+}
+.fn-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); flex-shrink: 0; }
+.fn-logo-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; }
+.fn-logo-name { font-weight: 700; font-size: 15px; }
+
+/* ── BOTTONI ── */
+.btn { padding: 7px 16px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+.btn:hover { opacity: .85; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-red     { background: var(--red);    color: #fff; }
+.btn-ghost   { background: transparent; border: 1px solid var(--border); color: var(--text2); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── CARD ── */
+.fn-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 16px 20px; }
+
+/* ── BADGE ── */
+.badge { padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+.badge-danger { background: #ff453a22; color: var(--danger); border: 1px solid var(--danger); }
+.badge-warn   { background: #ff9f0a22; color: var(--warn);   border: 1px solid var(--warn); }
+.badge-info   { background: #0a84ff22; color: var(--accent); border: 1px solid var(--accent); }
+.badge-ok     { background: #00c89622; color: var(--green);  border: 1px solid var(--green); }
+
+/* ── MODAL ── */
+.fn-modal-bg { position: fixed; inset: 0; background: #00000088; backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 999; }
+.fn-modal-bg.open { display: flex; }
+.fn-modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 20px; padding: 32px 36px; width: 100%; max-width: 370px; text-align: center; position: relative; }
+.fn-modal-close { position: absolute; top: 10px; right: 12px; background: none; border: none; font-size: 16px; color: var(--text2); cursor: pointer; }
+.fn-field { margin-bottom: 11px; text-align: left; }
+.fn-field label { font-size: 11px; color: var(--text2); display: block; margin-bottom: 3px; }
+.fn-field input { width: 100%; padding: 9px 12px; border-radius: var(--r); background: var(--bg3); border: 1px solid var(--border); color: var(--text); font-size: 13px; outline: none; }
+.fn-field input:focus { border-color: var(--accent); }
+.fn-err { font-size: 11px; color: var(--danger); margin-top: 3px; display: none; }
