@@ -568,11 +568,15 @@ public class MainFragment extends Fragment {
         Button btn = view.findViewById(R.id.web70_button);
         btn.setOnClickListener(v -> {
             if (m != null && m.isRunning()) {
+                // Nodo attivo: apri il Browser Freenet Web 7.0
                 startActivity(new Intent(getContext(), BootstrapActivity.class)
                         .putExtra(BootstrapActivity.EXTRA_URL,
                                 Manager.WEB_URL + "v1/contract/web/browser-fn/"));
             } else {
-                Toast.makeText(getContext(), R.string.web70_coming_soon, Toast.LENGTH_SHORT).show();
+                // Nodo non attivo: mostra pagina "in arrivo" locale
+                startActivity(new Intent(getContext(), BootstrapActivity.class)
+                        .putExtra(BootstrapActivity.EXTRA_URL,
+                                "file:///android_asset/web70_preview.html"));
             }
         });
     }
