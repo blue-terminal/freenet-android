@@ -6,8 +6,9 @@
   <title>Web 7.0 — In Arrivo</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
-      background: #0d1117;
+      background: #060b14;
       color: #e6edf3;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       min-height: 100vh;
@@ -17,124 +18,236 @@
       justify-content: center;
       padding: 24px;
       text-align: center;
+      overflow-x: hidden;
     }
-    .logo { font-size: 72px; margin-bottom: 16px; animation: pulse 2s infinite; }
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.08); opacity: 0.85; }
+
+    /* Sfondo animato con bolle colorate */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(88,166,255,.18) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 80%, rgba(63,185,80,.15) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(240,136,62,.12) 0%, transparent 50%),
+        radial-gradient(ellipse at 20% 80%, rgba(188,130,255,.14) 0%, transparent 50%);
+      animation: shift 8s ease-in-out infinite alternate;
+      pointer-events: none;
+      z-index: 0;
     }
+    @keyframes shift {
+      0%   { opacity: .7; transform: scale(1); }
+      100% { opacity: 1;  transform: scale(1.05); }
+    }
+
+    .content { position: relative; z-index: 1; width: 100%; max-width: 380px; }
+
+    .logo {
+      font-size: 76px;
+      margin-bottom: 10px;
+      display: inline-block;
+      animation: float 3s ease-in-out infinite;
+      filter: drop-shadow(0 0 24px rgba(88,166,255,.6));
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-10px); }
+    }
+
     h1 {
-      font-size: 2em;
-      font-weight: 700;
-      color: #58a6ff;
-      margin-bottom: 8px;
-      letter-spacing: -0.5px;
+      font-size: 2.4em;
+      font-weight: 800;
+      background: linear-gradient(135deg, #58a6ff 0%, #bc82ff 50%, #3fb950 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 6px;
+      letter-spacing: -1px;
     }
+
     .sub {
-      font-size: 1.1em;
+      font-size: 1em;
       color: #8b949e;
-      margin-bottom: 32px;
+      margin-bottom: 28px;
       line-height: 1.5;
     }
-    .ready {
-      font-size: 1.3em;
-      font-weight: 600;
+    .sub strong { color: #c9d1d9; }
+
+    .badge-ready {
+      display: inline-block;
+      background: linear-gradient(135deg, #1a4731, #0d2818);
+      border: 1px solid #3fb950;
       color: #3fb950;
-      margin-bottom: 8px;
+      border-radius: 20px;
+      padding: 6px 18px;
+      font-size: 1em;
+      font-weight: 700;
+      margin-bottom: 6px;
+      box-shadow: 0 0 16px rgba(63,185,80,.3);
     }
-    .ready-en {
-      font-size: 0.95em;
+    .badge-en {
+      font-size: .78em;
       color: #6e7681;
-      margin-bottom: 36px;
+      margin-bottom: 28px;
     }
+
+    /* Griglia app colorata */
     .apps {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
+      gap: 10px;
       width: 100%;
-      max-width: 340px;
-      margin-bottom: 36px;
+      margin-bottom: 28px;
     }
     .app-card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 12px;
-      padding: 16px 10px;
-      transition: border-color 0.2s;
+      border-radius: 14px;
+      padding: 16px 10px 14px;
+      position: relative;
+      overflow: hidden;
+      transition: transform .15s;
     }
-    .app-card:active { border-color: #58a6ff; }
-    .app-icon { font-size: 2em; margin-bottom: 6px; }
-    .app-name { font-size: 0.85em; font-weight: 600; color: #e6edf3; margin-bottom: 2px; }
-    .app-desc { font-size: 0.72em; color: #6e7681; }
-    .info {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 10px;
-      padding: 14px 18px;
-      max-width: 340px;
+    .app-card:active { transform: scale(.97); }
+    .app-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.1);
+    }
+
+    .card-browser  { background: linear-gradient(135deg,#0d2345,#162d4e); }
+    .card-tv       { background: linear-gradient(135deg,#2d0d0d,#4e1616); }
+    .card-gram     { background: linear-gradient(135deg,#2d0d2d,#4a1240); }
+    .card-posts    { background: linear-gradient(135deg,#0d2d1a,#124a24); }
+
+    .app-icon  { font-size: 2.2em; margin-bottom: 6px; }
+    .app-name  { font-size: .88em; font-weight: 700; color: #e6edf3; margin-bottom: 2px; }
+    .app-desc  { font-size: .72em; color: #8b949e; }
+
+    /* Barra funzionalità */
+    .features {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
       width: 100%;
       margin-bottom: 24px;
     }
-    .info p { font-size: 0.82em; color: #8b949e; line-height: 1.6; }
-    .info strong { color: #58a6ff; }
-    .footer { font-size: 0.75em; color: #6e7681; }
-    .footer a { color: #58a6ff; text-decoration: none; }
+    .feat {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 10px;
+      padding: 10px 14px;
+      text-align: left;
+    }
+    .feat-icon { font-size: 1.3em; flex-shrink: 0; }
+    .feat-text { font-size: .82em; color: #c9d1d9; line-height: 1.4; }
+    .feat-text small { color: #6e7681; font-size: .88em; }
+
+    /* Indicatore stato */
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      font-size: .8em;
+      color: #8b949e;
+    }
     .dot {
-      display: inline-block;
       width: 8px; height: 8px;
       background: #f0883e;
       border-radius: 50%;
-      margin-right: 6px;
-      animation: blink 1.5s infinite;
-      vertical-align: middle;
+      animation: blink 1.4s infinite;
+      box-shadow: 0 0 6px rgba(240,136,62,.7);
     }
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.2; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+    .footer { font-size: .72em; color: #6e7681; margin-top: 4px; }
+    .footer a { color: #58a6ff; text-decoration: none; }
+
+    /* Firma in linguaggio finto FN8Lang */
+    .fn8sig {
+      margin-top: 20px;
+      font-size: .65em;
+      color: rgba(88,166,255,.25);
+      letter-spacing: 2px;
+      user-select: none;
     }
   </style>
 </head>
 <body>
+<div class="content">
   <div class="logo">🌐</div>
   <h1>Web 7.0</h1>
-  <p class="sub">Social decentralizzato su Freenet<br><span style="font-size:.85em;color:#6e7681">Decentralized social on Freenet</span></p>
+  <p class="sub">
+    <strong>Social decentralizzato su Freenet</strong><br>
+    <span style="font-size:.88em">Decentralized social on Freenet P2P</span>
+  </p>
 
-  <p class="ready">🚀 Sei pronto? Sta arrivando!</p>
-  <p class="ready-en">Are you ready? It's coming!</p>
+  <div class="badge-ready">🚀 Sei pronto? Sta arrivando!</div>
+  <p class="badge-en">Are you ready? It's coming soon!</p>
 
   <div class="apps">
-    <div class="app-card">
+    <div class="app-card card-browser">
       <div class="app-icon">🌐</div>
       <div class="app-name">Browser</div>
       <div class="app-desc">Naviga Freenet</div>
     </div>
-    <div class="app-card">
+    <div class="app-card card-tv">
       <div class="app-icon">📺</div>
       <div class="app-name">FreenetTV</div>
       <div class="app-desc">Video P2P</div>
     </div>
-    <div class="app-card">
+    <div class="app-card card-gram">
       <div class="app-icon">📷</div>
       <div class="app-name">FreenetGram</div>
       <div class="app-desc">Foto anonime</div>
     </div>
-    <div class="app-card">
+    <div class="app-card card-posts">
       <div class="app-icon">📝</div>
       <div class="app-name">FreenetPosts</div>
       <div class="app-desc">Post liberi</div>
     </div>
   </div>
 
-  <div class="info">
-    <p>
-      <span class="dot"></span><strong>Nessuna email</strong> — solo nome utente e password<br>
-      <strong>No tracking</strong> — nessun tracciamento, nessun algoritmo<br>
-      <strong>P2P</strong> — rete peer-to-peer, nessun server centrale
-    </p>
+  <div class="features">
+    <div class="feat">
+      <span class="feat-icon">🔒</span>
+      <span class="feat-text">
+        Solo nome utente e password — nessuna email<br>
+        <small>Username &amp; password only — no email</small>
+      </span>
+    </div>
+    <div class="feat">
+      <span class="feat-icon">🔑</span>
+      <span class="feat-text">
+        Crittografia RSA-2048 + AES-256 end-to-end<br>
+        <small>RSA-2048 + AES-256 end-to-end encryption</small>
+      </span>
+    </div>
+    <div class="feat">
+      <span class="feat-icon">🕸️</span>
+      <span class="feat-text">
+        Rete peer-to-peer — nessun server centrale<br>
+        <small>Peer-to-peer — no central server</small>
+      </span>
+    </div>
+  </div>
+
+  <div class="status-row">
+    <span class="dot"></span>
+    Nodo Freenet non attivo · <em>Start node to connect</em>
   </div>
 
   <p class="footer">
     <a href="https://github.com/blue-terminal/web.7.0">github.com/blue-terminal/web.7.0</a>
   </p>
+
+  <!-- Firma nascosta in FN8Lang (ꩠꔃⴰꚢ·ꓕꩡ·ꔀꚦ = web7.0) -->
+  <div class="fn8sig">ꩠꔃⴰꚢ·ꓕꩡ·ꔀꚦ</div>
+</div>
 </body>
 </html>

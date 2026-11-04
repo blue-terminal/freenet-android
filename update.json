@@ -1,27 +1,27 @@
 {
-  "version": "v1.4.6",
-  "notes": "• Pulsante 🔍 Web 7.0: apre pagina 'Sei pronto? Sta arrivando!' anche senza nodo attivo\n• Nodo attivo → apre il Browser Freenet Web 7.0\n• Nodo spento → apre pagina locale IT+EN con anteprima delle 4 app\n• Tutti i siti: solo nome utente e password, nessuna email, nessun tracciamento",
+  "version": "v1.4.7",
+  "notes": "• FreenetTV: iscrizione canali 🔔, contatore iscritti, lista nella sidebar\n• FreenetPosts: segui utenti, tab Seguiti funzionante, commenti espandibili\n• FreenetGram: segui utenti, pulsante condividi chiave Freenet\n• fn-crypto.js v3: sicurezza militare a 4 strati (FN8Lang dinamico, anti-fingerprint, anti-DDoS)\n• FN8Lang generato al primo avvio dispositivo — non su GitHub\n• Anti-fingerprint: ogni invio ha bit diversi, impossibile tracciare\n• Anti-DDoS: blocco automatico IP dopo 30 req/10 sec\n• Nessuna email, nessun tracciamento — solo username e password",
   "assets": {
     "arm64-v8a": {
-      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.6/freenet-mobile-v1.4.6-web70-arm64-v8a-debug.apk",
-      "sha256": "bd1180290978cbaf213189bf5defacef731d38710f651c1c235b24758439fea3"
+      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.7/freenet-mobile-v1.4.7-freenet-0.2.154-arm64-v8a-release.apk",
+      "sha256": "01f65b67d791d1e27fcdb243b8914d941d12175ef46e95d985267188634bb138"
     },
     "x86_64": {
-      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.6/freenet-mobile-v1.4.6-web70-x86_64-debug.apk",
-      "sha256": "65880f252cf4a7f7cfafe06bc7f0338b59fc0aa65f9e78a2440590bd5720177e"
+      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.7/freenet-mobile-v1.4.7-freenet-0.2.154-x86_64-release.apk",
+      "sha256": "c8968d17660dd1875e410d1f83e14359b9b4b004f2a4dd78b356c49a9c065d13"
     }
   },
   "beta": {
-    "version": "v1.4.6",
-    "notes": "• Pagina 'Web 7.0 in arrivo' anche offline\n• Nessuna email, nessun tracciamento",
+    "version": "v1.4.7",
+    "notes": "• Social completo: iscrizioni, follow, commenti, like\n• Sicurezza militare a 4 strati",
     "assets": {
       "arm64-v8a": {
-        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.6/freenet-mobile-v1.4.6-web70-arm64-v8a-debug.apk",
-        "sha256": "bd1180290978cbaf213189bf5defacef731d38710f651c1c235b24758439fea3"
+        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.7/freenet-mobile-v1.4.7-freenet-0.2.154-arm64-v8a-release.apk",
+        "sha256": "01f65b67d791d1e27fcdb243b8914d941d12175ef46e95d985267188634bb138"
       },
       "x86_64": {
-        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.6/freenet-mobile-v1.4.6-web70-x86_64-debug.apk",
-        "sha256": "65880f252cf4a7f7cfafe06bc7f0338b59fc0aa65f9e78a2440590bd5720177e"
+        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.7/freenet-mobile-v1.4.7-freenet-0.2.154-x86_64-release.apk",
+        "sha256": "c8968d17660dd1875e410d1f83e14359b9b4b004f2a4dd78b356c49a9c065d13"
       }
     }
   }
