@@ -86,7 +86,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   <div id="nodeFound" class="node-found"></div>
   <button class="btn-open" id="btn-open" onclick="openWeb7()">🚀 Apri Web 7.0</button>
 
-  <p class="skip-hint" onclick="openWeb7()">Tocca due volte per saltare</p>
+  <p class="skip-hint" onclick="openWeb7()">Apri senza nodo →</p>
 </div>
 
 <script>
@@ -94,7 +94,7 @@ const LOCAL_NODES = ['http://127.0.0.1:7509', 'http://127.0.0.1:8888'];
 let nodeUrl = null;
 let done = false;
 let attempts = 0;
-const MAX_ATTEMPTS = 30; // 30 × 2s = 60s poi va su preview
+const MAX_ATTEMPTS = 5; // 5 × 2s = 10s poi apre Web 7.0 (gestisce da sola lo stato offline)
 
 const stEl  = document.getElementById('status');
 const btnO  = document.getElementById('btn-open');
@@ -137,15 +137,26 @@ async function detectNode(timeoutMs) {
   return null;
 }
 
-function openWeb7() {
+async function openWeb7() {
   if (done) return;
   done = true;
-  // Se trovato su LAN (non 127.0.0.1), salva IP per Web 7.0
+  // Se trovato su LAN (non 127.0.0.1), controlla se gira anche il server Web 7.0 (porta 7600)
   if (nodeUrl && !nodeUrl.includes('127.0.0.1') && !nodeUrl.includes('localhost')) {
     const ip = nodeUrl.replace(/^https?:\/\//, '').split(':')[0];
     try { localStorage.setItem('fn_remote_node', ip); } catch {}
+    // Prova il server Web 7.0 su Linux (porta 7600)
+    try {
+      const ctrl = new AbortController();
+      setTimeout(() => ctrl.abort(), 1000);
+      const r = await fetch('http://' + ip + ':7600/', { signal: ctrl.signal });
+      if (r.ok) {
+        // Server web70 trovato sul PC Linux — usa la versione live
+        window.location.href = 'http://' + ip + ':7600/index.html';
+        return;
+      }
+    } catch {}
   }
-  // Vai sempre a Web 7.0 — gestisce da sola stato online/offline
+  // Fallback: Web 7.0 bundlato nell'APK
   window.location.href = 'file:///android_asset/index.html';
 }
 
