@@ -1,6 +1,6 @@
 {
   "version": "v1.4.9",
-  "notes": "• Fix pulsante aggiornamenti: ora trova sempre l'APK più recente\n• Fix summary che si aggiorna dopo ogni check\n• FreenetTV: sistema video P2P content-addressed (CHK@)\n• Upload video → SHA-256 → chiave CHK@ (senza BigInt, compatibile tutti i dispositivi)\n• Video salvati in IndexedDB locale — nessun server\n• Pagina loading.html con timer 3 minuti → apertura Web 7.0\n• Nessuna email, nessun tracciamento — solo username e password",
+  "notes": "• Fix pulsante aggiornamenti\n• FreenetTV CHK@ senza BigInt\n• Video in IndexedDB locale",
   "assets": {
     "arm64-v8a": {
       "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.9/freenet-mobile-v1.4.9-freenet-0.2.154-arm64-v8a-release-signed.apk",
@@ -12,16 +12,12 @@
     }
   },
   "beta": {
-    "version": "v1.4.9",
-    "notes": "• v1.4.9: fix aggiornamenti, CHK@ senza BigInt\n• Social completo: iscrizioni, follow, commenti, like\n• Crittografia a 4 strati",
+    "version": "v1.5.0",
+    "notes": "• Fix LAN node: 192.168.x.x:7509 resta nel WebView\n• Schermata caricamento: spinner animato con data/ora\n• Web 7.0 YouTube-style grid, Gitea, grafico nodi\n• App: Atlas, River, Mail, Delta, Ghostkey, Blog, Portal, Telemetry",
     "assets": {
       "arm64-v8a": {
-        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.9/freenet-mobile-v1.4.9-freenet-0.2.154-arm64-v8a-release-signed.apk",
-        "sha256": "63ac3bfb4e0096c2cbdf647bd69c285b5a6914a0927e033812f154a1b4396abe"
-      },
-      "x86_64": {
-        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.4.9/freenet-mobile-v1.4.9-freenet-0.2.154-x86_64-release-signed.apk",
-        "sha256": "455afc92b21bc4cb6ae53bc7b2fa01907e970ca3118334160485e570eff610bc"
+        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.5.0/freenet-mobile-v1.5.0-arm64-signed.apk",
+        "sha256": "875005c82efb3891ad573fd34c912a1333badfe81d8457de77ff5311c7e43d68"
       }
     }
   }
