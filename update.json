@@ -12,12 +12,12 @@
     }
   },
   "beta": {
-    "version": "v1.5.6",
-    "notes": "• Fix ricerca: il bottone 🔍 non apre più la pagina del nodo nell'iframe\n• Ora mostra messaggio + link alle app (FreenetTV, Gram, Posts)\n• Fix loading.html su PC (path relativo index.html)\n• Sezione Sicurezza: OWASP, HackTheBox, TryHackMe, UFONet\n• Nessun server centrale · Nessuna raccolta dati",
+    "version": "v1.5.7",
+    "notes": "• Fix sandbox iframe: le app Freenet non possono uscire dal frame\n• Nuova sezione Cultura & Scienza (Treccani, RAI Cultura, INFN…)\n• P2P: Briar (messaggi offline), RetroShare (F2F criptato)\n• Fix ricerca 🔍 · Fix loading PC\n• Nessun server centrale · Nessuna raccolta dati",
     "assets": {
       "arm64-v8a": {
-        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.5.6/freenet-mobile-v1.5.6-freenet-0.2.154-arm64-v8a-release.apk",
-        "sha256": "7118f35316b4875044b30db15e61dcc62a0e46a4e96893ed4e83c13da33a9528"
+        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.5.7/freenet-mobile-v1.5.7-freenet-0.2.154-arm64-v8a-release.apk",
+        "sha256": "a3668d9068fb437963241c1dd839d4334646af2c480467801fda0ebd79b965b4"
       }
     }
   }
