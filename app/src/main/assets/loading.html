@@ -149,8 +149,11 @@ function openWeb7() {
     const ip = nodeUrl.replace(/^https?:\/\//, '').split(':')[0];
     try { localStorage.setItem('fn_remote_node', ip); } catch {}
   }
-  // Web 7.0 bundlato nell'APK — funziona sempre, non bloccare con done
-  window.location.replace('file:///android_asset/index.html');
+  // Su Android usa il percorso assoluto dell'asset; su PC usa path relativo
+  const target = (typeof Android !== 'undefined')
+    ? 'file:///android_asset/index.html'
+    : './index.html';
+  window.location.replace(target);
 }
 
 async function tryConnect() {
