@@ -371,6 +371,16 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
         <span class="ql-name">Nostr</span>
         <span class="ql-desc">Protocollo note aperte</span>
       </a>
+      <a class="ql" onclick="navigate('https://briarproject.org')">
+        <span class="ql-icon">🌹</span>
+        <span class="ql-name">Briar</span>
+        <span class="ql-desc">P2P messaggi · funziona offline</span>
+      </a>
+      <a class="ql" onclick="navigate('https://retroshare.cc')">
+        <span class="ql-icon">🔄</span>
+        <span class="ql-name">RetroShare</span>
+        <span class="ql-desc">P2P social criptato · F2F</span>
+      </a>
     </div>
 
     <div class="sec-label">🏔️ Git Open Source</div>
@@ -506,6 +516,41 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
     </div>
     <div style="height:16px"></div>
 
+    <div class="sec-label">🇮🇹 Cultura &amp; Scienza</div>
+    <div class="ql-grid">
+      <a class="ql" onclick="navigate('https://www.treccani.it')">
+        <span class="ql-icon">📖</span>
+        <span class="ql-name">Treccani</span>
+        <span class="ql-desc">Enciclopedia italiana</span>
+      </a>
+      <a class="ql" onclick="navigate('https://www.raicultura.it')">
+        <span class="ql-icon">🎭</span>
+        <span class="ql-name">RAI Cultura</span>
+        <span class="ql-desc">Documentari · arte · storia</span>
+      </a>
+      <a class="ql" onclick="navigate('https://www.infn.it')">
+        <span class="ql-icon">⚛️</span>
+        <span class="ql-name">INFN</span>
+        <span class="ql-desc">Fisica nucleare italiana</span>
+      </a>
+      <a class="ql" onclick="navigate('https://it.wikipedia.org')">
+        <span class="ql-icon">🌐</span>
+        <span class="ql-name">Wikipedia IT</span>
+        <span class="ql-desc">Enciclopedia libera</span>
+      </a>
+      <a class="ql" onclick="navigate('https://archive.org')">
+        <span class="ql-icon">🏛️</span>
+        <span class="ql-name">Internet Archive</span>
+        <span class="ql-desc">42M libri · Wayback Machine</span>
+      </a>
+      <a class="ql" onclick="navigate('https://www.gutenberg.org')">
+        <span class="ql-icon">📚</span>
+        <span class="ql-name">Project Gutenberg</span>
+        <span class="ql-desc">70k+ libri liberi da copyright</span>
+      </a>
+    </div>
+    <div style="height:16px"></div>
+
     <div class="node-info-box">
       <h3>Stato nodo Freenet</h3>
       <div class="ni-row"><span>Nodo locale</span><span class="ni-val" id="ni-addr">127.0.0.1:7509</span></div>
@@ -524,7 +569,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
   </div>
 
   <!-- iframe per contenuto Freenet reale -->
-  <iframe id="fn-frame" style="display:none" sandbox="allow-scripts allow-same-origin allow-forms allow-top-navigation-by-user-activation"></iframe>
+  <iframe id="fn-frame" style="display:none" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
 </div>
 
 <!-- ══ PANEL: ANTI-SPAM ══ -->
