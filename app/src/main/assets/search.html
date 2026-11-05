@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cerca — Web 7.0</title>
+<link rel="stylesheet" href="web7.css">
+<style>
+.wrap { max-width: 720px; margin: auto; }
+.result { display: block; padding: 12px 0; border-top: 1px solid var(--line); min-width: 0; }
+.result h3 { font-size: 16px; color: var(--accent); overflow-wrap: anywhere; }
+.result p { overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="round" href="index.html" aria-label="Torna a Web 7.0">‹</a>
+  <a class="brand" href="search.html">◈ <b>Cerca</b></a>
+</header>
+<main class="content" style="padding-bottom:30px"><div class="wrap">
+  <form class="search" style="margin-bottom:12px" onsubmit="event.preventDefault();runSearch()"><input id="q" type="search" placeholder="Cerca su Freenet" aria-label="Cerca" autocomplete="off"></form>
+  <div class="chips" id="tabs"></div>
+  <div id="notice"></div>
+  <div id="results"></div>
+  <details class="panel" style="margin-top:20px"><summary style="cursor:pointer;font-weight:700">Aggiungi un sito Freenet all'indice</summary>
+    <form style="margin-top:12px" onsubmit="event.preventDefault();addSite(this)">
+      <label class="field"><span>Chiave del sito</span><input name="key" required autocomplete="off"></label>
+      <label class="field"><span>Nome</span><input name="title" maxlength="120" required></label>
+      <label class="field"><span>Descrizione</span><textarea name="desc" maxlength="500"></textarea></label>
+      <button class="btn main">Aggiungi</button></form></details>
+</div></main>
+<script src="fn-net.js"></script>
+<script src="social.js"></script>
+<script>
+const { esc, timeAgo } = FNet;
+const SITES = 'dir:sites';
+const TABS = [['all', 'Tutto'], ['app', 'App'], ['site', 'Siti'], ['video', 'Video'], ['photo', 'Foto'], ['post', 'Post'], ['channel', 'Canali']];
+const APPS = [
+  ['FreenetTV', 'Video educativi peer to peer', 'video.html'], ['FreenetGram', 'Foto e storie', 'photos.html'],
+  ['FreenetPosts', 'Post brevi senza algoritmi', 'posts.html'], ['Scacchi', 'Contro il computer o persone della rete', 'chess.html'],
+  ['River', 'Chat di gruppo', 'index.html#open=river'], ['Freenet Mail', 'Posta peer to peer', 'index.html#open=mail'],
+  ['Ghostkey', 'Identità crittografica', 'index.html#open=ghostkey'], ['Atlas', 'Scoperta di contenuti', 'index.html#open=atlas'],
+  ['Delta', 'Costruttore di siti', 'index.html#open=delta'], ['freenet.org', 'Sito ufficiale sulla rete', 'index.html#open=freenetorg'],
+];
+let tab = 'all';
+let index = [];
+let online = true;
+
+async function buildIndex() {
+  const [videos, photos, posts, chans, sites] = await Promise.all(['feed:video', 'feed:photo', 'feed:post', 'feed:channels', SITES].map(FNet.readItems));
+  online = videos.online;
+  index = APPS.map(([title, text, href]) => ({ type: 'app', title, text, href }));
+  sites.filter(FNet.isVisible).forEach(s => {
+    if (FNet.SAFE_KEY.test(s.key || '')) index.push({ type: 'site', title: s.title, text: s.desc, href: 'index.html#open=' + s.key, time: s.created });
+  });
+  videos.filter(FNet.isVisible).forEach(v => index.push({ type: 'video', id: v.id, title: v.title, text: `${v.name} · ${v.cat || ''} · ${v.desc || ''}`, href: 'video.html#/watch/' + v.id, time: v.created }));
+  photos.filter(FNet.isVisible).forEach(p => index.push({ type: 'photo', id: p.id, title: p.caption || 'Foto di ' + p.name, text: p.name, href: 'photos.html#/p/' + p.id, time: p.created }));
+  posts.filter(FNet.isVisible).forEach(n => { if (n.text) index.push({ type: 'post', id: n.id, title: n.name, text: n.text, href: 'posts.html#/p/' + n.id, time: n.created }); });
+  const names = new Map(videos.concat(photos, posts).map(i => [i.tag, i.name]));
+  chans.forEach(c => index.push({ type: 'channel', title: names.get(c.tag) || c.name, text: c.bio, href: 'video.html#/channel/' + c.tag, time: c.created }));
+}
+function score(entry, words, phrase) {
+  const title = String(entry.title || '').toLowerCase(), text = String(entry.text || '').toLowerCase();
+  if (entry.id === phrase) return 100;
+  let s = 0;
+  for (const w of words) {
+    if (title.includes(w)) s += title.startsWith(w) ? 4 : 3;
+    else if (text.includes(w)) s += 1;
+    else return 0;
+  }
+  return s + (title.includes(phrase) ? 3 : 0);
+}
+const LABEL = { app: 'App', site: 'Sito', video: 'Video', photo: 'Foto', post: 'Post', channel: 'Canale' };
+function draw() {
+  document.getElementById('tabs').innerHTML = TABS.map(([k, l]) => `<button class="chip ${k === tab ? 'on' : ''}" onclick="tab='${k}';draw()">${l}</button>`).join('');
+  document.getElementById('notice').innerHTML = Social.offlineNotice(online);
+  const phrase = document.getElementById('q').value.trim();
+  const low = phrase.toLowerCase();
+  const words = low.split(/\s+/).filter(Boolean);
+  const pool = index.filter(e => tab === 'all' || e.type === tab);
+  const found = words.length
+    ? pool.map(e => ({ e, s: e.id === phrase ? 100 : score(e, words, low) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s || (b.e.time || 0) - (a.e.time || 0)).map(x => x.e)
+    : pool;
+  document.getElementById('results').innerHTML = found.length
+    ? found.slice(0, 100).map(e => `<a class="result" href="${esc(e.href)}"><div class="sub">${LABEL[e.type]}${e.time ? ' · ' + esc(timeAgo(e.time)) : ''}</div><h3>${esc(e.title)}</h3><p class="sub">${esc(e.text || '')}</p></a>`).join('')
+    : '<div class="empty"><div>🔎</div><h2>Nessun risultato</h2><p>La ricerca copre ciò che è stato pubblicato su Web 7.0 e i siti aggiunti all\'indice.</p></div>';
+}
+async function runSearch() {
+  const q = document.getElementById('q').value.trim();
+  history.replaceState(null, '', 'search.html?q=' + encodeURIComponent(q));
+  draw();
+}
+async function addSite(form) {
+  const key = form.key.value.trim();
+  if (!FNet.SAFE_KEY.test(key)) { Social.toast('Chiave non valida'); return; }
+  try {
+    await FNet.saveItem(SITES, 's' + key.slice(0, 40), { key, title: form.title.value.trim(), desc: form.desc.value.trim(), vis: 'public' });
+    Social.toast('Sito aggiunto');
+    form.reset();
+    await buildIndex();
+    draw();
+  } catch (e) { Social.toast(e.message); }
+}
+document.getElementById('q').value = new URLSearchParams(location.search).get('q') || '';
+document.getElementById('q').addEventListener('input', draw);
+draw();
+buildIndex().then(draw);
+</script>
+</body>
+</html>

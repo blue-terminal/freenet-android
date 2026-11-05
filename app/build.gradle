@@ -17,8 +17,8 @@ android {
         applicationId "local.freenet.mobile"
         minSdk 26
         targetSdk 34
-        versionCode 1580
-        versionName "1.5.8-freenet-$freenetVersion"
+        versionCode 1600
+        versionName "1.6.0-freenet-$freenetVersion"
         buildConfigField "String", "FREENET_VERSION", "\"$freenetVersion\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"

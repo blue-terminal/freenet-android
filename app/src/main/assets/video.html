@@ -2,1037 +2,723 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FreenetTV</title>
-<link rel="stylesheet" href="fn-theme.css">
-<script src="fn-api.js"></script>
-<script type="module">
-import * as FNC from './fn-crypto.js';
-window.FNC = FNC;
-(async()=>{
-  const raw = localStorage.getItem('fn7_identity_pub');
-  if(raw){ window._fn7id = JSON.parse(raw); }
-})();
-</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FreenetTV — Web 7.0</title>
+<link rel="stylesheet" href="web7.css">
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --yt-bg:    #0f0f0f;
-  --yt-bg2:   #212121;
-  --yt-bg3:   #2d2d2d;
-  --yt-bg4:   #383838;
-  --yt-red:   #ff0000;
-  --yt-red2:  #cc0000;
-  --yt-text:  #f1f1f1;
-  --yt-text2: #aaaaaa;
-  --yt-text3: #717171;
-  --yt-green: #00c853;
-  --yt-blue:  #3ea6ff;
-  --yt-r:     12px;
-  --sb-w:     240px;
-  --top-h:    56px;
-}
-body {
-  background: var(--yt-bg);
-  color: var(--yt-text);
-  font-family: 'Roboto', 'Segoe UI', system-ui, sans-serif;
-  font-size: 14px;
-  min-height: 100vh;
-}
-
-/* ── TOPBAR ── */
-.topbar {
-  position: fixed; top: 0; left: 0; right: 0; height: var(--top-h);
-  z-index: 200;
-  display: flex; align-items: center; gap: 0;
-  padding: 0 16px;
-  background: var(--yt-bg);
-}
-.top-left { display: flex; align-items: center; gap: 16px; min-width: var(--sb-w); }
-.hamburger { width: 40px; height: 40px; border-radius: 50%; background: none; border: none; color: var(--yt-text); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.hamburger:hover { background: var(--yt-bg2); }
-.logo { display: flex; align-items: center; gap: 2px; text-decoration: none; }
-.logo-icon { width: 24px; height: 17px; background: var(--yt-red); border-radius: 4px; display: flex; align-items: center; justify-content: center; }
-.logo-icon svg { width: 11px; height: 11px; fill: white; }
-.logo-name { font-size: 18px; font-weight: 700; color: var(--yt-text); letter-spacing: -0.5px; margin-left: 4px; }
-.logo-name span { color: var(--yt-text2); font-weight: 400; font-size: 12px; vertical-align: super; margin-left: 1px; }
-
-.top-center { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; max-width: 640px; margin: 0 auto; }
-.search-wrap { display: flex; flex: 1; max-width: 540px; }
-.search-wrap input {
-  flex: 1; height: 40px;
-  padding: 0 16px;
-  background: var(--yt-bg);
-  border: 1px solid var(--yt-bg3);
-  border-right: none;
-  border-radius: 20px 0 0 20px;
-  color: var(--yt-text);
-  font-size: 15px;
-  outline: none;
-}
-.search-wrap input:focus { border-color: var(--yt-blue); }
-.search-btn {
-  width: 64px; height: 40px;
-  background: var(--yt-bg2);
-  border: 1px solid var(--yt-bg3);
-  border-left: none;
-  border-radius: 0 20px 20px 0;
-  color: var(--yt-text2);
-  font-size: 17px;
-  cursor: pointer;
-}
-.search-btn:hover { background: var(--yt-bg3); }
-.mic-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--yt-bg2); border: none; color: var(--yt-text); font-size: 16px; cursor: pointer; }
-.mic-btn:hover { background: var(--yt-bg3); }
-
-.top-right { display: flex; align-items: center; gap: 8px; min-width: var(--sb-w); justify-content: flex-end; }
-.top-btn { width: 40px; height: 40px; border-radius: 50%; background: none; border: none; color: var(--yt-text); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.top-btn:hover { background: var(--yt-bg2); }
-.btn-upload-yt {
-  display: flex; align-items: center; gap: 6px;
-  height: 36px; padding: 0 16px;
-  border-radius: 18px; border: 1px solid var(--yt-bg3);
-  background: none; color: var(--yt-text);
-  font-size: 13px; font-weight: 500; cursor: pointer;
-}
-.btn-upload-yt:hover { background: var(--yt-bg2); }
-.btn-accedi {
-  height: 36px; padding: 0 16px;
-  border-radius: 18px; border: 1px solid var(--yt-blue);
-  background: none; color: var(--yt-blue);
-  font-size: 13px; font-weight: 500; cursor: pointer;
-  display: flex; align-items: center; gap: 6px;
-}
-.btn-accedi:hover { background: rgba(62,166,255,.1); }
-.avatar-btn { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--yt-red), #ff6b35); border: none; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; display: none; align-items: center; justify-content: center; }
-.user-menu { position: absolute; top: 48px; right: 12px; background: var(--yt-bg2); border: 1px solid var(--yt-bg3); border-radius: 12px; padding: 8px 0; min-width: 220px; box-shadow: 0 8px 32px rgba(0,0,0,.6); display: none; z-index: 300; }
-.user-menu.open { display: block; }
-.um-head { padding: 12px 16px; border-bottom: 1px solid var(--yt-bg3); display: flex; align-items: center; gap: 10px; }
-.um-av { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--yt-red), #ff6b35); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; flex-shrink: 0; }
-.um-name { font-weight: 600; font-size: 14px; }
-.um-sub  { font-size: 12px; color: var(--yt-text2); }
-.um-item { padding: 10px 16px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
-.um-item:hover { background: var(--yt-bg3); }
-.um-sep  { height: 1px; background: var(--yt-bg3); margin: 4px 0; }
-.um-danger { color: #ff453a; }
-
-/* fn key bar */
-.fn-key-bar { background: var(--yt-bg2); border-bottom: 1px solid var(--yt-bg3); padding: 7px 18px; display: flex; align-items: center; gap: 10px; font-size: 12px; flex-wrap: wrap; margin-top: var(--top-h); }
-.fn-key-bar .label { color: var(--yt-text2); flex-shrink: 0; }
-.fn-key-bar .key { color: var(--yt-green); font-family: monospace; font-size: 11px; flex: 1; word-break: break-all; }
-.fn-key-bar .copy-btn { padding: 3px 10px; border-radius: 6px; background: var(--yt-bg3); border: 1px solid var(--yt-bg4); color: var(--yt-text2); font-size: 11px; cursor: pointer; }
-.fn-key-bar .copy-btn:hover { border-color: var(--yt-green); color: var(--yt-green); }
-.pub-btn { padding: 4px 12px; border-radius: 6px; background: var(--yt-green); border: none; color: #000; font-size: 11px; font-weight: 700; cursor: pointer; }
-
-/* ── LAYOUT ── */
-.layout { display: flex; padding-top: calc(var(--top-h) + 37px); }
-
-/* SIDEBAR */
-.sidebar {
-  width: var(--sb-w);
-  flex-shrink: 0;
-  padding: 12px 0 24px;
-  position: fixed;
-  top: calc(var(--top-h) + 37px);
-  left: 0;
-  bottom: 0;
-  overflow-y: auto;
-  scrollbar-width: none;
-}
-.sidebar::-webkit-scrollbar { display: none; }
-.sb-item {
-  display: flex; align-items: center; gap: 20px;
-  padding: 10px 24px;
-  font-size: 14px; cursor: pointer;
-  border-radius: 10px;
-  margin: 0 12px 2px;
-}
-.sb-item:hover { background: var(--yt-bg2); }
-.sb-item.active { background: var(--yt-bg2); font-weight: 500; }
-.sb-item .sb-ic { font-size: 20px; width: 24px; text-align: center; }
-.sb-sep { height: 1px; background: var(--yt-bg2); margin: 10px 0; }
-.sb-label { padding: 8px 24px 4px; font-size: 14px; font-weight: 600; color: var(--yt-text); }
-.sb-ch {
-  display: flex; align-items: center; gap: 16px;
-  padding: 8px 24px; font-size: 14px; cursor: pointer;
-  border-radius: 10px; margin: 0 12px 2px;
-}
-.sb-ch:hover { background: var(--yt-bg2); }
-.sb-ch-av {
-  width: 24px; height: 24px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--yt-red), #ff6b35);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 700; flex-shrink: 0;
-}
-.sb-new { width: 8px; height: 8px; border-radius: 50%; background: var(--yt-blue); margin-left: auto; }
-
-/* MAIN */
-.main {
-  flex: 1;
-  margin-left: var(--sb-w);
-  padding: 20px 24px;
-  min-width: 0;
-}
-
-/* CHIPS */
-.chips {
-  display: flex; gap: 8px; overflow-x: auto;
-  padding-bottom: 10px; margin-bottom: 20px;
-  scrollbar-width: none;
-}
-.chips::-webkit-scrollbar { display: none; }
-.chip {
-  padding: 6px 14px; border-radius: 8px;
-  background: var(--yt-bg2);
-  border: none; color: var(--yt-text);
-  font-size: 14px; cursor: pointer;
-  white-space: nowrap; flex-shrink: 0;
-}
-.chip:hover { background: var(--yt-bg3); }
-.chip.active { background: var(--yt-text); color: var(--yt-bg); }
-
-/* VIDEO GRID */
-.vgrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px 8px;
-}
-.vc { cursor: pointer; }
-.thumb-wrap {
-  position: relative;
-  border-radius: var(--yt-r);
-  overflow: hidden;
-  aspect-ratio: 16/9;
-  margin-bottom: 10px;
-}
-.thumb-bg {
-  width: 100%; height: 100%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 56px;
-  transition: transform .2s;
-}
-.vc:hover .thumb-bg { transform: scale(1.03); }
-.thumb-dur {
-  position: absolute; bottom: 6px; right: 6px;
-  background: rgba(0,0,0,.85);
-  color: #fff; font-size: 12px; font-weight: 500;
-  padding: 2px 5px; border-radius: 4px;
-}
-.thumb-live {
-  position: absolute; top: 6px; left: 6px;
-  background: var(--yt-red); color: #fff;
-  font-size: 12px; font-weight: 700;
-  padding: 2px 7px; border-radius: 4px;
-}
-.thumb-play {
-  position: absolute; inset: 0;
-  background: rgba(0,0,0,.35);
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0; transition: opacity .15s;
-}
-.vc:hover .thumb-play { opacity: 1; }
-.play-circle {
-  width: 48px; height: 48px; border-radius: 50%;
-  background: rgba(0,0,0,.7);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px;
-}
-.vmeta { display: flex; gap: 10px; }
-.ch-av {
-  width: 36px; height: 36px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 14px; flex-shrink: 0;
-  margin-top: 2px;
-}
-.vinfo { flex: 1; min-width: 0; }
-.vtitle {
-  font-size: 15px; font-weight: 500; line-height: 1.4;
-  margin-bottom: 4px;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-.vch { font-size: 13px; color: var(--yt-text2); margin-bottom: 2px; }
-.vstats { font-size: 13px; color: var(--yt-text2); }
-.vkey { font-size: 10px; color: var(--yt-green); font-family: monospace; margin-top: 3px; word-break: break-all; }
-
-/* ── PLAYER OVERLAY ── */
-.player-ov {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,.85);
-  z-index: 400; overflow-y: auto;
-  padding: 24px 16px;
-  align-items: flex-start; justify-content: center;
-}
-.player-ov.open { display: flex; }
-.player-wrap {
-  width: 100%; max-width: 900px; margin: auto;
-  display: grid; grid-template-columns: 1fr 360px; gap: 20px;
-}
-@media(max-width:860px){ .player-wrap { grid-template-columns: 1fr; } .player-side { display: none; } }
-.player-main { background: var(--yt-bg); border-radius: 12px; overflow: hidden; }
-.pscreen {
-  background: #000; aspect-ratio: 16/9;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 90px; cursor: pointer; position: relative;
-}
-.pclose {
-  position: absolute; top: 10px; right: 12px;
-  background: rgba(0,0,0,.7); border: none; color: #fff;
-  font-size: 20px; cursor: pointer; border-radius: 50%;
-  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
-}
-.pinfo { padding: 12px 16px; }
-.ptitle { font-size: 18px; font-weight: 500; margin-bottom: 10px; }
-
-/* channel row */
-.p-ch-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
-.p-ch-av {
-  width: 40px; height: 40px; border-radius: 50%;
-  background: linear-gradient(135deg,var(--yt-red),#ff6b35);
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 800; font-size: 16px; color: #fff; flex-shrink: 0;
-}
-.p-ch-info { flex: 1; }
-.p-ch-name { font-size: 14px; font-weight: 600; cursor: pointer; }
-.p-ch-name:hover { color: var(--yt-text2); }
-.p-subs-count { font-size: 12px; color: var(--yt-text2); }
-.sub-btn {
-  padding: 8px 18px; border-radius: 18px;
-  font-size: 14px; font-weight: 500; cursor: pointer;
-}
-.sub-btn.unsub { background: var(--yt-text); border: none; color: var(--yt-bg); }
-.sub-btn.unsub:hover { background: #d4d4d4; }
-.sub-btn.subd { background: var(--yt-bg2); border: none; color: var(--yt-text2); }
-.sub-btn.subd:hover { background: var(--yt-bg3); }
-
-/* progress bar */
-.pbar-wrap { padding: 0 16px 0; }
-.pbar { height: 4px; background: var(--yt-bg3); border-radius: 2px; cursor: pointer; position: relative; margin-bottom: 8px; }
-.pbar:hover { height: 6px; }
-.pprog { height: 100%; background: var(--yt-red); border-radius: 2px; width: 0%; transition: width .3s; }
-.pbtns { display: flex; align-items: center; gap: 4px; padding: 4px 16px 8px; }
-.pbtn { background: none; border: none; color: var(--yt-text2); font-size: 20px; cursor: pointer; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-.pbtn:hover { background: var(--yt-bg2); color: var(--yt-text); }
-.ptime { font-size: 13px; color: var(--yt-text2); margin-left: 4px; }
-.pvol { flex: 1; }
-
-/* interact */
-.interact { display: flex; align-items: center; gap: 6px; padding: 8px 16px 12px; flex-wrap: wrap; }
-.int-grp {
-  display: flex; border-radius: 18px; overflow: hidden;
-  background: var(--yt-bg2);
-}
-.like-btn, .dislike-btn {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 14px; border: none; background: none;
-  color: var(--yt-text); font-size: 14px; cursor: pointer;
-}
-.like-btn:hover, .dislike-btn:hover { background: var(--yt-bg3); }
-.like-btn.liked { color: var(--yt-blue); }
-.int-div { width: 1px; background: var(--yt-bg3); }
-.dislike-btn.disliked { color: var(--yt-blue); }
-.share-btn {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 14px; border-radius: 18px;
-  background: var(--yt-bg2); border: none;
-  color: var(--yt-text); font-size: 14px; cursor: pointer;
-}
-.share-btn:hover { background: var(--yt-bg3); }
-.p-views { margin-left: auto; font-size: 13px; color: var(--yt-text2); }
-
-/* desc */
-.p-desc { background: var(--yt-bg2); border-radius: 10px; padding: 12px 14px; margin: 0 16px 12px; font-size: 14px; color: var(--yt-text2); line-height: 1.5; }
-.p-key { font-size: 11px; color: var(--yt-green); font-family: monospace; margin-top: 6px; word-break: break-all; }
-
-/* comments */
-.comments { padding: 10px 16px 16px; }
-.cmt-head { font-size: 16px; font-weight: 500; margin-bottom: 14px; }
-.cmt-inp-row { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; }
-.cmt-av { width: 32px; height: 32px; border-radius: 50%; background: var(--yt-bg2); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
-.cmt-inp-wrap { flex: 1; }
-.cmt-inp {
-  width: 100%; padding: 8px 0;
-  background: none; border: none; border-bottom: 1px solid var(--yt-bg3);
-  color: var(--yt-text); font-size: 14px; outline: none;
-}
-.cmt-inp:focus { border-bottom-color: var(--yt-text); }
-.cmt-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
-.cmt-cancel { padding: 8px 16px; border-radius: 18px; border: none; background: none; color: var(--yt-text2); font-size: 14px; cursor: pointer; }
-.cmt-cancel:hover { background: var(--yt-bg2); color: var(--yt-text); }
-.cmt-send {
-  padding: 8px 16px; border-radius: 18px; border: none;
-  background: var(--yt-blue); color: var(--yt-bg);
-  font-size: 14px; font-weight: 500; cursor: pointer;
-}
-.cmt-send:hover { opacity: .9; }
-.cmt { display: flex; gap: 10px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
-.cmt-av2 { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; }
-.cmt-n { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
-.cmt-t { font-size: 14px; line-height: 1.5; }
-.cmt-ts { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
-.cmt-time { font-size: 12px; color: var(--yt-text2); }
-.cmt-like { background: none; border: none; color: var(--yt-text2); font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
-.cmt-like:hover { color: var(--yt-text); }
-.no-cmt { font-size: 14px; color: var(--yt-text2); padding: 8px 0; }
-
-/* sidebar recommended */
-.player-side { background: var(--yt-bg); padding: 0; }
-.side-title { font-size: 15px; font-weight: 500; padding: 0 0 12px; }
-.svc { display: flex; gap: 8px; cursor: pointer; margin-bottom: 10px; }
-.svc:hover .sthumb { opacity: .85; }
-.sthumb { width: 160px; height: 90px; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 32px; }
-.svinfo .svt { font-size: 14px; font-weight: 500; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.svinfo .svc2 { font-size: 13px; color: var(--yt-text2); margin-top: 4px; }
-
-/* ── UPLOAD MODAL ── */
-.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none; align-items: center; justify-content: center; z-index: 500; }
-.modal-bg.open { display: flex; }
-.upload-box { background: var(--yt-bg2); border-radius: 14px; padding: 32px; width: 100%; max-width: 480px; position: relative; }
-.upload-box h2 { font-size: 20px; font-weight: 500; margin-bottom: 6px; }
-.upload-box p  { font-size: 13px; color: var(--yt-text2); margin-bottom: 20px; }
-.field { margin-bottom: 14px; }
-.field label { font-size: 12px; color: var(--yt-text2); display: block; margin-bottom: 5px; }
-.field input, .field textarea {
-  width: 100%; padding: 10px 14px;
-  border-radius: 8px;
-  background: var(--yt-bg3); border: 1px solid var(--yt-bg4);
-  color: var(--yt-text); font-size: 14px; outline: none; resize: none;
-}
-.field input:focus, .field textarea:focus { border-color: var(--yt-blue); }
-.drop-area { border: 2px dashed var(--yt-bg3); border-radius: 10px; padding: 36px; text-align: center; color: var(--yt-text2); cursor: pointer; margin-bottom: 16px; }
-.drop-area:hover { border-color: var(--yt-blue); color: var(--yt-blue); }
-.btn-pub { width: 100%; padding: 11px; border-radius: 8px; background: var(--yt-blue); border: none; color: var(--yt-bg); font-size: 14px; font-weight: 500; cursor: pointer; }
-.btn-pub:hover { opacity: .9; }
-.modal-x { position: absolute; top: 12px; right: 14px; background: none; border: none; font-size: 20px; color: var(--yt-text2); cursor: pointer; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-.modal-x:hover { background: var(--yt-bg3); }
-
-/* ── AUTH MODAL ── */
-.auth-bg { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none; align-items: center; justify-content: center; z-index: 999; }
-.auth-bg.open { display: flex; }
-.auth-box { background: var(--yt-bg2); border: 1px solid var(--yt-bg3); border-radius: 14px; padding: 36px 40px; width: 100%; max-width: 380px; text-align: center; position: relative; }
-.auth-logo { width: 48px; height: 48px; border-radius: 50%; background: var(--yt-red); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; color: #fff; margin: 0 auto 12px; }
-.auth-box h2 { font-size: 20px; font-weight: 400; margin-bottom: 8px; }
-.auth-box p  { font-size: 14px; color: var(--yt-text2); margin-bottom: 20px; }
-.mfield { margin-bottom: 12px; text-align: left; }
-.mfield label { font-size: 12px; color: var(--yt-text2); display: block; margin-bottom: 4px; }
-.mfield input {
-  width: 100%; padding: 10px 14px;
-  border-radius: 8px;
-  background: var(--yt-bg3); border: 1px solid var(--yt-bg4);
-  color: var(--yt-text); font-size: 14px; outline: none;
-}
-.mfield input:focus { border-color: var(--yt-blue); }
-.merr { font-size: 12px; color: #ff453a; margin-top: 4px; display: none; }
-.mbtn { width: 100%; padding: 11px; border-radius: 8px; background: var(--yt-blue); border: none; color: var(--yt-bg); font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 6px; }
-.mbtn:hover { opacity: .9; }
-.mfooter { font-size: 13px; color: var(--yt-text2); margin-top: 14px; }
-.mfooter a { color: var(--yt-blue); cursor: pointer; }
-.modal-x2 { position: absolute; top: 10px; right: 12px; background: none; border: none; font-size: 20px; color: var(--yt-text2); cursor: pointer; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-.modal-x2:hover { background: var(--yt-bg3); }
-
-@media(max-width: 1200px) { :root { --sb-w: 72px; } .sb-item span:last-child, .sb-ch span:last-child, .sb-label { display: none; } .sb-item { gap: 0; justify-content: center; } .sb-ch { gap: 0; justify-content: center; } }
-@media(max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; } .vgrid { grid-template-columns: 1fr 1fr; } }
-@media(max-width: 500px) { .vgrid { grid-template-columns: 1fr; } .top-left .logo-name { display: none; } }
+.player { background: #000; border-radius: var(--radius); overflow: hidden; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; position: relative; color: #fff; text-align: center; padding: 0; }
+.player video { width: 100%; height: 100%; }
+.watch { display: grid; gap: 18px; }
+@media (min-width: 1100px) { .watch { grid-template-columns: minmax(0, 1fr) 360px; } }
+.watch h1 { font-size: 19px; margin: 12px 0 8px; overflow-wrap: anywhere; }
+.actions { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
+.actions .btn { flex-shrink: 0; }
+.descr { background: var(--panel2); border-radius: 12px; padding: 12px; white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: 16px; }
+.comment { display: flex; gap: 10px; padding: 10px 0; min-width: 0; }
+.comment p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.mini { display: flex; gap: 10px; padding: 6px 0; cursor: pointer; min-width: 0; }
+.mini .thumb { width: 150px; flex-shrink: 0; border-radius: 10px; font-size: 22px; }
+.banner { height: 96px; border-radius: var(--radius); background: linear-gradient(120deg, #f5b301, #38c7b4 70%); }
+.ch-head { display: flex; gap: 14px; align-items: center; padding: 14px 0; min-width: 0; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 14px; overflow-x: auto; scrollbar-width: none; }
+.tab { padding: 10px 14px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; flex-shrink: 0; }
+.tab.on { color: var(--text); border-bottom-color: var(--accent); }
+.vrow { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); align-items: flex-start; min-width: 0; }
+.vrow .thumb { width: 112px; flex-shrink: 0; border-radius: 10px; font-size: 20px; }
+.menu { position: fixed; right: 8px; top: calc(var(--top-h) + 2px); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; z-index: 30; min-width: 190px; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+.menu button { display: block; width: 100%; text-align: left; padding: 12px 16px; }
+.menu button:hover { background: var(--panel2); }
+.livebox video { background: #000; border-radius: var(--radius); width: 100%; aspect-ratio: 16/9; margin-bottom: 12px; }
 </style>
 </head>
 <body>
-
-<!-- TOPBAR -->
-<div class="topbar">
-  <div class="top-left">
-    <button class="hamburger">☰</button>
-    <a class="logo" href="index.html">
-      <div class="logo-icon">
-        <svg viewBox="0 0 24 24"><polygon points="9.5,7.5 9.5,16.5 17.5,12"/></svg>
-      </div>
-      <span class="logo-name">Freenet<span>TV</span></span>
-    </a>
-  </div>
-  <div class="top-center">
-    <div class="search-wrap">
-      <input id="s-inp" type="text" placeholder="Cerca" onkeydown="if(event.key==='Enter')doSearch()">
-      <button class="search-btn" onclick="doSearch()">🔍</button>
-    </div>
-    <button class="mic-btn">🎤</button>
-  </div>
-  <div class="top-right" style="position:relative">
-    <button class="btn-upload-yt" onclick="openUpload()">
-      <span style="font-size:18px">⊕</span> Crea
-    </button>
-    <button class="top-btn">🔔</button>
-    <button class="btn-accedi" id="btn-accedi" onclick="openLogin()">
-      <span>👤</span> Accedi
-    </button>
-    <button class="avatar-btn" id="btn-avatar" onclick="toggleUM()"></button>
-    <div class="user-menu" id="user-menu">
-      <div class="um-head">
-        <div class="um-av" id="um-av-big">?</div>
-        <div><div class="um-name" id="um-name">—</div><div class="um-sub">FreenetTV</div></div>
-      </div>
-      <div class="um-item" onclick="openUpload()"><span>🎬</span> Pubblica video</div>
-      <div class="um-item"><span>📺</span> I miei video</div>
-      <div class="um-item"><span>👍</span> Video piaciuti</div>
-      <div class="um-sep"></div>
-      <div class="um-item um-danger" onclick="doLogout()"><span>⏻</span> Esci</div>
-    </div>
-  </div>
+<header class="top">
+  <button class="round only-wide" onclick="document.body.classList.toggle('wide-nav')" title="Menu" aria-label="Menu">☰</button>
+  <a class="round" href="index.html" title="Torna a Web 7.0" aria-label="Torna a Web 7.0" id="back-home">‹</a>
+  <a class="brand" href="#/home">◈ Freenet<b>TV</b></a>
+  <form class="search" onsubmit="event.preventDefault();location.hash='#/home/'+encodeURIComponent(this.q.value.trim())">
+    <input name="q" type="search" placeholder="Cerca" aria-label="Cerca" autocomplete="off">
+  </form>
+  <button class="crea" onclick="toggleMenu()" title="Crea" aria-label="Crea">＋ <span class="only-wide">Crea</span></button>
+  <a class="round only-wide" href="#/studio/comments" title="Notifiche: commenti ai tuoi video" aria-label="Notifiche">🔔</a>
+  <a href="#/channel/me" id="me-avatar" aria-label="Il tuo canale"></a>
+</header>
+<div class="menu" id="menu" hidden>
+  <button onclick="go('#/upload')">⬆️ Carica un video</button>
+  <button onclick="go('#/live')">🔴 Vai in diretta</button>
 </div>
 
-<!-- KEY BAR -->
-<div class="fn-key-bar" id="fn-key-bar">
-  <span class="label">🔑 Freenet:</span>
-  <span class="key" id="my-usk-key">accedi per la tua chiave contratto</span>
-  <button class="copy-btn" onclick="copyKey()">📋 Copia</button>
-  <button class="pub-btn" onclick="showPubGuide()">🌐 Pubblica</button>
+<div class="shell">
+  <nav class="side" id="side"></nav>
+  <main class="content" id="app"></main>
 </div>
+<nav class="bottom" id="bottom"></nav>
 
-<!-- LAYOUT -->
-<div class="layout">
-  <div class="sidebar">
-    <div class="sb-item active" onclick="filterCat('tutti',this)"><span class="sb-ic">🏠</span><span>Home</span></div>
-    <div class="sb-item" onclick="filterCat('trend',this)"><span class="sb-ic">🔥</span><span>Shorts</span></div>
-    <div class="sb-item" onclick="filterCat('live',this)"><span class="sb-ic">📺</span><span>Abbonamenti</span></div>
-    <div class="sb-sep"></div>
-    <div class="sb-label">Esplora</div>
-    <div class="sb-item" onclick="filterCat('trend',this)"><span class="sb-ic">🔥</span><span>Popolare</span></div>
-    <div class="sb-item" onclick="filterCat('musica',this)"><span class="sb-ic">🎵</span><span>Musica</span></div>
-    <div class="sb-item" onclick="filterCat('gaming',this)"><span class="sb-ic">🎮</span><span>Gaming</span></div>
-    <div class="sb-item" onclick="filterCat('news',this)"><span class="sb-ic">📰</span><span>Notizie</span></div>
-    <div class="sb-item" onclick="filterCat('live',this)"><span class="sb-ic">🔴</span><span>Live</span></div>
-    <div class="sb-sep"></div>
-    <div class="sb-label">Iscrizioni</div>
-    <div id="sb-subs"></div>
-    <div class="sb-sep"></div>
-    <div class="sb-item" onclick="window.location.href='index.html'"><span class="sb-ic">🌐</span><span>Browser Freenet</span></div>
-  </div>
-
-  <div class="main">
-    <div class="chips" id="chips">
-      <div class="chip active" onclick="filterCat('tutti',this)">Tutti</div>
-      <div class="chip" onclick="filterCat('live',this)">🔴 In diretta</div>
-      <div class="chip" onclick="filterCat('tech',this)">Tech</div>
-      <div class="chip" onclick="filterCat('musica',this)">Musica</div>
-      <div class="chip" onclick="filterCat('gaming',this)">Gaming</div>
-      <div class="chip" onclick="filterCat('news',this)">Notizie</div>
-      <div class="chip" onclick="filterCat('privacy',this)">Privacy</div>
-    </div>
-    <div class="vgrid" id="vgrid"></div>
-  </div>
-</div>
-
-<!-- PLAYER -->
-<div class="player-ov" id="player-ov" onclick="closePl(event)">
-  <div class="player-wrap" onclick="e=>e.stopPropagation()">
-    <div class="player-main">
-      <div class="pscreen" id="pscreen" onclick="togglePlay()">
-        <video id="pvideo" style="display:none;width:100%;height:100%;object-fit:contain;position:absolute;top:0;left:0;background:#000" preload="metadata"></video>
-        <span id="pemoji" style="position:relative;z-index:1">▶️</span>
-        <button class="pclose" onclick="closePlBtn()">✕</button>
-      </div>
-      <div class="pbar-wrap">
-        <div class="pbar" onclick="seekBar(event)"><div class="pprog" id="pprog"></div></div>
-      </div>
-      <div class="pbtns">
-        <button class="pbtn" onclick="togglePlay()" id="pplaybtn">⏸</button>
-        <button class="pbtn">⏭</button>
-        <button class="pbtn">🔊</button>
-        <span class="ptime" id="ptime">0:00 / 22:00</span>
-        <button class="pbtn" style="margin-left:auto">⛶</button>
-      </div>
-      <div class="pinfo">
-        <div class="ptitle" id="ptitle">—</div>
-        <div class="p-ch-row">
-          <div class="p-ch-av" id="pchav">?</div>
-          <div class="p-ch-info">
-            <div class="p-ch-name" id="pch" onclick="filterByCh(curCh)">—</div>
-            <div class="p-subs-count" id="pchsubs">0 iscritti</div>
-          </div>
-          <button class="sub-btn unsub" id="sub-btn" onclick="toggleSub()">Iscriviti</button>
-        </div>
-        <div class="interact">
-          <div class="int-grp">
-            <button class="like-btn" id="plike" onclick="doLike()">👍 <span id="plikeN">0</span></button>
-            <div class="int-div"></div>
-            <button class="dislike-btn" id="pdislike" onclick="doDislike()">👎</button>
-          </div>
-          <button class="share-btn" onclick="doShare()">↗ Condividi</button>
-          <span class="p-views" id="pviews"></span>
-        </div>
-        <div class="p-desc">
-          <span id="pdesc">Video pubblicato sulla rete Freenet P2P — permanente e non censurabile.</span>
-          <div class="p-key" id="pkey">—</div>
-        </div>
-      </div>
-      <div class="comments">
-        <div class="cmt-head" id="cmt-head">0 commenti</div>
-        <div class="cmt-inp-row">
-          <div class="cmt-av" id="cmt-my-av">?</div>
-          <div class="cmt-inp-wrap">
-            <input class="cmt-inp" id="cmt-inp" type="text" placeholder="Aggiungi un commento…" onkeydown="if(event.key==='Enter')postCmt()">
-            <div class="cmt-actions">
-              <button class="cmt-cancel">Annulla</button>
-              <button class="cmt-send" onclick="postCmt()">Commenta</button>
-            </div>
-          </div>
-        </div>
-        <div id="cmt-list"></div>
-      </div>
-    </div>
-    <div class="player-side">
-      <div class="side-title">Video consigliati</div>
-      <div id="side-videos"></div>
-    </div>
-  </div>
-</div>
-
-<!-- UPLOAD MODAL -->
-<div class="modal-bg" id="upload-modal" onclick="closeUpload(event)">
-  <div class="upload-box">
-    <button class="modal-x" onclick="closeUpload()">✕</button>
-    <h2>Pubblica su FreenetTV</h2>
-    <p>Il video viene aggiunto alla rete Freenet come contratto. Tutti i nodi potranno accedervi.</p>
-    <input type="file" id="u-file" accept="video/*,audio/*" style="display:none" onchange="onFileChosen(this)">
-    <div class="drop-area" id="drop-area" onclick="document.getElementById('u-file').click()" ondrop="onDropFile(event)" ondragover="event.preventDefault()">
-      <div style="font-size:40px;margin-bottom:10px" id="drop-icon">📤</div>
-      <div style="font-size:14px;font-weight:500" id="drop-label">Trascina il video qui</div>
-      <div style="font-size:12px;margin-top:4px;color:var(--yt-text3)" id="drop-sub">oppure clicca per selezionare · MP4, WebM, MKV</div>
-    </div>
-    <div class="field"><label>Titolo</label><input id="u-title" type="text" placeholder="Titolo del video"></div>
-    <div class="field"><label>Descrizione</label><textarea id="u-desc" rows="2" placeholder="Descrizione breve…"></textarea></div>
-    <div class="field"><label>Categoria</label><input id="u-cat" type="text" placeholder="tech, musica, news, gaming…"></div>
-    <button class="btn-pub" onclick="publishVideo()">🌐 Pubblica su Freenet</button>
-  </div>
-</div>
-
-<!-- AUTH MODAL -->
-<div class="auth-bg" id="modal-bg" onclick="closeMBG(event)">
-  <div class="auth-box">
-    <button class="modal-x2" onclick="closeModal()">✕</button>
-    <div id="m-login">
-      <div class="auth-logo">▶</div>
-      <h2>Accedi a FreenetTV</h2>
-      <p>Nessuna email richiesta · No email required</p>
-      <div class="mfield"><label>Nome utente</label><input id="l-n" type="text" placeholder="nome_utente"><div class="merr" id="le-n">Nome non trovato — <a onclick="showReg()">registrati</a></div></div>
-      <div class="mfield"><label>Password</label><input id="l-p" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"><div class="merr" id="le-p">Password errata</div></div>
-      <button class="mbtn" onclick="doLogin()">Accedi</button>
-      <div class="mfooter">Non hai un account? <a onclick="showReg()">Crea account</a></div>
-    </div>
-    <div id="m-reg" style="display:none">
-      <div class="auth-logo">▶</div>
-      <h2>Crea account</h2>
-      <p>Solo nome e password — nessuna email, nessun tracciamento</p>
-      <div class="mfield"><label>Nome utente</label><input id="r-n" type="text" placeholder="nome_utente"><div class="merr" id="re-n">Nome già in uso</div></div>
-      <div class="mfield"><label>Password</label><input id="r-p" type="password" placeholder="min. 6 caratteri"><div class="merr" id="re-p">Troppo corta</div></div>
-      <div class="mfield"><label>Conferma</label><input id="r-p2" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doReg()"><div class="merr" id="re-p2">Non coincidono</div></div>
-      <button class="mbtn" onclick="doReg()">Crea account</button>
-      <div class="mfooter">Hai già un account? <a onclick="showLogin()">Accedi</a></div>
-    </div>
-  </div>
-</div>
-
+<script src="fn-net.js"></script>
 <script>
-// ── INDEXEDDB — blob video locali (open source, nessun server) ────────────────
-const IDB_NAME='FreenetTV', IDB_STORE='blobs', IDB_VER=1;
-function openIDB(){
-  return new Promise((res,rej)=>{
-    const r=indexedDB.open(IDB_NAME,IDB_VER);
-    r.onupgradeneeded=e=>e.target.result.createObjectStore(IDB_STORE);
-    r.onsuccess=e=>res(e.target.result);
-    r.onerror=()=>rej(r.error);
-  });
+const { store, esc, timeAgo, CATEGORIES } = FNet;
+const FEED = 'feed:video';
+const app = document.getElementById('app');
+const NAV = [
+  ['#/home', '🏠', 'Home'], ['#/subs', '📚', 'Iscrizioni'], ['#/live', '🔴', 'Live'],
+  ['#/library', '🕘', 'Libreria'], ['#/studio', '🎛️', 'Studio'], ['#/settings', '⚙️', 'Impostazioni'],
+];
+const PHONE_NAV = ['#/home', '#/subs', '#/live', '#/studio', '#/settings'];
+let items = [];
+let channels = new Map();
+let me = null;
+let watchUrl = null;
+let current = null;
+let renderSeq = 0;
+
+function toast(text) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = text;
+  document.body.append(t);
+  setTimeout(() => t.remove(), 3500);
 }
-async function storeVideoIDB(key,ab){
-  const db=await openIDB();
-  return new Promise((res,rej)=>{
-    const tx=db.transaction(IDB_STORE,'readwrite');
-    tx.objectStore(IDB_STORE).put(ab,key);
-    tx.oncomplete=res;tx.onerror=()=>rej(tx.error);
-  });
+function go(hash) { document.getElementById('menu').hidden = true; location.hash = hash; }
+function toggleMenu() { const m = document.getElementById('menu'); m.hidden = !m.hidden; }
+
+function avatarHtml(name, image, big) {
+  const safe = FNet.safeImage(image);
+  const cls = 'avatar' + (big ? ' big' : '');
+  return safe ? `<img class="${cls}" src="${safe}" alt="">` : `<span class="${cls}">${esc(String(name || '?')[0].toUpperCase())}</span>`;
 }
-async function getVideoIDB(key){
-  try{
-    const db=await openIDB();
-    return new Promise(res=>{
-      const tx=db.transaction(IDB_STORE,'readonly');
-      const r=tx.objectStore(IDB_STORE).get(key);
-      r.onsuccess=()=>res(r.result||null);r.onerror=()=>res(null);
-    });
-  }catch{return null;}
+const viewsText = n => (n === 1 ? '1 visualizzazione' : `${n} visualizzazioni`);
+function duration(s) {
+  if (!s) return '';
+  return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+}
+function thumbHtml(v) {
+  const img = FNet.safeImage(v.thumb);
+  const badge = v.live ? '<span class="badge live">LIVE</span>' : v.dur ? `<span class="badge">${esc(duration(v.dur))}</span>` : '';
+  return `<div class="thumb">${img ? `<img src="${img}" alt="" loading="lazy">` : '🎓'}${badge}</div>`;
+}
+function card(v) {
+  return `<a class="card" href="#/watch/${esc(v.id)}">${thumbHtml(v)}
+    <div class="meta">${avatarHtml(v.name, channels.get(v.tag)?.avatar)}<div class="grow"><h3>${esc(v.title)}</h3>
+    <div class="sub">${esc(v.name)}</div>
+    <div class="sub"><span data-views="${esc(v.id)}"></span>${esc(timeAgo(v.created))}${v.cat ? ' · ' + esc(v.cat) : ''}</div></div></div></a>`;
+}
+function emptyBox(icon, title, text, action) {
+  return `<div class="empty"><div>${icon}</div><h2>${esc(title)}</h2><p>${esc(text)}</p>${action || ''}</div>`;
+}
+const uploadBtn = '<a class="btn main" href="#/upload">⬆️ Carica un video</a>';
+
+async function refresh() {
+  const [videos, chans] = await Promise.all([FNet.readItems(FEED), FNet.readItems('feed:channels')]);
+  items = videos;
+  channels = new Map(chans.map(c => [c.tag, c]));
+  return videos.online;
+}
+function offlineNotice(online) {
+  if (online) return '';
+  return FNet.hasBridge()
+    ? '<div class="notice">Il nodo non risponde: stai vedendo gli ultimi dati salvati.</div>'
+    : "<div class=\"notice\">Da questo browser non si può accedere alla rete condivisa: apri FreenetTV nell'app Freenet.</div>";
 }
 
-// ── CHK@ KEY content-addressed (SHA-256 del file, come Freenet/IPFS) ─────────
-async function makeChkKey(arrayBuffer){
-  const hash=await crypto.subtle.digest('SHA-256',arrayBuffer);
-  const bytes=new Uint8Array(hash);
-  // Base58 senza BigInt (compatibile con tutti i WebView Android)
-  const A='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-  const digits=[0];
-  for(const b of bytes){
-    let carry=b;
-    for(let j=0;j<digits.length;j++){carry+=digits[j]<<8;digits[j]=carry%58;carry=(carry/58)|0;}
-    while(carry>0){digits.push(carry%58);carry=(carry/58)|0;}
+// Le visualizzazioni stanno in un contratto per ogni video: si leggono una alla volta, dopo la pagina.
+async function fillViews(seq) {
+  for (const el of document.querySelectorAll('[data-views]')) {
+    if (seq !== renderSeq) return;
+    try {
+      const a = FNet.foldActivity(await FNet.read('c:' + el.dataset.views));
+      if (seq === renderSeq) el.textContent = `${viewsText(a.views)} · `;
+    } catch {}
   }
-  let s='';
-  for(const b of bytes){if(b!==0)break;s+='1';}
-  for(let i=digits.length-1;i>=0;i--)s+=A[digits[i]];
-  return 'CHK@'+s.padEnd(44,'A').substring(0,44)+',AAAA,AAAA';
 }
 
-// ── PUT su Freenet P2P (quando il nodo è attivo) ──────────────────────────────
-function tryPutFreenet(key,ab){
-  FN.detectNode().then(node=>{
-    if(!node||node.type!=='new')return;
-    const ws=FN.openContractWs();if(!ws)return;
-    ws.onopen=()=>{
-      const meta=new TextEncoder().encode(JSON.stringify({key,size:ab.byteLength}));
-      const hdr=new Uint8Array(4+meta.length);
-      new DataView(hdr.buffer).setUint32(0,meta.length,false);
-      hdr.set(meta,4);ws.send(hdr);ws.send(ab);ws.close();
+// ── home ───────────────────────────────────────────────────────────────────
+let currentCategory = 'Tutti';
+function setCategory(index) { currentCategory = ['Tutti', 'Live', ...CATEGORIES][index]; render(); }
+async function viewHome(query, seq) {
+  const online = await refresh();
+  const q = (query || '').toLowerCase();
+  const list = items.filter(FNet.isVisible)
+    .filter(v => currentCategory === 'Tutti' || v.cat === currentCategory || (currentCategory === 'Live' && v.live))
+    .filter(v => !q || v.id === query || `${v.title} ${v.desc} ${v.name} ${v.cat}`.toLowerCase().includes(q));
+  const chips = ['Tutti', 'Live', ...CATEGORIES].map((c, i) => `<button class="chip ${c === currentCategory ? 'on' : ''}" onclick="setCategory(${i})">${c === 'Live' ? '🔴 In diretta' : c}</button>`).join('');
+  app.innerHTML = `${offlineNotice(online)}<div class="chips">${chips}</div>` + (list.length
+    ? `<div class="grid">${list.map(card).join('')}</div>`
+    : emptyBox('🎓', q ? 'Nessun risultato' : 'Nessun video qui', 'Solo video che insegnano qualcosa: scienza, tecnica, storia, lingue e altro.', uploadBtn));
+  fillViews(seq);
+}
+
+// ── iscrizioni e libreria ──────────────────────────────────────────────────
+const subs = () => store.get('tv_subs', {});
+async function viewSubs(seq) {
+  const online = await refresh();
+  const mine = subs();
+  const list = items.filter(FNet.isVisible).filter(v => mine[v.tag]);
+  app.innerHTML = offlineNotice(online) + '<h2 style="margin-bottom:12px">Iscrizioni</h2>' + (list.length
+    ? `<div class="grid">${list.map(card).join('')}</div>`
+    : emptyBox('📚', 'Ancora nessuna iscrizione', 'Apri un canale e premi Iscriviti: i suoi video arrivano qui.'));
+  fillViews(seq);
+}
+async function viewLibrary() {
+  await refresh();
+  const byId = new Map(items.map(v => [v.id, v]));
+  const section = (title, ids, empty) => {
+    const list = ids.map(id => byId.get(id)).filter(Boolean);
+    return `<h2 style="margin:16px 0 10px">${title}</h2>` + (list.length ? `<div class="grid">${list.map(card).join('')}</div>` : `<p class="sub">${empty}</p>`);
+  };
+  app.innerHTML = section('Cronologia', store.get('tv_history', []), 'Nessun video guardato.')
+    + section('Da guardare dopo', store.get('tv_later', []), 'Premi Salva su un video per trovarlo qui.')
+    + section('Video che ti piacciono', store.get('tv_liked', []), 'Nessun video.');
+}
+
+// ── pagina video ───────────────────────────────────────────────────────────
+async function viewWatch(id) {
+  await refresh();
+  const v = items.find(x => x.id === id);
+  if (!v) { app.innerHTML = emptyBox('🔎', 'Video non trovato', 'Potrebbe essere stato eliminato dal suo autore.'); return; }
+  current = v;
+  const subscribed = !!subs()[v.tag];
+  const saved = store.get('tv_later', []).includes(v.id);
+  const next = items.filter(FNet.isVisible).filter(x => x.id !== v.id).slice(0, 12);
+  const speed = store.get('tv_speed', 1);
+  app.innerHTML = `<div class="watch"><div class="grow" style="min-width:0">
+    <div class="player" id="player"><div id="player-state">Recupero il video dalla rete…</div></div>
+    <h1>${esc(v.title)}</h1>
+    <div class="row"><a href="#/channel/${esc(v.tag)}" class="row grow">${avatarHtml(v.name, channels.get(v.tag)?.avatar)}<span class="grow"><b style="overflow-wrap:anywhere">${esc(v.name)}</b><div class="sub" id="ch-subs"></div></span></a>
+      <button class="btn ${subscribed ? '' : 'main'}" id="sub-btn" onclick="toggleSub('${esc(v.tag)}')">${subscribed ? 'Iscritto' : 'Iscriviti'}</button></div>
+    <div class="actions">
+      <button class="btn" id="like" onclick="vote(1)">👍 <span>0</span></button>
+      <button class="btn" id="dislike" onclick="vote(-1)">👎 <span>0</span></button>
+      <button class="btn" onclick="enterFullscreen()">⛶ Schermo intero</button>
+      <select class="btn" aria-label="Velocità" onchange="setSpeed(this.value)">${[0.75, 1, 1.25, 1.5, 2].map(s => `<option value="${s}" ${s === speed ? 'selected' : ''}>${s}×</option>`).join('')}</select>
+      <button class="btn" onclick="toggleLater()">${saved ? '✓ Salvato' : '🔖 Salva'}</button>
+      <button class="btn" onclick="shareVideo()">🔗 Condividi</button>
+      <button class="btn" onclick="reportVideo()">🚩 Segnala</button>
+      <button class="btn" onclick="blockAuthor()">🚫 Blocca canale</button>
+    </div>
+    <div class="descr"><div class="sub" id="views-line">${esc(v.cat || '')} · ${esc(timeAgo(v.created))}</div>${esc(v.desc || '')}</div>
+    <h2 style="font-size:16px;margin-bottom:8px"><span id="comment-count">0</span> commenti</h2>
+    <form class="row" onsubmit="event.preventDefault();sendComment(this)"><input class="grow" name="text" maxlength="2000" placeholder="Aggiungi un commento" style="padding:10px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);min-width:0" required><button class="btn main">Invia</button></form>
+    <div id="comments"></div>
+  </div><aside style="min-width:0">${next.map(n => `<a class="mini" href="#/watch/${esc(n.id)}">${thumbHtml(n)}<span class="grow"><b style="display:block;overflow-wrap:anywhere">${esc(n.title)}</b><span class="sub">${esc(n.name)}</span></span></a>`).join('')}</aside></div>`;
+  loadActivity();
+  loadChannelStats(v.tag);
+  if (store.get('tv_history_on', true)) {
+    const h = store.get('tv_history', []).filter(x => x !== v.id);
+    h.unshift(v.id);
+    store.set('tv_history', h.slice(0, 200));
+  }
+  if (v.live) playLive(v); else playVideo(v);
+  markViewed(v.id);
+}
+
+async function playVideo(v) {
+  const state = document.getElementById('player-state');
+  try {
+    const blob = await FNet.downloadVideo(v, (got, total) => {
+      if (state) state.textContent = total ? `Recupero dalla rete: ${Math.round(got / total * 100)}%` : `Recupero dalla rete: ${Math.round(got / 1048576)} MB`;
+    });
+    if (current !== v) return;
+    if (watchUrl) URL.revokeObjectURL(watchUrl);
+    watchUrl = URL.createObjectURL(blob);
+    document.getElementById('player').innerHTML = `<video id="vid" controls playsinline src="${watchUrl}"></video>`;
+    const el = document.getElementById('vid');
+    el.playbackRate = store.get('tv_speed', 1);
+    if (store.get('tv_autoplay', true)) el.play().catch(() => {});
+  } catch (e) {
+    if (state) state.textContent = e.message;
+  }
+}
+function enterFullscreen() {
+  const el = document.getElementById('vid');
+  if (!el) { toast('Il video non è ancora pronto'); return; }
+  const request = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (request) Promise.resolve(request.call(el)).catch(() => toast('Schermo intero non disponibile'));
+  else if (el.webkitEnterFullscreen) el.webkitEnterFullscreen();
+}
+function setSpeed(value) {
+  store.set('tv_speed', Number(value));
+  const el = document.getElementById('vid');
+  if (el) el.playbackRate = Number(value);
+}
+function toggleLater() {
+  const list = store.get('tv_later', []);
+  const i = list.indexOf(current.id);
+  if (i >= 0) list.splice(i, 1); else list.unshift(current.id);
+  store.set('tv_later', list);
+  render();
+}
+async function shareVideo() {
+  const text = `${current.title} — su FreenetTV, codice ${current.id}`;
+  try { await navigator.clipboard.writeText(text); toast('Copiato: incollalo a chi vuoi'); } catch { toast(text); }
+}
+async function reportVideo() {
+  if (!confirm('Segnalare questo video come non educativo o non adatto? Con 3 segnalazioni sparisce dalle liste.')) return;
+  const r = await FNet.reportItem(FEED, current.id);
+  toast(r.queued ? 'Salvato: partirà quando il nodo risponde' : 'Segnalazione inviata');
+}
+function blockAuthor() {
+  if (!confirm(`Bloccare ${current.name}? Non vedrai più i suoi video e commenti. Puoi annullare dalle Impostazioni.`)) return;
+  FNet.blockUser(current.tag, current.name);
+  toast('Canale bloccato');
+  location.hash = '#/home';
+}
+function toggleSub(tag) {
+  const s = subs();
+  if (s[tag]) delete s[tag]; else { s[tag] = true; FNet.post('ch:' + tag, 'sub', {}); }
+  store.set('tv_subs', s);
+  const b = document.getElementById('sub-btn');
+  if (b) { b.textContent = s[tag] ? 'Iscritto' : 'Iscriviti'; b.className = 'btn' + (s[tag] ? '' : ' main'); }
+}
+async function loadChannelStats(tag) {
+  const msgs = await FNet.read('ch:' + tag);
+  const n = new Set(msgs.filter(m => m.k === 'sub').map(m => m.author)).size;
+  const el = document.getElementById('ch-subs');
+  if (el) el.textContent = n === 1 ? '1 iscritto' : `${n} iscritti`;
+}
+async function loadActivity() {
+  const v = current;
+  const a = FNet.foldActivity(await FNet.read('c:' + v.id));
+  if (current !== v) return;
+  me = me || await FNet.identity();
+  const mine = a.votes.get(me.pub);
+  const like = document.getElementById('like'), dislike = document.getElementById('dislike');
+  if (!like) return;
+  like.querySelector('span').textContent = a.likes;
+  dislike.querySelector('span').textContent = a.dislikes;
+  like.classList.toggle('on', mine === 1);
+  dislike.classList.toggle('on', mine === -1);
+  document.getElementById('comment-count').textContent = a.comments.length;
+  document.getElementById('views-line').textContent = `${viewsText(a.views)} · ${v.cat || ''} · ${timeAgo(v.created)}`;
+  document.getElementById('comments').innerHTML = a.comments.map(c => `<div class="comment">${avatarHtml(c.name)}<div class="grow">
+    <div class="sub"><b>${esc(c.name)}</b> · ${esc(timeAgo(c.time))} ${c.author === me.pub ? `· <button class="sub" onclick="deleteComment('${esc(c.id)}')">Elimina</button>` : ''}</div><p>${esc(c.text)}</p></div></div>`).join('');
+}
+async function markViewed(id) {
+  const seen = store.get('tv_viewed', {});
+  if (seen[id]) return;
+  seen[id] = 1;
+  store.set('tv_viewed', seen);
+  await FNet.post('c:' + id, 'view', {});
+}
+async function vote(value) {
+  me = me || await FNet.identity();
+  const a = FNet.foldActivity(await FNet.read('c:' + current.id));
+  const next = a.votes.get(me.pub) === value ? 0 : value;
+  const liked = store.get('tv_liked', []).filter(x => x !== current.id);
+  if (next === 1) liked.unshift(current.id);
+  store.set('tv_liked', liked);
+  await FNet.post('c:' + current.id, 'vote', { value: next });
+  loadActivity();
+}
+async function sendComment(form) {
+  const text = form.text.value.trim();
+  if (!text) return;
+  form.text.value = '';
+  const r = await FNet.post('c:' + current.id, 'comment', { text });
+  if (r.queued) toast('Salvato: partirà quando il nodo risponde');
+  loadActivity();
+}
+async function deleteComment(ref) {
+  await FNet.post('c:' + current.id, 'comment-del', { ref });
+  loadActivity();
+}
+
+// ── canale ─────────────────────────────────────────────────────────────────
+let channelTab = 'video';
+function setChannelTab(tab) { channelTab = tab; render(); }
+async function viewChannel(tagParam, seq) {
+  await refresh();
+  me = await FNet.identity();
+  const tag = tagParam === 'me' ? me.tag : tagParam;
+  const own = tag === me.tag;
+  const list = items.filter(v => v.tag === tag && (own || FNet.isVisible(v)));
+  const info = channels.get(tag) || {};
+  const name = own ? await FNet.displayName() : list[0]?.name || info.name || 'Canale';
+  const image = own ? FNet.profile().avatar : info.avatar;
+  const bio = own ? FNet.profile().bio : info.bio;
+  const subscribed = !!subs()[tag];
+  app.innerHTML = `<div class="banner"></div><div class="ch-head">${avatarHtml(name, image, true)}
+    <div class="grow"><h1 style="font-size:21px;overflow-wrap:anywhere">${esc(name)}</h1><div class="sub"><span id="ch-subs"></span> · ${list.length} video</div></div></div>
+    <div class="row wrap" style="margin-bottom:14px">${own
+      ? '<a class="btn" href="#/settings">Personalizza canale</a><a class="btn" href="#/studio">Gestisci video</a>'
+      : `<button class="btn ${subscribed ? '' : 'main'}" id="sub-btn" onclick="toggleSub('${esc(tag)}')">${subscribed ? 'Iscritto' : 'Iscriviti'}</button>`}</div>
+    <div class="tabs"><button class="tab ${channelTab === 'video' ? 'on' : ''}" onclick="setChannelTab('video')">Video</button><button class="tab ${channelTab === 'info' ? 'on' : ''}" onclick="setChannelTab('info')">Informazioni</button></div>`
+    + (channelTab === 'info'
+      ? `<div class="panel"><p style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(bio || 'Nessuna descrizione.')}</p></div>`
+      : list.length ? `<div class="grid">${list.map(card).join('')}</div>` : emptyBox('🎬', 'Nessun video', own ? 'Carica il tuo primo video educativo.' : 'Questo canale non ha ancora video.', own ? uploadBtn : ''));
+  loadChannelStats(tag);
+  fillViews(seq);
+}
+
+// ── caricamento ────────────────────────────────────────────────────────────
+function categorySelect(value) {
+  return `<select name="cat" required><option value="">Scegli…</option>${CATEGORIES.map(c => `<option ${c === value ? 'selected' : ''}>${c}</option>`).join('')}</select>`;
+}
+function visibilitySelect(value) {
+  return `<select name="vis"><option value="public" ${value !== 'unlisted' ? 'selected' : ''}>Pubblico</option><option value="unlisted" ${value === 'unlisted' ? 'selected' : ''}>Non in elenco</option></select>`;
+}
+function legacyVideos() {
+  try { return JSON.parse(localStorage.getItem('fn_my_videos') || '[]'); } catch { return []; }
+}
+function viewUpload() {
+  const oldOnes = legacyVideos().filter(o => !store.get('tv_migrated', {})[o.id]);
+  app.innerHTML = `<div class="panel" style="max-width:640px;margin:auto"><h2>Carica un video</h2>
+    <form id="up" onsubmit="event.preventDefault();doUpload(this)">
+      <label class="field"><span>File video (massimo ${Math.floor(FNet.MAX_PARTS * FNet.PART_BYTES / 1048576)} MB)</span><input type="file" name="file" accept="video/*" required></label>
+      <label class="field"><span>Titolo</span><input name="title" maxlength="120" required></label>
+      <label class="field"><span>Descrizione</span><textarea name="desc" maxlength="3000"></textarea></label>
+      <label class="field"><span>Categoria educativa</span>${categorySelect('')}</label>
+      <label class="field"><span>Visibilità</span>${visibilitySelect('public')}</label>
+      <button class="btn main" style="width:100%">Pubblica sulla rete Freenet</button>
+    </form><div id="up-progress" hidden style="margin-top:14px"><div class="sub" id="up-label" style="margin-bottom:6px"></div><div class="bar"><i id="up-bar"></i></div></div></div>
+    ${oldOnes.length ? `<div class="panel" style="max-width:640px;margin:14px auto"><h2>Salvati solo sul telefono</h2><p class="sub" style="margin-bottom:10px">Questi video non sono mai usciti dal dispositivo. Premi Prepara, scegli la categoria e pubblica.</p>${oldOnes.map(o => `<div class="vrow"><span class="grow" style="overflow-wrap:anywhere">${esc(o.title)}</span><button class="btn" onclick="prepareLegacy('${esc(String(o.id))}')">Prepara</button></div>`).join('')}</div>` : ''}`;
+}
+function legacyBlob(key) {
+  return new Promise((res, rej) => {
+    const open = indexedDB.open('FreenetTV', 1);
+    open.onupgradeneeded = e => e.target.result.createObjectStore('blobs');
+    open.onerror = () => rej(new Error('Archivio non disponibile'));
+    open.onsuccess = () => {
+      const get = open.result.transaction('blobs').objectStore('blobs').get(key);
+      get.onsuccess = () => (get.result ? res(get.result) : rej(new Error('File non trovato sul telefono')));
+      get.onerror = () => rej(new Error('Archivio non disponibile'));
     };
-  }).catch(()=>{});
+  });
 }
-
-// ── THUMBNAIL GRADIENTS PER CATEGORIA ────────────────────────────────────────
-const THUMB_COLORS = {
-  tech:    ['#1a1a2e','#16213e','#0f3460'],
-  privacy: ['#1a0d2e','#2d1b4e','#1a0a3c'],
-  musica:  ['#1a0d1a','#3d1f4e','#2a0f3a'],
-  news:    ['#0d1a1a','#1a3a2e','#0f2a1a'],
-  gaming:  ['#0d0d1a','#1a1a3d','#0d0d2e'],
-  live:    ['#1a0d0d','#3d1a1a','#2e0d0d'],
-  default: ['#1a1a1a','#2a2a2a','#1a1a1a'],
-};
-function thumbGrad(cat) {
-  const c = THUMB_COLORS[cat] || THUMB_COLORS.default;
-  return `linear-gradient(135deg, ${c[0]} 0%, ${c[1]} 50%, ${c[2]} 100%)`;
+let legacyInProgress = null;
+async function prepareLegacy(id) {
+  const old = legacyVideos().find(o => String(o.id) === id);
+  if (!old) return;
+  try {
+    const data = await legacyBlob(old.key);
+    const form = document.getElementById('up');
+    form.title.value = old.title;
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([data], 'video', { type: old.mime || 'video/mp4' }));
+    form.file.files = transfer.files;
+    legacyInProgress = id;
+    toast('Scegli la categoria e premi Pubblica');
+  } catch (e) { toast(e.message); }
 }
-const CH_COLORS = ['#e53935','#8e24aa','#1e88e5','#00897b','#f4511e','#d81b60','#039be5','#43a047'];
-function chColor(name) { let h=0; for(const c of name) h=(h*31+c.charCodeAt(0))&0xff; return CH_COLORS[h%CH_COLORS.length]; }
-
-// ── VIDEO CATALOGUE ───────────────────────────────────────────────────────────
-function loadMyVideos() { try { return JSON.parse(localStorage.getItem('fn_my_videos')||'[]'); } catch { return []; } }
-function saveMyVideos(v){ try { localStorage.setItem('fn_my_videos', JSON.stringify(v)); } catch {} }
-let MY_VIDEOS = loadMyVideos();
-const DEFAULT_VIDEOS = [];
-// La rete inizia vuota — i contenuti vengono caricati dagli utenti Freenet
-
-function allVideos() {
-  return [...MY_VIDEOS.map(v=>({...v, ch: getUser()||'Tu', ago:'Appena caricato'})), ...DEFAULT_VIDEOS];
-}
-
-// ── RENDER GRID ───────────────────────────────────────────────────────────────
-function renderGrid(vids) {
-  if (!vids.length) {
-    document.getElementById('vgrid').innerHTML = `
-      <div style="grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--yt-text2)">
-        <div style="font-size:64px;margin-bottom:20px">📺</div>
-        <div style="font-size:20px;font-weight:500;color:var(--yt-text);margin-bottom:10px">Nessun video ancora</div>
-        <div style="font-size:14px;margin-bottom:24px">Questa rete Freenet è nuova — sii il primo a caricare un video!</div>
-        <button onclick="openUpload()" style="padding:10px 24px;border-radius:20px;background:var(--yt-red);border:none;color:#fff;font-size:14px;font-weight:500;cursor:pointer">📤 Carica il primo video</button>
-      </div>`;
-    return;
-  }
-  document.getElementById('vgrid').innerHTML = vids.map(v => `
-    <div class="vc" onclick="openPlayer(${v.id})">
-      <div class="thumb-wrap">
-        <div class="thumb-bg" style="background:${thumbGrad(v.cat)}">${v.emoji}</div>
-        ${v.live ? '<div class="thumb-live">🔴 LIVE</div>' : `<div class="thumb-dur">${v.dur}</div>`}
-        <div class="thumb-play"><div class="play-circle">▶</div></div>
-      </div>
-      <div class="vmeta">
-        <div class="ch-av" style="background:${chColor(v.ch)}">${v.ch[0].toUpperCase()}</div>
-        <div class="vinfo">
-          <div class="vtitle">${v.title}</div>
-          <div class="vch">${v.ch}</div>
-          <div class="vstats">${v.views} visualizzazioni · ${v.ago}</div>
-          <div class="vkey">${v.key}</div>
-        </div>
-      </div>
-    </div>`).join('');
-}
-renderGrid(allVideos());
-
-function filterCat(cat, el) {
-  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
-  document.querySelectorAll('.sb-item').forEach(c=>c.classList.remove('active'));
-  if(el) el.classList.add('active');
-  const all = allVideos();
-  const f = (cat==='tutti'||cat==='trend') ? all : all.filter(v=>v.cat===cat||(cat==='live'&&v.live));
-  renderGrid(f);
-}
-function doSearch() {
-  const q=document.getElementById('s-inp').value.toLowerCase().trim();
-  renderGrid(q ? allVideos().filter(v=>v.title.toLowerCase().includes(q)||v.ch.toLowerCase().includes(q)) : allVideos());
-}
-
-// ── KEY BAR ───────────────────────────────────────────────────────────────────
-function makeContractKey(name) {
-  const seed = [...name].reduce((a,c)=>a^c.charCodeAt(0),0x1337);
-  const pseudo = btoa(name + seed + 'fresnettv').replace(/[=+/]/g,'').substring(0,44).padEnd(44,'A');
-  return `/v1/contract/web/${pseudo}/`;
-}
-function updateKeyBar(name) {
-  if (!name) { document.getElementById('my-usk-key').textContent = 'accedi per la tua chiave contratto Freenet'; return; }
-  document.getElementById('my-usk-key').textContent = 'http://127.0.0.1:7509' + makeContractKey(name);
-}
-function copyKey() {
-  const k = document.getElementById('my-usk-key').textContent;
-  navigator.clipboard.writeText(k).then(()=>{ const b=document.querySelector('.copy-btn'); b.textContent='✅ Copiata'; setTimeout(()=>b.textContent='📋 Copia',2000); }).catch(()=>{});
-}
-function showPubGuide() {
-  const u = getUser(); if (!u) { openLogin(); return; }
-  const name = u.toLowerCase().replace(/[^a-z0-9-]/g,'-');
-  alert(`Pubblica il tuo FreenetTV:\n\n1. fdev website init ${name}-tv\n2. fdev website publish . --key ${name}-tv\n3. http://127.0.0.1:7509/v1/contract/web/<chiave>/`);
-}
-
-// ── PLAYER ────────────────────────────────────────────────────────────────────
-let curId=null, curCh=null, playI=null, playProg=0, playing=false;
-
-function getVD(id) { try{const d=JSON.parse(localStorage.getItem('fn_vd')||'{}');if(!d[id])d[id]={likes:0,liked:false,disliked:false,cmts:[]};return d[id];}catch{return{likes:0,liked:false,disliked:false,cmts:[]};} }
-function saveVD(id,vd){try{const d=JSON.parse(localStorage.getItem('fn_vd')||'{}');d[id]=vd;localStorage.setItem('fn_vd',JSON.stringify(d));}catch{}}
-
-function getSubs(){try{return JSON.parse(localStorage.getItem('fn_subs')||'{}');}catch{return{};}}
-function saveSubs(s){try{localStorage.setItem('fn_subs',JSON.stringify(s));}catch{}}
-function getChData(ch){try{const d=JSON.parse(localStorage.getItem('fn_ch')||'{}');if(!d[ch])d[ch]={subs:Math.floor(Math.random()*50000+500)};return d[ch];}catch{return{subs:0};}}
-function isSubd(ch){return !!getSubs()[ch];}
-function toggleSub(){
-  const u=getUser();if(!u){openLogin();return;}
-  const s=getSubs();
-  if(s[curCh]){delete s[curCh];}else{s[curCh]=Date.now();}
-  saveSubs(s); renderSubBtn(curCh); renderSidebarSubs();
-}
-function renderSubBtn(ch){
-  const btn=document.getElementById('sub-btn');
-  const subd=isSubd(ch);
-  btn.className='sub-btn '+(subd?'subd':'unsub');
-  btn.textContent=subd?'✅ Iscritto':'Iscriviti';
-  const cd=getChData(ch);
-  const sc=isSubd(ch)?cd.subs+1:cd.subs;
-  document.getElementById('pchsubs').textContent=_fmt(sc)+' iscritti';
-}
-function renderSidebarSubs(){
-  const s=getSubs();
-  const el=document.getElementById('sb-subs');
-  const chs=Object.keys(s);
-  if(!chs.length){el.innerHTML='<div style="padding:8px 24px;font-size:13px;color:var(--yt-text2)">Nessuna iscrizione</div>';return;}
-  el.innerHTML=chs.slice(0,8).map(ch=>`
-    <div class="sb-ch" onclick="filterByCh('${ch}')">
-      <div class="sb-ch-av" style="background:${chColor(ch)}">${ch[0].toUpperCase()}</div>
-      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ch}</span>
-    </div>`).join('');
-}
-function filterByCh(ch){if(!ch)return;renderGrid(allVideos().filter(v=>v.ch===ch));document.querySelectorAll('.chip,.sb-item').forEach(c=>c.classList.remove('active'));}
-function _fmt(n){if(n>=1000000)return(n/1000000).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return String(n);}
-
-function openPlayer(id){
-  const v=allVideos().find(x=>x.id===id);if(!v)return;
-  curId=id;curCh=v.ch;
-  document.getElementById('ptitle').textContent=v.title;
-  document.getElementById('pch').textContent=v.ch;
-  document.getElementById('pchav').textContent=v.ch[0].toUpperCase();
-  document.getElementById('pchav').style.background=chColor(v.ch);
-  document.getElementById('pkey').textContent='🔑 '+v.key;
-  document.getElementById('pscreen').style.background=thumbGrad(v.cat);
-  document.getElementById('player-ov').classList.add('open');
-  stopProg();playProg=0;playing=true;
-  document.getElementById('pplaybtn').textContent='⏸';
-
-  // Carica video reale da IndexedDB (open source, nessun server)
-  const pv=document.getElementById('pvideo');
-  const pe=document.getElementById('pemoji');
-  pe.textContent=v.emoji;pe.style.display='flex';
-  pv.style.display='none';
-  if(pv._blobUrl){URL.revokeObjectURL(pv._blobUrl);pv._blobUrl=null;}
-  pv.src='';pv.ontimeupdate=null;
-
-  if(v.key&&v.key.startsWith('CHK@')){
-    getVideoIDB(v.key).then(ab=>{
-      if(!ab){startProg();return;}
-      const blob=new Blob([ab],{type:v.mime||'video/mp4'});
-      const url=URL.createObjectURL(blob);
-      pv._blobUrl=url;pv.src=url;
-      pv.style.display='block';pe.style.display='none';
-      pv.play().catch(()=>{});
-      pv.ontimeupdate=()=>{
-        if(!pv.duration)return;
-        const p=(pv.currentTime/pv.duration)*100;
-        document.getElementById('pprog').style.width=p+'%';
-        document.getElementById('ptime').textContent=fmt(Math.floor(pv.currentTime))+' / '+fmt(Math.floor(pv.duration));
-      };
-      pv.onended=()=>{playing=false;document.getElementById('pplaybtn').textContent='▶';};
-    });
-  }else{startProg();}
-
-  renderInteract(id,v);renderCmts(id);renderSubBtn(v.ch);renderSideVideos(id);
-  const u=getUser();
-  const myAv=document.getElementById('cmt-my-av');
-  if(myAv){myAv.textContent=u?u[0].toUpperCase():'?';if(u)myAv.style.background=chColor(u);}
-}
-function closePlBtn(){
-  document.getElementById('player-ov').classList.remove('open');stopProg();
-  const pv=document.getElementById('pvideo');
-  if(pv){pv.pause();if(pv._blobUrl){URL.revokeObjectURL(pv._blobUrl);pv._blobUrl=null;}pv.src='';}
-}
-function closePl(e){if(e&&e.target!==document.getElementById('player-ov'))return;closePlBtn();}
-function togglePlay(){
-  const pv=document.getElementById('pvideo');
-  if(pv&&pv.src&&pv.readyState>0){
-    playing=!playing;playing?pv.play().catch(()=>{}):pv.pause();
-    document.getElementById('pplaybtn').textContent=playing?'⏸':'▶';
-  }else{
-    playing=!playing;document.getElementById('pplaybtn').textContent=playing?'⏸':'▶';playing?startProg():stopProg();
-  }
-}
-function startProg(){
-  stopProg();
-  playI=setInterval(()=>{
-    playProg=Math.min(playProg+.3,100);
-    document.getElementById('pprog').style.width=playProg+'%';
-    const tot=1320,cur=Math.floor(tot*playProg/100);
-    document.getElementById('ptime').textContent=fmt(cur)+' / '+fmt(tot);
-    if(playProg>=100)stopProg();
-  },300);
-}
-function stopProg(){clearInterval(playI);}
-function seekBar(e){
-  const b=e.currentTarget;playProg=(e.offsetX/b.offsetWidth)*100;
-  document.getElementById('pprog').style.width=playProg+'%';
-  const pv=document.getElementById('pvideo');
-  if(pv&&pv.duration)pv.currentTime=(playProg/100)*pv.duration;
-}
-function fmt(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
-
-function renderInteract(id,v){
-  const vd=getVD(id);
-  const lb=document.getElementById('plike');
-  lb.className='like-btn'+(vd.liked?' liked':'');
-  document.getElementById('plikeN').textContent=vd.likes;
-  document.getElementById('pdislike').className='dislike-btn'+(vd.disliked?' disliked':'');
-  document.getElementById('pviews').textContent=v.views+' visualizzazioni';
-}
-function doLike(){const vd=getVD(curId);if(vd.liked){vd.likes--;vd.liked=false;}else{vd.likes++;vd.liked=true;vd.disliked=false;}saveVD(curId,vd);const v=allVideos().find(x=>x.id===curId);renderInteract(curId,v);}
-function doDislike(){const vd=getVD(curId);vd.disliked=!vd.disliked;if(vd.disliked&&vd.liked){vd.liked=false;vd.likes=Math.max(0,vd.likes-1);}saveVD(curId,vd);const v=allVideos().find(x=>x.id===curId);renderInteract(curId,v);}
-function doShare(){const v=allVideos().find(x=>x.id===curId);prompt('Chiave Freenet:',v?v.key:'—');}
-
-function renderCmts(id){
-  const vd=getVD(id);
-  document.getElementById('cmt-head').textContent=vd.cmts.length+' commenti';
-  const el=document.getElementById('cmt-list');
-  if(!vd.cmts.length){el.innerHTML='<div class="no-cmt">Nessun commento ancora.</div>';return;}
-  el.innerHTML=vd.cmts.slice().reverse().map((c,i)=>`
-    <div class="cmt">
-      <div class="cmt-av2" style="background:${chColor(c.name)}">${c.name[0].toUpperCase()}</div>
-      <div style="flex:1">
-        <div class="cmt-n">@${c.name}</div>
-        <div class="cmt-t">${c.text}</div>
-        <div class="cmt-ts">
-          <span class="cmt-time">${c.time}</span>
-          <button class="cmt-like" onclick="likeCmt(${id},${vd.cmts.length-1-i})">👍 ${c.clikes||0}</button>
-        </div>
-      </div>
-    </div>`).join('');
-}
-function likeCmt(vid,idx){const vd=getVD(vid);if(!vd.cmts[idx])return;vd.cmts[idx].clikes=(vd.cmts[idx].clikes||0)+1;saveVD(vid,vd);renderCmts(vid);}
-function postCmt(){
-  const u=getUser();if(!u){openLogin();return;}
-  const t=document.getElementById('cmt-inp').value.trim();if(!t)return;
-  const vd=getVD(curId);vd.cmts.push({name:u,text:t,time:new Date().toLocaleString('it')});
-  saveVD(curId,vd);document.getElementById('cmt-inp').value='';renderCmts(curId);
-}
-
-function renderSideVideos(curId){
-  const all=allVideos().filter(v=>v.id!==curId).slice(0,8);
-  document.getElementById('side-videos').innerHTML=all.map(v=>`
-    <div class="svc" onclick="openPlayer(${v.id})">
-      <div class="sthumb" style="background:${thumbGrad(v.cat)}">${v.emoji}</div>
-      <div class="svinfo">
-        <div class="svt">${v.title}</div>
-        <div class="svc2">${v.ch}</div>
-        <div class="svc2">${v.views} · ${v.ago}</div>
-      </div>
-    </div>`).join('');
-}
-
-// ── UPLOAD ────────────────────────────────────────────────────────────────────
-function openUpload(){const u=getUser();if(!u){openLogin();return;}document.getElementById('upload-modal').classList.add('open');}
-function closeUpload(e){if(!e||e.target===document.getElementById('upload-modal'))document.getElementById('upload-modal').classList.remove('open');}
-
-function onFileChosen(inp){if(inp.files[0])setDropFile(inp.files[0]);}
-function onDropFile(e){e.preventDefault();if(e.dataTransfer.files[0])setDropFile(e.dataTransfer.files[0]);}
-function setDropFile(f){
-  document.getElementById('drop-icon').textContent='✅';
-  document.getElementById('drop-label').textContent=f.name;
-  document.getElementById('drop-sub').textContent=(f.size/1024/1024).toFixed(1)+' MB · '+f.type;
-}
-
-async function publishVideo(){
-  const t=document.getElementById('u-title').value.trim();
-  if(!t){alert('Inserisci un titolo');return;}
-  const f=document.getElementById('u-file').files[0];
-  if(!f){alert('Seleziona un file video');return;}
-  const btn=document.querySelector('.btn-pub');
-  btn.textContent='⏳ Calcolo chiave CHK@…';btn.disabled=true;
-  try{
-    const ab=await f.arrayBuffer();
-    const key=await makeChkKey(ab);
-    await storeVideoIDB(key,ab);
-    const cat=document.getElementById('u-cat').value.trim()||'tech';
-    const ts=Date.now();
-    const v={id:ts,emoji:'🎬',title:t,ch:getUser()||'Tu',views:'0',
-      ago:new Date().toLocaleString('it'),dur:'—',cat,live:false,key,mime:f.type};
-    MY_VIDEOS.push(v);saveMyVideos(MY_VIDEOS);renderGrid(allVideos());closeUpload();
-    tryPutFreenet(key,ab);
-    alert('✅ Video pubblicato!\n\n🔑 CHK@ (chiave content-addressed):\n'+key+'\n\nSalvato in locale — condividi la chiave per distribuirlo sulla rete Freenet P2P.');
-  }catch(err){
-    alert('Errore: '+err.message);
-  }finally{
-    btn.textContent='🌐 Pubblica su Freenet';btn.disabled=false;
+const videoFacts = FNet.videoFacts;
+async function doUpload(form) {
+  const file = form.file.files[0];
+  if (!file) return;
+  const progress = document.getElementById('up-progress');
+  const label = document.getElementById('up-label');
+  const bar = document.getElementById('up-bar');
+  const data = { title: form.title.value.trim(), desc: form.desc.value.trim(), cat: form.cat.value, vis: form.vis.value };
+  const button = form.querySelector('button');
+  button.disabled = true;
+  progress.hidden = false;
+  try {
+    const step = (text, ratio) => { label.textContent = text; bar.style.width = Math.round(ratio * 90) + '%'; };
+    step('Analizzo il video', 0);
+    const facts = await videoFacts(file);
+    const id = FNet.newId('v');
+    const parts = await FNet.uploadVideoParts(file, id, step);
+    step('Aggiorno il tuo canale', 1);
+    await FNet.publishMedia('video', FEED, id, { ...data, ...facts, parts, mime: file.type, size: file.size },
+      { title: data.title, desc: data.desc, cat: data.cat, parts: parts.map(p => p.key) });
+    bar.style.width = '100%';
+    if (legacyInProgress) {
+      const done = store.get('tv_migrated', {});
+      done[legacyInProgress] = 1;
+      store.set('tv_migrated', done);
+      legacyInProgress = null;
+    }
+    toast('Video pubblicato sulla rete Freenet');
+    location.hash = '#/studio/content';
+  } catch (e) {
+    label.textContent = 'Pubblicazione non riuscita: ' + e.message;
+    button.disabled = false;
   }
 }
 
-// ── AUTH ──────────────────────────────────────────────────────────────────────
-function getAcc(){try{return JSON.parse(localStorage.getItem('fn_acc')||'{}');}catch{return{};}}
-function saveAcc(a){try{localStorage.setItem('fn_acc',JSON.stringify(a));}catch{}}
-function getUser(){try{return localStorage.getItem('fn_user')||null;}catch{return null;}}
-function setUser(u){try{localStorage.setItem('fn_user',u||'');}catch{}}
+// ── studio ─────────────────────────────────────────────────────────────────
+async function viewStudio(tab) {
+  const studioTab = ['dashboard', 'content', 'comments'].includes(tab) ? tab : 'dashboard';
+  await refresh();
+  me = await FNet.identity();
+  const mine = items.filter(v => v.tag === me.tag);
+  const tabs = [['dashboard', 'Panoramica'], ['content', 'Contenuti'], ['comments', 'Commenti']];
+  app.innerHTML = `<h1 style="font-size:21px;margin-bottom:10px">Studio</h1>
+    <div class="tabs">${tabs.map(([k, l]) => `<a class="tab ${k === studioTab ? 'on' : ''}" href="#/studio/${k}">${l}</a>`).join('')}<a class="tab" href="#/settings">Personalizza</a></div><div id="studio-body"><p class="sub">Leggo i dati dalla rete…</p></div>`;
+  const activity = new Map();
+  await Promise.all(mine.map(async v => activity.set(v.id, FNet.foldActivity(await FNet.read('c:' + v.id)))));
+  const body = document.getElementById('studio-body');
+  if (!body) return;
+  if (!mine.length) { body.innerHTML = emptyBox('🎬', 'Nessun video', 'I video che pubblichi compaiono qui.', uploadBtn); return; }
+  const sum = key => mine.reduce((t, v) => t + activity.get(v.id)[key], 0);
+  if (studioTab === 'dashboard') {
+    const subsMsgs = await FNet.read('ch:' + me.tag);
+    const subCount = new Set(subsMsgs.filter(m => m.k === 'sub').map(m => m.author)).size;
+    const totalComments = mine.reduce((t, v) => t + activity.get(v.id).comments.length, 0);
+    const top = [...mine].sort((a, b) => activity.get(b.id).views - activity.get(a.id).views)[0];
+    body.innerHTML = `<div class="stats">
+      <div class="stat"><b>${subCount}</b><span class="sub">Iscritti</span></div>
+      <div class="stat"><b>${mine.length}</b><span class="sub">Video</span></div>
+      <div class="stat"><b>${sum('views')}</b><span class="sub">Visualizzazioni</span></div>
+      <div class="stat"><b>${sum('likes')}</b><span class="sub">Mi piace</span></div>
+      <div class="stat"><b>${totalComments}</b><span class="sub">Commenti</span></div></div>
+      <div class="panel"><h2>Il più visto</h2><a class="vrow" style="border:0;padding:0" href="#/watch/${esc(top.id)}">${thumbHtml(top)}<span class="grow"><b style="overflow-wrap:anywhere">${esc(top.title)}</b><div class="sub">${viewsText(activity.get(top.id).views)}</div></span></a></div>`;
+  } else if (studioTab === 'content') {
+    body.innerHTML = mine.map(v => {
+      const a = activity.get(v.id);
+      return `<div class="vrow">${thumbHtml(v)}<div class="grow"><b style="overflow-wrap:anywhere">${esc(v.title)}</b>
+        <div class="sub">${v.vis === 'unlisted' ? 'Non in elenco' : 'Pubblico'} · ${esc(v.cat || '')} · ${esc(timeAgo(v.created))}</div>
+        <div class="sub">${a.views} viste · ${a.likes} 👍 · ${a.dislikes} 👎 · ${a.comments.length} commenti${v.reports ? ` · ${v.reports} segnalazioni` : ''}</div>
+        <div class="row wrap" style="margin-top:8px"><a class="btn" href="#/edit/${esc(v.id)}">Modifica</a><a class="btn" href="#/watch/${esc(v.id)}">Guarda</a><button class="btn danger" onclick="removeVideo('${esc(v.id)}')">Elimina</button></div></div></div>`;
+    }).join('');
+  } else {
+    const rows = mine.flatMap(v => activity.get(v.id).comments.map(c => ({ c, v }))).sort((a, b) => b.c.time - a.c.time);
+    body.innerHTML = rows.length ? rows.map(({ c, v }) => `<div class="comment">${avatarHtml(c.name)}<div class="grow"><div class="sub"><b>${esc(c.name)}</b> · ${esc(timeAgo(c.time))} · su <a href="#/watch/${esc(v.id)}">${esc(v.title)}</a></div><p>${esc(c.text)}</p></div></div>`).join('') : emptyBox('💬', 'Nessun commento', 'I commenti ai tuoi video compaiono qui.');
+  }
+}
+async function removeVideo(id) {
+  if (!confirm('Eliminare questo video? Il contenuto viene cancellato dai contratti e il video sparisce dalle liste.')) return;
+  const v = items.find(x => x.id === id);
+  toast('Sto eliminando il video…');
+  try {
+    await FNet.deleteItem(FEED, id);
+    await FNet.wipeVideoParts(v.parts || []);
+    await FNet.removeFromChannel(id);
+    toast('Video eliminato');
+  } catch (e) { toast('Eliminazione parziale: ' + e.message); }
+  render();
+}
+async function viewEdit(id) {
+  await refresh();
+  me = await FNet.identity();
+  const v = items.find(x => x.id === id && x.tag === me.tag);
+  if (!v) { app.innerHTML = emptyBox('🔒', 'Non puoi modificare questo video', 'Solo chi lo ha pubblicato può farlo.'); return; }
+  app.innerHTML = `<div class="panel" style="max-width:640px;margin:auto"><h2>Modifica video</h2>${thumbHtml(v)}
+    <form style="margin-top:14px" onsubmit="event.preventDefault();saveEdit('${esc(id)}',this)">
+      <label class="field"><span>Titolo</span><input name="title" maxlength="120" required value="${esc(v.title)}"></label>
+      <label class="field"><span>Descrizione</span><textarea name="desc" maxlength="3000">${esc(v.desc || '')}</textarea></label>
+      <label class="field"><span>Categoria educativa</span>${categorySelect(v.cat)}</label>
+      <label class="field"><span>Visibilità</span>${visibilitySelect(v.vis)}</label>
+      <label class="field"><span>Nuova miniatura (facoltativa)</span><input type="file" name="thumb" accept="image/*"></label>
+      <button class="btn main" style="width:100%">Salva</button></form></div>`;
+}
+async function saveEdit(id, form) {
+  const v = items.find(x => x.id === id);
+  const data = { title: form.title.value.trim(), desc: form.desc.value.trim(), cat: form.cat.value, vis: form.vis.value };
+  const keep = { thumb: v.thumb, dur: v.dur, parts: v.parts, mime: v.mime, size: v.size, live: v.live, ch: v.ch };
+  if (form.thumb.files[0]) keep.thumb = await FNet.smallImage(form.thumb.files[0], 256, 0.4);
+  try {
+    await FNet.publishMedia('video', FEED, id, { ...keep, ...data }, { title: data.title, desc: data.desc, cat: data.cat, parts: (v.parts || []).map(p => p.key) });
+    toast('Modifiche salvate');
+    location.hash = '#/studio/content';
+  } catch (e) { toast(e.message); }
+}
 
-(function init(){const u=getUser();if(u){applyLogin(u);updateKeyBar(u);}renderSidebarSubs();})();
+// ── impostazioni ───────────────────────────────────────────────────────────
+function viewSettings() {
+  const p = FNet.profile();
+  const toggle = (key, label, def) => `<label class="switch"><span>${label}</span><input type="checkbox" ${store.get(key, def) ? 'checked' : ''} onchange="FNet.store.set('${key}',this.checked)"></label>`;
+  const blocked = Object.entries(FNet.blocked());
+  app.innerHTML = `<h1 style="font-size:21px;margin-bottom:12px">Impostazioni</h1>
+  <div class="panel"><h2>Canale</h2><form onsubmit="event.preventDefault();saveChannel(this)">
+    <div class="row" style="margin-bottom:12px">${avatarHtml(p.name || '?', p.avatar, true)}</div>
+    <label class="field"><span>Immagine</span><input type="file" name="avatar" accept="image/*"></label>
+    <label class="field"><span>Nome del canale</span><input name="name" maxlength="40" value="${esc(p.name)}" placeholder="Il tuo nome"></label>
+    <label class="field"><span>Descrizione</span><textarea name="bio" maxlength="500">${esc(p.bio)}</textarea></label>
+    <button class="btn main">Salva il canale</button></form></div>
+  <div class="panel"><h2>Aspetto</h2><label class="field" style="margin:0"><span>Tema</span><select onchange="FNet.store.set('theme',this.value);FNet.applyTheme()">
+    <option value="dark" ${store.get('theme', 'dark') === 'dark' ? 'selected' : ''}>Scuro</option><option value="light" ${store.get('theme', 'dark') === 'light' ? 'selected' : ''}>Chiaro</option></select></label></div>
+  <div class="panel"><h2>Riproduzione</h2>${toggle('tv_autoplay', 'Avvia i video da soli', true)}</div>
+  <div class="panel"><h2>Sicurezza e protezione dallo spam</h2>
+    <p class="sub" style="margin-bottom:10px">Sempre attive: ogni messaggio è firmato e richiede un piccolo calcolo, ogni autore ha un limite di messaggi per bacheca, e su questo telefono un autore non può mostrare più di 20 messaggi al minuto. Non fermano un attacco di rete contro il nodo.</p>
+    <div class="sub" style="margin-bottom:10px">Messaggi filtrati da quando hai aperto la pagina: ${FNet.filteredTotal()}</div>
+    <h3 style="font-size:14px;margin-bottom:6px">Canali bloccati</h3>
+    ${blocked.length ? blocked.map(([tag, name]) => `<div class="vrow" style="align-items:center"><span class="grow" style="overflow-wrap:anywhere">${esc(name)}</span><button class="btn" data-tag="${esc(tag)}" onclick="FNet.unblockUser(this.dataset.tag);render()">Sblocca</button></div>`).join('') : '<p class="sub">Nessuno.</p>'}</div>
+  <div class="panel"><h2>Cronologia e privacy</h2>${toggle('tv_history_on', 'Salva i video guardati su questo telefono', true)}
+    <button class="btn" style="margin-top:10px" onclick="FNet.store.del('tv_history');toast('Cronologia cancellata')">Cancella cronologia</button></div>
+  <div class="panel"><h2>La tua identità</h2><p class="sub" style="margin-bottom:10px">Non ci sono account né password: il canale è legato a una chiave su questo telefono. Se la perdi perdi il canale, quindi salvane una copia in un posto sicuro.</p>
+    <div class="row wrap"><button class="btn" onclick="backupIdentity()">Salva una copia</button><label class="btn">Ripristina<input type="file" accept="application/json" hidden onchange="restoreIdentity(this)"></label></div></div>`;
+}
+async function saveChannel(form) {
+  const p = FNet.profile();
+  p.name = form.name.value.trim();
+  p.bio = form.bio.value.trim();
+  if (form.avatar.files[0]) p.avatar = await FNet.smallImage(form.avatar.files[0], 96, 0.6);
+  try {
+    await FNet.saveProfile(p);
+    toast('Canale salvato');
+  } catch (e) { toast(e.message); }
+  drawChrome();
+  viewSettings();
+}
+function backupIdentity() {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([FNet.exportIdentity()], { type: 'application/json' }));
+  a.download = 'identita-web7.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+async function restoreIdentity(input) {
+  try {
+    FNet.importIdentity(await input.files[0].text());
+    toast('Identità ripristinata');
+    me = null;
+    drawChrome();
+  } catch (e) { toast(e.message); }
+}
 
-function openLogin(){document.getElementById('modal-bg').classList.add('open');showLogin();}
-function closeModal(){document.getElementById('modal-bg').classList.remove('open');}
-function closeMBG(e){if(e.target===document.getElementById('modal-bg'))closeModal();}
-function showLogin(){document.getElementById('m-login').style.display='block';document.getElementById('m-reg').style.display='none';clearE();}
-function showReg(){document.getElementById('m-login').style.display='none';document.getElementById('m-reg').style.display='block';clearE();}
-function clearE(){document.querySelectorAll('.merr').forEach(e=>e.style.display='none');}
-function showE(id){document.getElementById(id).style.display='block';}
-function doLogin(){
-  clearE();
-  const n=document.getElementById('l-n').value.trim(),p=document.getElementById('l-p').value;
-  const a=getAcc();
-  if(!n||!a[n]){showE('le-n');return;}
-  if(a[n]!==btoa(p)){showE('le-p');return;}
-  setUser(n);applyLogin(n);updateKeyBar(n);closeModal();
+// ── diretta: spezzoni brevi pubblicati in un contratto che si aggiorna ─────
+const SEGMENT_MS = 10000;
+const LIVE_SITE = 'w70-diretta';
+let liveState = null;
+function viewLive() {
+  const lives = items.filter(v => v.live && FNet.isVisible(v));
+  app.innerHTML = `<div class="livebox" style="max-width:720px;margin:auto"><h1 style="font-size:21px;margin-bottom:6px">Diretta</h1>
+    <p class="sub" style="margin-bottom:12px">Il video viaggia a spezzoni sulla rete Freenet: chi guarda ti vede con circa un minuto di ritardo.</p>
+    <video id="live-preview" muted playsinline autoplay></video>
+    <form id="live-form" onsubmit="event.preventDefault();startLive(this)">
+      <label class="field"><span>Titolo</span><input name="title" maxlength="120" required></label>
+      <label class="field"><span>Categoria educativa</span>${categorySelect('')}</label>
+      <button class="btn main" id="live-btn" style="width:100%">🔴 Vai in diretta</button></form>
+    <div class="sub" id="live-status" style="margin-top:10px"></div></div>
+    <h2 style="margin:20px 0 10px">In onda ora</h2><div class="grid">${lives.map(card).join('')}</div>${lives.length ? '' : '<p class="sub">Nessuna diretta in corso.</p>'}`;
+  if (liveState) drawLiveRunning();
 }
-function doReg(){
-  clearE();
-  const n=document.getElementById('r-n').value.trim(),p=document.getElementById('r-p').value,p2=document.getElementById('r-p2').value;
-  const a=getAcc();let ok=true;
-  if(!n||a[n]){showE('re-n');ok=false;}
-  if(p.length<6){showE('re-p');ok=false;}
-  if(p!==p2){showE('re-p2');ok=false;}
-  if(!ok)return;
-  a[n]=btoa(p);saveAcc(a);setUser(n);applyLogin(n);updateKeyBar(n);closeModal();
+function drawLiveRunning() {
+  const b = document.getElementById('live-btn');
+  if (b) { b.textContent = '⏹ Termina la diretta'; b.type = 'button'; b.onclick = stopLive; }
+  const p = document.getElementById('live-preview');
+  if (p) p.srcObject = liveState.stream;
 }
-function applyLogin(n){
-  document.getElementById('btn-accedi').style.display='none';
-  const av=document.getElementById('btn-avatar');
-  av.style.display='flex';av.textContent=n[0].toUpperCase();av.style.background=chColor(n);
-  document.getElementById('um-name').textContent=n;
-  document.getElementById('um-av-big').textContent=n[0].toUpperCase();
-  document.getElementById('um-av-big').style.background=chColor(n);
+async function startLive(form) {
+  const status = document.getElementById('live-status');
+  try {
+    if (!navigator.mediaDevices || !window.MediaRecorder) throw new Error('Fotocamera non disponibile qui');
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 360 }, audio: true });
+    const id = FNet.newId('v');
+    liveState = { stream, id, n: 0, title: form.title.value.trim(), cat: form.cat.value, busy: false, key: null };
+    drawLiveRunning();
+    status.textContent = 'Preparo la diretta…';
+    await FNet.writeText(LIVE_SITE, 'index.html', '<!doctype html><meta charset="utf-8"><title>Diretta Web 7.0</title><p>Diretta di Web 7.0.</p>');
+    recordSegment();
+  } catch (e) {
+    liveState = null;
+    status.textContent = 'Non riesco ad avviare la diretta: ' + e.message;
+  }
 }
-function doLogout(){setUser(null);document.getElementById('btn-accedi').style.display='flex';document.getElementById('btn-avatar').style.display='none';updateKeyBar(null);toggleUM(false);}
-function toggleUM(f){const m=document.getElementById('user-menu');m.classList.toggle('open',f!==undefined?f:!m.classList.contains('open'));}
-document.addEventListener('click',e=>{if(!e.target.closest('#btn-avatar')&&!e.target.closest('#user-menu'))document.getElementById('user-menu').classList.remove('open');});
+function recordSegment() {
+  if (!liveState) return;
+  const state = liveState;
+  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus' : 'video/webm';
+  const rec = new MediaRecorder(state.stream, { mimeType: mime, videoBitsPerSecond: 500000 });
+  const chunks = [];
+  rec.ondataavailable = e => chunks.push(e.data);
+  rec.onstop = () => {
+    if (liveState === state) recordSegment();
+    publishSegment(state, new Blob(chunks, { type: 'video/webm' }));
+  };
+  rec.start();
+  setTimeout(() => { if (rec.state === 'recording') rec.stop(); }, SEGMENT_MS);
+}
+// Se la rete è più lenta della telecamera si salta uno spezzone invece di accumulare ritardo.
+async function publishSegment(state, blob) {
+  if (state.busy) return;
+  state.busy = true;
+  const status = document.getElementById('live-status');
+  try {
+    const n = state.n++;
+    await FNet.writeBlob(LIVE_SITE, `seg${n}.webm`, blob);
+    if (n >= 3) await FNet.call('siteDeleteFile', { site: LIVE_SITE, file: `seg${n - 3}.webm` });
+    await FNet.writeText(LIVE_SITE, 'live.json', JSON.stringify({ n, t: Date.now(), on: true }));
+    const key = await FNet.publishSite(LIVE_SITE);
+    if (!state.key) {
+      state.key = key;
+      await FNet.saveItem(FEED, state.id, { title: state.title, cat: state.cat, desc: 'Diretta su FreenetTV', live: true, ch: key, vis: 'public' });
+    }
+    if (status && liveState === state) status.textContent = `In onda: spezzone ${n + 1} pubblicato`;
+  } catch (e) {
+    if (status) status.textContent = 'Spezzone non pubblicato: ' + e.message;
+  }
+  state.busy = false;
+}
+async function stopLive() {
+  const state = liveState;
+  liveState = null;
+  state.stream.getTracks().forEach(t => t.stop());
+  if (state.key) {
+    try {
+      await FNet.writeText(LIVE_SITE, 'live.json', JSON.stringify({ n: state.n, t: Date.now(), on: false }));
+      await FNet.publishSite(LIVE_SITE);
+    } catch {}
+    await FNet.deleteItem(FEED, state.id);
+  }
+  toast('Diretta terminata');
+  viewLive();
+}
+async function playLive(v) {
+  const state = document.getElementById('player-state');
+  if (!FNet.SAFE_KEY.test(v.ch || '')) { state.textContent = 'Diretta non disponibile'; return; }
+  let last = -1;
+  const queue = [];
+  let el = null;
+  const playNext = () => {
+    if (!el || !queue.length || (!el.paused && !el.ended)) return;
+    el.src = queue.shift();
+    el.play().catch(() => {});
+  };
+  while (current === v) {
+    try {
+      const info = await (await fetch(FNet.siteUrl(v.ch, 'live.json') + '?t=' + Date.now())).json();
+      if (!info.on && !el) { if (state) state.textContent = 'La diretta è terminata'; return; }
+      if (info.n > last) {
+        const from = last < 0 ? info.n : last + 1;
+        for (let n = from; n <= info.n; n++) {
+          queue.push(URL.createObjectURL(await FNet.fetchPart(FNet.siteUrl(v.ch, `seg${n}.webm`))));
+        }
+        last = info.n;
+        if (!el) {
+          document.getElementById('player').innerHTML = '<video id="vid" controls playsinline autoplay></video>';
+          el = document.getElementById('vid');
+          el.onended = playNext;
+        }
+        playNext();
+      }
+    } catch {}
+    await new Promise(res => setTimeout(res, 5000));
+  }
+}
+
+// ── router ─────────────────────────────────────────────────────────────────
+async function drawChrome() {
+  const name = await FNet.displayName();
+  document.getElementById('me-avatar').innerHTML = avatarHtml(name, FNet.profile().avatar);
+  const route = location.hash || '#/home';
+  const entry = ([hash, icon, label]) => `<a class="nav-item ${route.startsWith(hash) ? 'on' : ''}" href="${hash}"><span>${icon}</span><span>${label}</span></a>`;
+  document.getElementById('side').innerHTML = NAV.map(entry).join('');
+  document.getElementById('bottom').innerHTML = NAV.filter(n => PHONE_NAV.includes(n[0])).map(entry).join('');
+}
+async function render() {
+  const seq = ++renderSeq;
+  const [, page, arg] = (location.hash || '#/home').match(/^#\/([a-z]+)\/?(.*)$/) || [null, 'home', ''];
+  const param = arg ? decodeURIComponent(arg) : '';
+  drawChrome();
+  if (page !== 'watch') current = null;
+  document.getElementById('menu').hidden = true;
+  try {
+    if (page === 'watch') await viewWatch(param);
+    else if (page === 'subs') await viewSubs(seq);
+    else if (page === 'library') await viewLibrary();
+    else if (page === 'channel') await viewChannel(param || 'me', seq);
+    else if (page === 'upload') viewUpload();
+    else if (page === 'studio') await viewStudio(param);
+    else if (page === 'edit') await viewEdit(param);
+    else if (page === 'settings') viewSettings();
+    else if (page === 'live') { await refresh(); viewLive(); }
+    else await viewHome(param, seq);
+  } catch (e) {
+    app.innerHTML = emptyBox('⚠️', 'Qualcosa non ha funzionato', e.message);
+  }
+}
+addEventListener('hashchange', render);
+render();
 </script>
 </body>
 </html>

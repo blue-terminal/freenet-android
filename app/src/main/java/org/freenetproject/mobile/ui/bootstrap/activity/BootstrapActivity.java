@@ -1,38 +1,97 @@
 package org.freenetproject.mobile.ui.bootstrap.activity;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Message;
 import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.webkit.ConsoleMessage;
 import android.webkit.JavascriptInterface;
+import android.webkit.PermissionRequest;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.preference.PreferenceManager;
 
 import org.freenetproject.mobile.R;
 import org.freenetproject.mobile.services.node.Manager;
+import org.freenetproject.mobile.ui.sites.Web70Net;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.security.SecureRandom;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /** Shows the node's web interface, where the Freenet apps such as River run. */
 public class BootstrapActivity extends AppCompatActivity {
     public static final String EXTRA_URL = "url";
     private WebView webView;
     private SharedPreferences preferences;
+    private static final String ASSET_PREFIX = "file:///android_asset/";
+    private final String netToken = newToken();
+    // Publishing is long and one at a time; reading comments must not wait for it.
+    private final ExecutorService publishThread = Executors.newSingleThreadExecutor();
+    private final ExecutorService requestThreads = Executors.newCachedThreadPool();
+    private Web70Net net;
+    private View fullscreenView;
+    private WebChromeClient.CustomViewCallback fullscreenCallback;
+    private ValueCallback<Uri[]> fileCallback;
+    private PermissionRequest pendingPermission;
+    private final ActivityResultLauncher<Intent> filePicker = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (fileCallback != null) {
+                    fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(
+                            result.getResultCode(), result.getData()));
+                    fileCallback = null;
+                }
+            });
+    private final ActivityResultLauncher<String[]> mediaPermissions = registerForActivityResult(
+            new ActivityResultContracts.RequestMultiplePermissions(), granted -> {
+                if (pendingPermission == null) {
+                    return;
+                }
+                if (granted.containsValue(false)) {
+                    pendingPermission.deny();
+                } else {
+                    pendingPermission.grant(pendingPermission.getResources());
+                }
+                pendingPermission = null;
+            });
+
+    private static String newToken() {
+        byte[] bytes = new byte[24];
+        new SecureRandom().nextBytes(bytes);
+        StringBuilder out = new StringBuilder();
+        for (byte b : bytes) {
+            out.append(String.format("%02x", b));
+        }
+        return out.toString();
+    }
 
     @SuppressLint("SetJavaScriptEnabled") // Freenet apps need it; they only load from the local node
     @Override
@@ -89,6 +148,14 @@ public class BootstrapActivity extends AppCompatActivity {
                 return openOutside(request.getUrl());
             }
 
+            // The bridge object is visible to every frame, the token only to the app's own top page.
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                if (url != null && url.startsWith(ASSET_PREFIX)) {
+                    view.evaluateJavascript("window.__fnToken=" + JSONObject.quote(netToken), null);
+                }
+            }
+
             @Override
             public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
                 // Only the address: the query can hold the node's access token.
@@ -118,6 +185,62 @@ public class BootstrapActivity extends AppCompatActivity {
             }
 
             @Override
+            public void onShowCustomView(View view, CustomViewCallback callback) {
+                if (fullscreenView != null) {
+                    callback.onCustomViewHidden();
+                    return;
+                }
+                fullscreenView = view;
+                fullscreenCallback = callback;
+                ((ViewGroup) getWindow().getDecorView()).addView(view, new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+                WindowInsetsControllerCompat bars = WindowCompat.getInsetsController(getWindow(), view);
+                bars.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                bars.hide(WindowInsetsCompat.Type.systemBars());
+            }
+
+            @Override
+            public void onHideCustomView() {
+                leaveFullscreen();
+            }
+
+            @Override
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback,
+                                             FileChooserParams params) {
+                if (fileCallback != null) {
+                    fileCallback.onReceiveValue(null);
+                }
+                fileCallback = callback;
+                try {
+                    filePicker.launch(params.createIntent());
+                } catch (ActivityNotFoundException | IllegalStateException e) {
+                    fileCallback = null;
+                    return false;
+                }
+                return true;
+            }
+
+            // Camera and microphone only for the app's own Live page, never for remote apps.
+            @Override
+            public void onPermissionRequest(PermissionRequest request) {
+                String url = web.getUrl();
+                if (!"file".equals(request.getOrigin().getScheme()) || url == null
+                        || !url.startsWith(ASSET_PREFIX)) {
+                    request.deny();
+                    return;
+                }
+                pendingPermission = request;
+                try {
+                    mediaPermissions.launch(new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO});
+                } catch (IllegalStateException e) {
+                    // The activity is already closing: a late request must not take the app down.
+                    pendingPermission = null;
+                    request.deny();
+                }
+            }
+
+            @Override
             public boolean onConsoleMessage(ConsoleMessage message) {
                 if (message.messageLevel() == ConsoleMessage.MessageLevel.ERROR) {
                     Log.e("FreenetWeb", message.message());
@@ -128,7 +251,9 @@ public class BootstrapActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                if (web.canGoBack()) {
+                if (fullscreenView != null) {
+                    leaveFullscreen();
+                } else if (web.canGoBack()) {
                     web.goBack();
                 } else {
                     finish();
@@ -146,6 +271,27 @@ public class BootstrapActivity extends AppCompatActivity {
             webView.getSettings().setTextZoom(
                     Integer.parseInt(preferences.getString("web_text_size", "100")));
         }
+    }
+
+    private void leaveFullscreen() {
+        if (fullscreenView == null) {
+            return;
+        }
+        ((ViewGroup) getWindow().getDecorView()).removeView(fullscreenView);
+        WindowCompat.getInsetsController(getWindow(), fullscreenView).show(WindowInsetsCompat.Type.systemBars());
+        fullscreenView = null;
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+        if (fullscreenCallback != null) {
+            fullscreenCallback.onCustomViewHidden();
+            fullscreenCallback = null;
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        publishThread.shutdownNow();
+        requestThreads.shutdownNow();
+        super.onDestroy();
     }
 
     /** Returns false for local/LAN Freenet nodes (any host on WEB_PORT). Anything else leaves the app. */
@@ -193,18 +339,34 @@ public class BootstrapActivity extends AppCompatActivity {
             return s != null ? s.name() : "STOPPED";
         }
 
-        /** Apre un URL https:// nel browser esterno del dispositivo. */
+        /** Network requests of the app's own pages; the answer comes back through window.__fnReply. */
         @JavascriptInterface
-        public void openExternal(String url) {
-            if (url == null) return;
-            String s = url.trim();
-            if (!s.startsWith("https://") && !s.startsWith("http://")) return;
-            Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse(s));
-            browser.addCategory(Intent.CATEGORY_BROWSABLE);
-            try {
-                startActivity(browser);
-            } catch (ActivityNotFoundException ignored) {
+        public void net(String token, String method, String arguments, String replyId) {
+            if (!netToken.equals(token)) {
+                return;
             }
+            ExecutorService worker = "sitePublish".equals(method) ? publishThread : requestThreads;
+            worker.execute(() -> {
+                String reply;
+                try {
+                    synchronized (BootstrapActivity.this) {
+                        if (net == null) {
+                            net = new Web70Net(BootstrapActivity.this);
+                        }
+                    }
+                    reply = net.handle(method, arguments);
+                } catch (IOException e) {
+                    reply = "{\"ok\":false,\"error\":" + JSONObject.quote(String.valueOf(e.getMessage())) + "}";
+                }
+                String script = "window.__fnReply&&window.__fnReply(" + JSONObject.quote(replyId) + ","
+                        + JSONObject.quote(reply) + ")";
+                webView.post(() -> {
+                    String url = webView.getUrl();
+                    if (url != null && url.startsWith(ASSET_PREFIX)) {
+                        webView.evaluateJavascript(script, null);
+                    }
+                });
+            });
         }
     }
 }

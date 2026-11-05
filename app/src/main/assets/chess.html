@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Scacchi — Web 7.0</title>
+<link rel="stylesheet" href="web7.css">
+<style>
+.layout { display: grid; gap: 16px; max-width: 980px; margin: auto; }
+@media (min-width: 860px) { .layout { grid-template-columns: minmax(0, 520px) minmax(0, 1fr); } }
+.board { display: grid; grid-template-columns: repeat(8, 1fr); width: 100%; aspect-ratio: 1; border-radius: 12px; overflow: hidden; border: 2px solid var(--line); user-select: none; }
+.sq { position: relative; display: flex; align-items: center; justify-content: center; font-size: min(10vw, 50px); line-height: 1; cursor: pointer; padding: 0; color: #111; aspect-ratio: 1; }
+.sq.light { background: #ece2cb; } .sq.dark { background: #a98a5e; }
+.sq.white { color: #fff; text-shadow: 0 0 2px #000, 0 0 2px #000, 0 1px 2px #000; }
+.sq.selected { box-shadow: inset 0 0 0 4px #1b9e8c; }
+.sq.last { box-shadow: inset 0 0 0 4px rgba(245,179,1,.75); }
+.sq.check { background: #e35d4f; }
+.sq.hint::after { content: ''; position: absolute; width: 26%; height: 26%; border-radius: 50%; background: rgba(20,80,70,.55); }
+.sq.hint.take::after { width: 84%; height: 84%; background: none; border: 4px solid rgba(20,80,70,.55); }
+.status { font-weight: 700; padding: 10px 0; min-height: 44px; }
+.moves { max-height: 180px; overflow-y: auto; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.game { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); min-width: 0; }
+.promo { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 40; }
+.promo div { background: var(--panel); border-radius: 14px; padding: 14px; display: flex; gap: 8px; }
+.promo button { font-size: 38px; width: 58px; height: 58px; border-radius: 10px; background: var(--panel2); }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="round" href="index.html" aria-label="Torna a Web 7.0">‹</a>
+  <a class="brand" href="chess.html">♞ Sca<b>cchi</b></a>
+</header>
+<main class="content" style="padding-bottom:30px">
+  <div class="layout">
+    <section>
+      <div class="status" id="status" aria-live="polite"></div>
+      <div class="board" id="board"></div>
+      <div class="row wrap" id="board-actions" style="margin-top:10px"></div>
+    </section>
+    <section>
+      <div class="panel"><h2>Contro il computer</h2>
+        <label class="field"><span>Livello</span><select id="level"><option value="1">Facile</option><option value="2" selected>Medio</option><option value="3">Difficile</option></select></label>
+        <label class="field"><span>Giochi con</span><select id="color"><option value="w">Bianco</option><option value="b">Nero</option></select></label>
+        <button class="btn main" style="width:100%" onclick="startBot()">Nuova partita</button></div>
+      <div class="panel"><h2>Contro persone della rete Freenet</h2>
+        <button class="btn main" style="width:100%;margin-bottom:10px" onclick="createOnline()">Crea una partita</button>
+        <div id="lobby"><p class="sub">Leggo le partite aperte…</p></div></div>
+      <div class="panel"><h2>Mosse</h2><div class="moves" id="moves">—</div></div>
+    </section>
+  </div>
+</main>
+<script src="fn-net.js"></script>
+<script src="chess-engine.js"></script>
+<script src="social.js"></script>
+<script>
+const { store, esc, timeAgo } = FNet;
+const { toast } = Social;
+const GLYPH = { K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟', k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
+const LOBBY = 'chess:lobby';
+const OPEN_MS = 2 * 3600 * 1000;
+let game = null; // { mode:'bot'|'online', pos, history, moves, you, level, id, white, black, last, over }
+let selected = -1;
+let me = null;
+let pollTimer = null;
+
+const statusEl = document.getElementById('status');
+const colorName = c => (c === 'w' ? 'Bianco' : 'Nero');
+
+function newGame(mode, you, extra) {
+  const pos = Chess.parseFen(Chess.START);
+  return { mode, you, pos, history: [Chess.toFen(pos)], moves: [], last: null, result: null, ...extra };
+}
+function saveBot() {
+  if (game && game.mode === 'bot') store.set('chess_bot', { moves: game.moves, you: game.you, level: game.level });
+}
+function replay(moves) {
+  let pos = Chess.parseFen(Chess.START);
+  const history = [Chess.toFen(pos)];
+  let last = null;
+  for (const uci of moves) {
+    const m = Chess.findUci(pos, uci);
+    if (!m) break;
+    pos = Chess.makeMove(pos, m);
+    history.push(Chess.toFen(pos));
+    last = m;
+  }
+  return { pos, history, last };
+}
+
+function startBot() {
+  stopPolling();
+  game = newGame('bot', document.getElementById('color').value, { level: Number(document.getElementById('level').value) });
+  selected = -1;
+  saveBot();
+  draw();
+  botTurn();
+}
+function resumeBot() {
+  const saved = store.get('chess_bot');
+  if (!saved) { game = newGame('bot', 'w', { level: 2 }); draw(); return; }
+  game = { ...newGame('bot', saved.you, { level: saved.level }), ...replay(saved.moves), moves: saved.moves };
+  draw();
+  botTurn();
+}
+function botTurn() {
+  if (!game || game.mode !== 'bot' || game.pos.turn === game.you || currentStatus().over) return;
+  const g = game;
+  setTimeout(() => {
+    if (g !== game) return;
+    const m = Chess.botMove(g.pos, g.level);
+    if (m) applyLocal(m);
+  }, 250);
+}
+function currentStatus() {
+  if (game.result) return { over: true, ...game.result };
+  return Chess.status(game.pos, game.history);
+}
+function applyLocal(m) {
+  game.pos = Chess.makeMove(game.pos, m);
+  game.history.push(Chess.toFen(game.pos));
+  game.moves.push(Chess.toUci(m));
+  game.last = m;
+  selected = -1;
+  saveBot();
+  draw();
+  botTurn();
+}
+function undo() {
+  if (game.mode !== 'bot' || game.moves.length < 1) return;
+  const back = game.pos.turn === game.you ? 2 : 1;
+  const moves = game.moves.slice(0, Math.max(0, game.moves.length - back));
+  Object.assign(game, replay(moves), { moves });
+  selected = -1;
+  saveBot();
+  draw();
+  botTurn();
+}
+
+function canMove() {
+  if (!game || currentStatus().over) return false;
+  return game.pos.turn === game.you;
+}
+function clickSquare(s) {
+  if (!canMove()) return;
+  const legal = Chess.legalMoves(game.pos);
+  if (selected >= 0) {
+    const options = legal.filter(m => m.from === selected && m.to === s);
+    if (options.length === 1) { playMove(options[0]); return; }
+    if (options.length > 1) { askPromotion(options); return; }
+  }
+  selected = Chess.colorOf(game.pos.b[s]) === game.pos.turn && legal.some(m => m.from === s) ? s : -1;
+  draw();
+}
+function askPromotion(options) {
+  const box = document.createElement('div');
+  box.className = 'promo';
+  const inner = document.createElement('div');
+  for (const m of options) {
+    const b = document.createElement('button');
+    b.textContent = GLYPH[m.promo];
+    b.onclick = () => { box.remove(); playMove(m); };
+    inner.append(b);
+  }
+  box.append(inner);
+  document.body.append(box);
+}
+function playMove(m) {
+  if (game.mode === 'online') sendOnlineMove(m);
+  applyLocal(m);
+}
+
+function draw() {
+  const board = document.getElementById('board');
+  const st = currentStatus();
+  const flip = game.you === 'b';
+  const hints = selected >= 0 ? Chess.legalMoves(game.pos).filter(m => m.from === selected) : [];
+  const kingAt = st.check || st.reason === 'scacco matto' ? game.pos.b.indexOf(game.pos.turn === 'w' ? 'K' : 'k') : -1;
+  let html = '';
+  for (let i = 0; i < 64; i++) {
+    const s = flip ? 63 - i : i;
+    const p = game.pos.b[s];
+    const cls = ['sq', ((s >> 3) + (s % 8)) % 2 ? 'dark' : 'light'];
+    if (p !== '.' && Chess.colorOf(p) === 'w') cls.push('white');
+    if (s === selected) cls.push('selected');
+    if (game.last && (s === game.last.from || s === game.last.to)) cls.push('last');
+    if (s === kingAt) cls.push('check');
+    const hint = hints.find(m => m.to === s);
+    if (hint) cls.push('hint', p !== '.' || hint.ep ? 'take' : '');
+    html += `<button class="${cls.join(' ')}" onclick="clickSquare(${s})" aria-label="${Chess.sqName(s)}">${p === '.' ? '' : GLYPH[p]}</button>`;
+  }
+  board.innerHTML = html;
+  let text;
+  if (st.over) {
+    text = st.winner ? `${colorName(st.winner)} vince: ${st.reason}` : `Patta: ${st.reason}`;
+    if (st.winner && game.you) text += st.winner === game.you ? ' — hai vinto!' : ' — hai perso';
+  } else if (game.mode === 'online' && !(game.white && game.black)) {
+    text = 'In attesa di un avversario…';
+  } else {
+    text = game.pos.turn === game.you ? 'Tocca a te' : game.mode === 'bot' ? 'Il computer pensa…' : "Tocca all'avversario";
+    if (st.check) text += ' — scacco!';
+  }
+  statusEl.textContent = (game.mode === 'online' ? 'Online · ' : '') + text;
+  document.getElementById('moves').textContent = game.moves.map((m, i) => (i % 2 ? '' : `${i / 2 + 1}. `) + m).join(' ') || '—';
+  const actions = document.getElementById('board-actions');
+  if (game.mode === 'bot') actions.innerHTML = '<button class="btn" onclick="undo()">↩ Annulla mossa</button>';
+  else actions.innerHTML = `${st.over ? '' : '<button class="btn danger" onclick="resign()">Abbandona</button>'}<button class="btn" onclick="leaveOnline()">Torna al computer</button>`;
+}
+
+// ── partite online: ogni mossa è un messaggio firmato sulla bacheca della partita ─
+const gameTopic = id => 'chess:g:' + id;
+async function createOnline() {
+  me = me || await FNet.identity();
+  if (!FNet.hasBridge()) { toast("Le partite online funzionano nell'app Freenet"); return; }
+  const id = FNet.newId('g');
+  const color = Math.random() < 0.5 ? 'w' : 'b';
+  await FNet.saveItem(LOBBY, id, { color, vis: 'public' });
+  enterOnline(id, color, me.pub);
+  toast('Partita creata: aspetto un avversario');
+  loadLobby();
+}
+async function joinOnline(id, color, host) {
+  me = me || await FNet.identity();
+  if (host !== me.pub) {
+    const msgs = await FNet.read(gameTopic(id));
+    const taken = msgs.find(m => m.k === 'join');
+    if (!taken) await FNet.post(gameTopic(id), 'join', {});
+    else if (taken.author !== me.pub) { toast('Partita già iniziata'); return; }
+  }
+  enterOnline(id, color, host);
+}
+function enterOnline(id, hostColor, host) {
+  stopPolling();
+  const you = host === me.pub ? hostColor : hostColor === 'w' ? 'b' : 'w';
+  game = newGame('online', you, { id, hostColor, host, white: hostColor === 'w' ? host : null, black: hostColor === 'b' ? host : null });
+  store.set('chess_online', { id, hostColor, host });
+  selected = -1;
+  draw();
+  syncOnline();
+  pollTimer = setInterval(syncOnline, 4000);
+}
+function stopPolling() { if (pollTimer) clearInterval(pollTimer); pollTimer = null; }
+function leaveOnline() {
+  stopPolling();
+  store.del('chess_online');
+  resumeBot();
+}
+// Vale la prima mossa legale del giocatore giusto per ogni turno: tutti ricostruiscono la stessa partita.
+function rebuild(g, messages) {
+  const join = messages.find(m => m.k === 'join' && m.author !== g.host);
+  const guest = join ? join.author : null;
+  const white = g.hostColor === 'w' ? g.host : guest;
+  const black = g.hostColor === 'b' ? g.host : guest;
+  let pos = Chess.parseFen(Chess.START);
+  const moves = [];
+  const history = [Chess.toFen(pos)];
+  let last = null, result = null;
+  for (const m of messages) {
+    if (result) break;
+    if (m.k === 'resign' && (m.author === white || m.author === black)) {
+      result = { reason: 'abbandono', winner: m.author === white ? 'b' : 'w' };
+    } else if (m.k === 'mv' && m.n === moves.length && m.author === (pos.turn === 'w' ? white : black)) {
+      const legal = Chess.findUci(pos, String(m.uci));
+      if (legal) {
+        pos = Chess.makeMove(pos, legal);
+        moves.push(Chess.toUci(legal));
+        history.push(Chess.toFen(pos));
+        last = legal;
+      }
+    }
+  }
+  return { white, black, pos, moves, history, last, result };
+}
+async function syncOnline() {
+  const g = game;
+  if (!g || g.mode !== 'online') return;
+  const messages = await FNet.read(gameTopic(g.id));
+  if (game !== g) return;
+  const next = rebuild(g, messages);
+  if (next.moves.length < g.moves.length && !next.result) return; // la mia mossa non è ancora arrivata alla bacheca
+  const changed = next.moves.length !== g.moves.length || !g.white !== !next.white || !g.black !== !next.black || !!next.result !== !!g.result;
+  Object.assign(g, next);
+  if (changed) { selected = -1; draw(); }
+}
+async function sendOnlineMove(m) {
+  const r = await FNet.post(gameTopic(game.id), 'mv', { n: game.moves.length, uci: Chess.toUci(m) });
+  if (r.queued) toast('Mossa salvata: partirà quando il nodo risponde');
+}
+async function resign() {
+  if (!confirm('Abbandonare la partita?')) return;
+  await FNet.post(gameTopic(game.id), 'resign', {});
+  syncOnline();
+}
+async function loadLobby() {
+  const box = document.getElementById('lobby');
+  const list = (await FNet.readItems(LOBBY)).filter(g => Date.now() - g.created < OPEN_MS);
+  me = me || await FNet.identity();
+  box.innerHTML = Social.offlineNotice(list.online) + (list.length ? list.map(g => `<div class="game">
+      <span class="grow"><b style="overflow-wrap:anywhere">${esc(g.name)}</b><div class="sub">gioca col ${g.color === 'w' ? 'bianco' : 'nero'} · ${esc(timeAgo(g.created))}</div></span>
+      <button class="btn" data-id="${esc(g.id)}" data-color="${g.color === 'w' ? 'w' : 'b'}" data-host="${esc(g.author)}" onclick="joinOnline(this.dataset.id,this.dataset.color,this.dataset.host)">${g.author === me.pub ? 'Riprendi' : 'Gioca'}</button></div>`).join('')
+    : '<p class="sub">Nessuna partita aperta: creane una.</p>');
+}
+
+(async function init() {
+  me = await FNet.identity();
+  const online = store.get('chess_online');
+  if (online) enterOnline(online.id, online.hostColor, online.host);
+  else resumeBot();
+  loadLobby();
+  setInterval(loadLobby, 20000);
+})();
+</script>
+</body>
+</html>

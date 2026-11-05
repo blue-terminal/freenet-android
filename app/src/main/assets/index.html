@@ -3,17 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Web 7.0 Browser — Decentralized Web · Web Decentralizzato</title>
+<title>Web 7.0</title>
 <link rel="stylesheet" href="fn-theme.css">
 <script src="fn-api.js"></script>
-<script type="module">
-import * as FNC from './fn-crypto.js';
-window.FNC = FNC;
-(async()=>{
-  const raw = localStorage.getItem('fn7_identity_pub');
-  if(raw){ window._fn7id = JSON.parse(raw); }
-})();
-</script>
 <style>
 :root {
   --bg:     #0d1b2a;
@@ -33,9 +25,6 @@ html, body { height: 100%; overflow: hidden; }
 body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; display: flex; flex-direction: column; }
 
 /* ── TOPBAR ── */
-/* barra di avanzamento caricamento */
-#progress-bar { position: fixed; top: 0; left: 0; height: 3px; width: 0%; background: var(--accent); z-index: 999; transition: width .3s, opacity .4s; opacity: 0; border-radius: 0 2px 2px 0; }
-#progress-bar.loading { opacity: 1; }
 
 .topbar {
   display: flex; align-items: center; gap: 8px;
@@ -53,13 +42,13 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 .nav-btn:disabled { opacity: .28; cursor: default; }
 
 .addr-wrap {
-  flex: 1; display: flex; align-items: center; gap: 6px;
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px;
   background: var(--bg3); border: 1px solid var(--border);
   border-radius: 20px; padding: 0 12px; height: 34px; transition: border .2s, box-shadow .2s;
 }
 .addr-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(10,132,255,.15); }
 .addr-lock { font-size: 13px; flex-shrink: 0; }
-#addr { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-size: 13px; cursor: pointer; }
+#addr { flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: var(--text); font-size: 13px; cursor: pointer; }
 #addr:focus { cursor: text; }
 .addr-go { background: var(--accent); border: none; color: #fff; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; cursor: pointer; }
 
@@ -124,14 +113,6 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 .ni-row:last-child { border: none; }
 .ni-val { color: var(--accent); font-weight: 600; }
 
-/* ── PANELS (antispam, scanner) ── */
-.panel { position: fixed; top: 0; right: -420px; width: 400px; height: 100vh; background: var(--bg2); border-left: 1px solid var(--border); z-index: 300; transition: right .25s; overflow-y: auto; display: flex; flex-direction: column; }
-.panel.open { right: 0; }
-.panel-head { padding: 16px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.panel-head h2 { font-size: 16px; font-weight: 700; flex: 1; }
-.panel-close { background: none; border: none; color: var(--text2); font-size: 20px; cursor: pointer; }
-.panel-body { padding: 16px; flex: 1; }
-
 /* ── MODAL LOGIN/REGISTER ── */
 .modal-bg { position: fixed; inset: 0; background: #000000aa; backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 999; }
 .modal-bg.open { display: flex; }
@@ -150,28 +131,35 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 .mfooter a { color: var(--accent); cursor: pointer; }
 .modal-x { position: absolute; top: 12px; right: 14px; background: none; border: none; font-size: 18px; color: var(--text2); cursor: pointer; }
 
-/* badge spam/scan */
-.badge { padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; }
-.badge-danger { background: #ff453a22; color: var(--danger); border: 1px solid var(--danger); }
-.badge-warn   { background: #ff9f0a22; color: var(--warn);   border: 1px solid var(--warn); }
-.badge-info   { background: #0a84ff22; color: var(--accent); border: 1px solid var(--accent); }
-.badge-ok     { background: #00c89622; color: var(--green);  border: 1px solid var(--green); }
-.mac-row { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
-.mac-row .mac { font-weight: 700; font-size: 11px; letter-spacing: .5px; flex: 1; }
-.mac-row .ip  { color: var(--text2); }
-.mac-row .rpm { color: var(--warn); font-weight: 700; }
-.block-btn { padding: 3px 10px; border-radius: 6px; border: 1px solid; font-size: 11px; cursor: pointer; background: transparent; }
-.block-btn.blocked { border-color: var(--danger); color: var(--danger); }
-.block-btn.watch   { border-color: var(--warn);   color: var(--warn); }
-.req-row { padding: 9px 0; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: flex-start; }
-.req-row .rtitle { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
-.req-row .rdet   { font-size: 11px; color: var(--text2); }
-.req-row .rtime  { font-size: 10px; color: var(--text2); margin-top: 4px; }
+/* ── RESPONSIVE MOBILE ── */
+@media (max-width: 600px) {
+  .topbar { padding: 5px 8px; gap: 5px; }
+  .nav-btn { width: 28px; height: 28px; font-size: 14px; }
+  .addr-wrap { padding: 0 8px; height: 30px; }
+  #addr { font-size: 12px; }
+  #btn-fwd, #node-addr { display: none; }
+  .node-bar { padding: 4px 8px; white-space: nowrap; }
+  #node-status-txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .node-bar-right { flex-shrink: 0; }
+  .btn-accedi { padding: 5px 10px; font-size: 11px; }
+  .home-overlay { padding: 24px 12px 20px; }
+  .fn-logo { width: 56px; height: 56px; font-size: 26px; }
+  .fn-title { font-size: 17px; }
+  .fn-sub { font-size: 12px; margin-bottom: 20px; }
+  .search-box { margin-bottom: 24px; }
+  .search-box input { font-size: 13px; padding: 10px 12px; }
+  .search-box button { padding: 10px 14px; font-size: 13px; }
+  .ql-grid { grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); gap: 8px; }
+  .ql { padding: 10px 12px; border-radius: 10px; }
+  .ql-icon { font-size: 22px; }
+  .ql-name { font-size: 12px; }
+  .ql-desc { font-size: 10px; }
+  .sec-label { font-size: 10px; }
+  .node-info-box { padding: 12px 14px; }
+}
 </style>
 </head>
 <body>
-
-<div id="progress-bar"></div>
 
 <!-- ══ TOPBAR ══ -->
 <div class="topbar">
@@ -188,15 +176,8 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
   </div>
 
   <div class="topbar-right">
-    <button class="btn-accedi" id="btn-accedi" onclick="openLogin()">Accedi</button>
-    <button class="avatar-btn" id="btn-avatar" onclick="toggleUM()"></button>
-    <div class="user-menu" id="user-menu">
-      <div class="um-head"><div class="um-name" id="um-name">—</div><div class="um-sub">Browser Freenet</div></div>
-      <div class="um-item" onclick="openPanel('antispam')">🛡 Anti-Spam MAC</div>
-      <div class="um-item" onclick="openPanel('scanner')">🔍 Scanner richieste</div>
-      <div class="um-sep"></div>
-      <div class="um-item um-danger" onclick="doLogout()">⏻ Esci</div>
-    </div>
+    <a class="nav-btn" href="search.html" title="Cerca" aria-label="Cerca">🔍</a>
+    <a class="nav-btn" href="video.html#/settings" title="Impostazioni" aria-label="Impostazioni">⚙️</a>
   </div>
 </div>
 
@@ -206,7 +187,6 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
   <span id="node-status-txt">Verifica nodo locale…</span>
   <div class="node-bar-right">
     <span id="node-peers">— peer</span>
-    <span id="node-routing">routing —</span>
     <span id="node-addr">127.0.0.1:7509</span>
   </div>
 </div>
@@ -217,10 +197,10 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
   <div class="home-overlay" id="home-overlay">
     <div class="fn-logo">🌐</div>
     <div class="fn-title">Web 7.0 — Browser Decentralizzato</div>
-    <div class="fn-sub">Nessun server centrale · Nessuna raccolta dati · Open source · Per tutti<br><a href="https://freenet.org" target="_blank" style="color:var(--accent)">freenet.org</a> · <a href="https://github.com/blue-terminal/freenet-android" target="_blank" style="color:var(--text2)">GitHub</a></div>
+    <div class="fn-sub">Nessun server centrale · Nessuna raccolta dati · Solo rete Freenet</div>
 
     <div class="search-box" style="max-width:580px">
-      <input id="search-q" type="text" placeholder="Freenet USK/CHK, URL, parole chiave…" onkeydown="if(event.key==='Enter')doSearch()">
+      <input id="search-q" type="text" placeholder="Cerca su Freenet o incolla una chiave…" onkeydown="if(event.key==='Enter')doSearch()">
       <button onclick="doSearch()">🔍</button>
     </div>
 
@@ -229,20 +209,17 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
       <a class="ql" onclick="navigate('freenet://video')">
         <span class="ql-icon">▶️</span>
         <span class="ql-name">FreenetTV</span>
-        <span class="ql-desc">Video P2P · senza server</span>
-        <span id="ql-subs" style="font-size:10px;color:var(--green)"></span>
+        <span class="ql-desc">Video educativi · senza server</span>
       </a>
       <a class="ql" onclick="navigate('freenet://photos')">
         <span class="ql-icon">📸</span>
         <span class="ql-name">FreenetGram</span>
         <span class="ql-desc">Foto e storie decentralizzate</span>
-        <span id="ql-follows-g" style="font-size:10px;color:var(--green)"></span>
       </a>
       <a class="ql" onclick="navigate('freenet://posts')">
         <span class="ql-icon">🐤</span>
         <span class="ql-name">FreenetPosts</span>
-        <span class="ql-desc">Feed P2P · nessun algoritmo</span>
-        <span id="ql-follows-p" style="font-size:10px;color:var(--green)"></span>
+        <span class="ql-desc">Post brevi · nessun algoritmo</span>
       </a>
       <a class="ql" onclick="navigate('freenet://river')">
         <span class="ql-icon">💬</span>
@@ -253,6 +230,16 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
         <span class="ql-icon">✉️</span>
         <span class="ql-name">Freenet Mail</span>
         <span class="ql-desc">Email P2P · nessun provider</span>
+      </a>
+      <a class="ql" onclick="navigate('freenet://chess')">
+        <span class="ql-icon">♞</span>
+        <span class="ql-name">Scacchi</span>
+        <span class="ql-desc">Contro il computer o persone della rete</span>
+      </a>
+      <a class="ql" onclick="navigate('freenet://search')">
+        <span class="ql-icon">🔍</span>
+        <span class="ql-name">Cerca</span>
+        <span class="ql-desc">Motore di ricerca di Web 7.0</span>
       </a>
       <a class="ql" onclick="navigate('freenet://ghostkey')">
         <span class="ql-icon">🔑</span>
@@ -278,278 +265,12 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
         <span class="ql-name">freenet.org</span>
         <span class="ql-desc">Sito ufficiale sulla rete</span>
       </a>
-      <a class="ql" style="opacity:.6" onclick="window.open('https://github.com/freenet/freenet-wiki','_blank')">
-        <span class="ql-icon">📖</span>
-        <span class="ql-name">Wiki</span>
-        <span class="ql-desc">In sviluppo · GitHub</span>
-      </a>
-      <a class="ql" style="opacity:.6" onclick="window.open('https://github.com/freenet/raven','_blank')">
-        <span class="ql-icon">🐦</span>
-        <span class="ql-name">Raven</span>
-        <span class="ql-desc">Messaggistica P2P</span>
-      </a>
-      <a class="ql" style="opacity:.6" onclick="window.open('https://github.com/freenet/freenet-git','_blank')">
-        <span class="ql-icon">🔀</span>
-        <span class="ql-name">Freenet Git</span>
-        <span class="ql-desc">Hosting git decentralizzato</span>
-      </a>
-      <a class="ql" onclick="navigate('freenet://gitea')">
-        <span class="ql-icon">🐙</span>
-        <span class="ql-name">Gitea locale</span>
-        <span class="ql-desc">Git su questo PC · :3000</span>
-      </a>
       <a class="ql" onclick="navigate('freenet://impostazioni')">
         <span class="ql-icon">⚙️</span>
-        <span class="ql-name">Impostazioni nodo</span>
-        <span class="ql-desc">Configurazione Freenet</span>
+        <span class="ql-name">Stato nodo</span>
+        <span class="ql-desc">Pagina del nodo locale</span>
       </a>
     </div>
-
-    <div class="sec-label">🐘 Fediverse — Social federato</div>
-    <div class="ql-grid">
-      <a class="ql" onclick="navigate('https://joinmastodon.org')">
-        <span class="ql-icon">🐘</span>
-        <span class="ql-name">Mastodon</span>
-        <span class="ql-desc">Twitter alternativo federato</span>
-      </a>
-      <a class="ql" onclick="navigate('https://joinpeertube.org')">
-        <span class="ql-icon">📺</span>
-        <span class="ql-name">PeerTube</span>
-        <span class="ql-desc">YouTube alternativo P2P</span>
-      </a>
-      <a class="ql" onclick="navigate('https://pixelfed.org')">
-        <span class="ql-icon">🖼️</span>
-        <span class="ql-name">Pixelfed</span>
-        <span class="ql-desc">Instagram alternativo</span>
-      </a>
-      <a class="ql" onclick="navigate('https://join-lemmy.org')">
-        <span class="ql-icon">🔗</span>
-        <span class="ql-name">Lemmy</span>
-        <span class="ql-desc">Reddit alternativo federato</span>
-      </a>
-      <a class="ql" onclick="navigate('https://element.io')">
-        <span class="ql-icon">💬</span>
-        <span class="ql-name">Matrix/Element</span>
-        <span class="ql-desc">Chat E2E decentralizzata</span>
-      </a>
-      <a class="ql" onclick="navigate('https://diasporafoundation.org')">
-        <span class="ql-icon">🌱</span>
-        <span class="ql-name">Diaspora</span>
-        <span class="ql-desc">Social federato pioniere</span>
-      </a>
-    </div>
-
-    <div class="sec-label">📦 P2P Storage &amp; Protocolli</div>
-    <div class="ql-grid">
-      <a class="ql" onclick="navigate('https://ipfs.tech')">
-        <span class="ql-icon">📦</span>
-        <span class="ql-name">IPFS</span>
-        <span class="ql-desc">Storage P2P distribuito</span>
-      </a>
-      <a class="ql" onclick="navigate('https://www.torproject.org')">
-        <span class="ql-icon">🧅</span>
-        <span class="ql-name">Tor Project</span>
-        <span class="ql-desc">Anonimato · .onion sites</span>
-      </a>
-      <a class="ql" onclick="navigate('https://i2p.net')">
-        <span class="ql-icon">🔒</span>
-        <span class="ql-name">I2P</span>
-        <span class="ql-desc">Rete anonima overlay</span>
-      </a>
-      <a class="ql" onclick="navigate('https://yggdrasil-network.github.io')">
-        <span class="ql-icon">🌿</span>
-        <span class="ql-name">Yggdrasil</span>
-        <span class="ql-desc">IPv6 mesh decentralizzato</span>
-      </a>
-      <a class="ql" onclick="navigate('https://hypercore-protocol.org')">
-        <span class="ql-icon">🌀</span>
-        <span class="ql-name">Hypercore</span>
-        <span class="ql-desc">P2P data protocol</span>
-      </a>
-      <a class="ql" onclick="navigate('https://nostr.com')">
-        <span class="ql-icon">⚡</span>
-        <span class="ql-name">Nostr</span>
-        <span class="ql-desc">Protocollo note aperte</span>
-      </a>
-      <a class="ql" onclick="navigate('https://briarproject.org')">
-        <span class="ql-icon">🌹</span>
-        <span class="ql-name">Briar</span>
-        <span class="ql-desc">P2P messaggi · funziona offline</span>
-      </a>
-      <a class="ql" onclick="navigate('https://retroshare.cc')">
-        <span class="ql-icon">🔄</span>
-        <span class="ql-name">RetroShare</span>
-        <span class="ql-desc">P2P social criptato · F2F</span>
-      </a>
-    </div>
-
-    <div class="sec-label">🏔️ Git Open Source</div>
-    <div class="ql-grid">
-      <a class="ql" onclick="navigate('https://codeberg.org')">
-        <span class="ql-icon">🏔️</span>
-        <span class="ql-name">Codeberg</span>
-        <span class="ql-desc">Git senza raccolta dati</span>
-      </a>
-      <a class="ql" onclick="navigate('https://sr.ht')">
-        <span class="ql-icon">🔧</span>
-        <span class="ql-name">SourceHut</span>
-        <span class="ql-desc">Dev tools minimalisti</span>
-      </a>
-      <a class="ql" onclick="navigate('https://about.gitlab.com')">
-        <span class="ql-icon">🦊</span>
-        <span class="ql-name">GitLab</span>
-        <span class="ql-desc">Auto-hostabile · CE</span>
-      </a>
-      <a class="ql" onclick="navigate('https://forgejo.org')">
-        <span class="ql-icon">🔥</span>
-        <span class="ql-name">Forgejo</span>
-        <span class="ql-desc">Fork Gitea · community</span>
-      </a>
-      <a class="ql" onclick="navigate('https://github.com')">
-        <span class="ql-icon">🐱</span>
-        <span class="ql-name">GitHub</span>
-        <span class="ql-desc">Hosting più grande</span>
-      </a>
-    </div>
-
-    <div class="sec-label">🎬 Video &amp; Media — Utili &amp; Divulgativi</div>
-    <div class="ql-grid">
-      <a class="ql" onclick="navigate('https://www.youtube.com')">
-        <span class="ql-icon">▶️</span>
-        <span class="ql-name">YouTube</span>
-        <span class="ql-desc">Tutorial, divulgazione, corsi</span>
-      </a>
-      <a class="ql" onclick="navigate('https://odysee.com')">
-        <span class="ql-icon">🌊</span>
-        <span class="ql-name">Odysee</span>
-        <span class="ql-desc">Video P2P alternativo</span>
-      </a>
-      <a class="ql" onclick="navigate('https://www.ted.com/talks')">
-        <span class="ql-icon">🎤</span>
-        <span class="ql-name">TED Talks</span>
-        <span class="ql-desc">Conferenze · idee che cambiano</span>
-      </a>
-      <a class="ql" onclick="navigate('https://vimeo.com')">
-        <span class="ql-icon">🎞️</span>
-        <span class="ql-name">Vimeo</span>
-        <span class="ql-desc">Video creativi · no ads</span>
-      </a>
-      <a class="ql" onclick="navigate('https://www.khanacademy.org')">
-        <span class="ql-icon">🎓</span>
-        <span class="ql-name">Khan Academy</span>
-        <span class="ql-desc">Corsi gratuiti · no-profit</span>
-      </a>
-      <a class="ql" onclick="navigate('https://www.coursera.org')">
-        <span class="ql-icon">📚</span>
-        <span class="ql-name">Coursera</span>
-        <span class="ql-desc">Corsi universitari online</span>
-      </a>
-      <a class="ql" onclick="navigate('https://www.youtube.com/@3blue1brown')">
-        <span class="ql-icon">🔵</span>
-        <span class="ql-name">3Blue1Brown</span>
-        <span class="ql-desc">Matematica · visualizzazioni</span>
-      </a>
-      <a class="ql" onclick="navigate('https://www.youtube.com/@Computerphile')">
-        <span class="ql-icon">💻</span>
-        <span class="ql-name">Computerphile</span>
-        <span class="ql-desc">Informatica · sicurezza · video</span>
-      </a>
-    </div>
-
-    <div class="sec-label">🛡 Privacy &amp; Sicurezza</div>
-    <div class="ql-grid">
-      <a class="ql" onclick="navigate('https://signal.org')">
-        <span class="ql-icon">🔐</span>
-        <span class="ql-name">Signal</span>
-        <span class="ql-desc">Messaggistica E2E sicura</span>
-      </a>
-      <a class="ql" onclick="navigate('https://www.mullvad.net')">
-        <span class="ql-icon">🦔</span>
-        <span class="ql-name">Mullvad VPN</span>
-        <span class="ql-desc">VPN senza dati · no log</span>
-      </a>
-      <a class="ql" onclick="navigate('https://www.eff.org')">
-        <span class="ql-icon">🏛️</span>
-        <span class="ql-name">EFF</span>
-        <span class="ql-desc">Diritti digitali</span>
-      </a>
-      <a class="ql" onclick="navigate('https://www.gnu.org')">
-        <span class="ql-icon">🐃</span>
-        <span class="ql-name">GNU / FSF</span>
-        <span class="ql-desc">Software libero</span>
-      </a>
-      <a class="ql" onclick="navigate('https://privacyguides.org')">
-        <span class="ql-icon">📋</span>
-        <span class="ql-name">Privacy Guides</span>
-        <span class="ql-desc">Guide privacy pratiche</span>
-      </a>
-      <a class="ql" onclick="navigate('https://www.mozilla.org')">
-        <span class="ql-icon">🦊</span>
-        <span class="ql-name">Mozilla</span>
-        <span class="ql-desc">Firefox · open web</span>
-      </a>
-      <a class="ql" onclick="navigate('https://owasp.org')">
-        <span class="ql-icon">🕷️</span>
-        <span class="ql-name">OWASP</span>
-        <span class="ql-desc">Top 10 vulns · guida web sec</span>
-      </a>
-      <a class="ql" onclick="navigate('https://www.hackthebox.com')">
-        <span class="ql-icon">📦</span>
-        <span class="ql-name">Hack The Box</span>
-        <span class="ql-desc">Lab CTF · pentesting pratico</span>
-      </a>
-      <a class="ql" onclick="navigate('https://tryhackme.com')">
-        <span class="ql-icon">🧩</span>
-        <span class="ql-name">TryHackMe</span>
-        <span class="ql-desc">Percorsi guidati sicurezza</span>
-      </a>
-      <a class="ql" onclick="navigate('http://127.0.0.1:9999')">
-        <span class="ql-icon">🛸</span>
-        <span class="ql-name">UFONet</span>
-        <span class="ql-desc">Studio sicurezza · GUI locale</span>
-      </a>
-      <a class="ql" onclick="navigate('https://github.com/epsylon/ufonet')">
-        <span class="ql-icon">📖</span>
-        <span class="ql-name">UFONet Docs</span>
-        <span class="ql-desc">Documentazione &amp; sorgenti</span>
-      </a>
-    </div>
-    <div style="height:16px"></div>
-
-    <div class="sec-label">🇮🇹 Cultura &amp; Scienza</div>
-    <div class="ql-grid">
-      <a class="ql" onclick="navigate('https://www.treccani.it')">
-        <span class="ql-icon">📖</span>
-        <span class="ql-name">Treccani</span>
-        <span class="ql-desc">Enciclopedia italiana</span>
-      </a>
-      <a class="ql" onclick="navigate('https://www.raicultura.it')">
-        <span class="ql-icon">🎭</span>
-        <span class="ql-name">RAI Cultura</span>
-        <span class="ql-desc">Documentari · arte · storia</span>
-      </a>
-      <a class="ql" onclick="navigate('https://www.infn.it')">
-        <span class="ql-icon">⚛️</span>
-        <span class="ql-name">INFN</span>
-        <span class="ql-desc">Fisica nucleare italiana</span>
-      </a>
-      <a class="ql" onclick="navigate('https://it.wikipedia.org')">
-        <span class="ql-icon">🌐</span>
-        <span class="ql-name">Wikipedia IT</span>
-        <span class="ql-desc">Enciclopedia libera</span>
-      </a>
-      <a class="ql" onclick="navigate('https://archive.org')">
-        <span class="ql-icon">🏛️</span>
-        <span class="ql-name">Internet Archive</span>
-        <span class="ql-desc">42M libri · Wayback Machine</span>
-      </a>
-      <a class="ql" onclick="navigate('https://www.gutenberg.org')">
-        <span class="ql-icon">📚</span>
-        <span class="ql-name">Project Gutenberg</span>
-        <span class="ql-desc">70k+ libri liberi da copyright</span>
-      </a>
-    </div>
-    <div style="height:16px"></div>
 
     <div class="node-info-box">
       <h3>Stato nodo Freenet</h3>
@@ -558,7 +279,6 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
       <div class="ni-row"><span>Stato</span><span class="ni-val" id="ni-net">—</span></div>
       <div class="ni-row"><span>Versione</span><span class="ni-val" id="ni-ver">—</span></div>
       <div class="ni-row"><span>Peer connessi</span><span class="ni-val" id="ni-peers">—</span></div>
-      <div class="ni-row"><span>Infrastruttura</span><span class="ni-val"><a href="https://freenet.org" target="_blank" style="color:var(--accent)">freenet.org</a></span></div>
     </div>
 
     <!-- Grafico rete nodi -->
@@ -572,239 +292,81 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
   <iframe id="fn-frame" style="display:none" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
 </div>
 
-<!-- ══ PANEL: ANTI-SPAM ══ -->
-<div class="panel" id="panel-antispam">
-  <div class="panel-head">
-    <span style="font-size:20px">🛡</span>
-    <h2>Anti-Spam MAC</h2>
-    <button class="panel-close" onclick="closePanel('antispam')">✕</button>
-  </div>
-  <div class="panel-body">
-    <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Nodi che spammano vengono bloccati per MAC address. Il blocco vale su tutta la rete locale.</p>
-    <div id="spam-list"></div>
-  </div>
-</div>
-
-<!-- ══ PANEL: SCANNER ══ -->
-<div class="panel" id="panel-scanner">
-  <div class="panel-head">
-    <span style="font-size:20px">🔍</span>
-    <h2>Scanner richieste</h2>
-    <button class="panel-close" onclick="closePanel('scanner')">✕</button>
-  </div>
-  <div class="panel-body">
-    <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Analisi delle richieste in ingresso al nodo. Rileva header mancanti, payload malformati, replay attack.</p>
-    <div id="scan-list"></div>
-  </div>
-</div>
-
-<!-- ══ MODAL LOGIN ══ -->
-<div class="modal-bg" id="modal-bg" onclick="closeMBG(event)">
-  <div class="modal">
-    <button class="modal-x" onclick="closeModal()">✕</button>
-    <div id="m-login">
-      <div class="modal-logo">🌐</div>
-      <h2>Accedi</h2>
-      <p>Solo nome utente e password — nessuna email</p>
-      <div class="field"><label>Nome utente</label><input id="l-n" type="text" placeholder="nome_nodo"><div class="err" id="le-n">Nome non trovato — <a onclick="showReg()">registrati</a></div></div>
-      <div class="field"><label>Password</label><input id="l-p" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"><div class="err" id="le-p">Password errata</div></div>
-      <button class="btn-sub" onclick="doLogin()">Accedi</button>
-      <div class="mfooter">Non hai un account? <a onclick="showReg()">Registrati</a></div>
-    </div>
-    <div id="m-reg" style="display:none">
-      <div class="modal-logo">🌐</div>
-      <h2>Crea account</h2>
-      <p>Anonimo · Nessuna email · Tutti i nodi ti vedono</p>
-      <div class="field"><label>Nome utente</label><input id="r-n" type="text" placeholder="nome_nodo"><div class="err" id="re-n">Nome già in uso</div></div>
-      <div class="field"><label>Password</label><input id="r-p" type="password" placeholder="min. 6 caratteri"><div class="err" id="re-p">Troppo corta (min. 6)</div></div>
-      <div class="field"><label>Conferma password</label><input id="r-p2" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doReg()"><div class="err" id="re-p2">Non coincidono</div></div>
-      <button class="btn-sub" onclick="doReg()">Crea account</button>
-      <div class="mfooter">Hai già un account? <a onclick="showLogin()">Accedi</a></div>
-    </div>
-  </div>
-</div>
-
 <script>
 // Usa FN da fn-api.js (tutti i contratti e le app del progetto github.com/freenet)
-function contractUrl(key) {
-  const n = (FN.getActiveNode() || FN.NODES[0]);
-  return n.base + '/v1/contract/web/' + key + '/';
-}
-function buildRoutes() {
-  const apps = FN.FN_APPS;
-  const node = FN.getActiveNode() || FN.NODES[0];
-  return {
-    'freenet://home':         null,
-    'freenet://atlas':        apps.atlas    ? contractUrl(apps.atlas)    : null,
-    'freenet://river':        apps.river    ? contractUrl(apps.river)    : null,
-    'freenet://mail':         apps.mail     ? contractUrl(apps.mail)     : null,
-    'freenet://editor':       apps.delta    ? contractUrl(apps.delta)    : null,
-    'freenet://delta':        apps.delta    ? contractUrl(apps.delta)    : null,
-    'freenet://ghostkey':     apps.ghostkey ? contractUrl(apps.ghostkey) : null,
-    'freenet://freenetorg':   apps.freenetorg ? contractUrl(apps.freenetorg) : null,
-    'freenet://impostazioni': node.base + '/config/',
-    'freenet://video':        'video.html',
-  };
-}
-const ROUTES = buildRoutes();
-
 // ── node status check ─────────────────────────────────────────────────────────
 let nodeOnline = false;
+
+// Il nodo non espone il dato in JSON: si legge dalla sua pagina di stato.
+async function readPeerCount(node) {
+  try {
+    // Sul PC il nodo è un'altra origine e la sua pagina si legge tramite web70.py.
+    const r = await fetch(location.protocol === 'file:' ? node.base + '/' : '/__node/');
+    const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
+    for (const label of doc.querySelectorAll('.metric-label')) {
+      if (label.textContent.trim() === 'Ring peers') {
+        const n = parseInt(label.parentElement.querySelector('.metric-value').textContent, 10);
+        return isNaN(n) ? null : n;
+      }
+    }
+  } catch {}
+  return null;
+}
+
 async function checkNode() {
   const node = await FN.detectNode();
   nodeOnline = !!node;
   const dot = document.getElementById('node-dot');
   const txt = document.getElementById('node-status-txt');
-  // mostra nodo remoto salvato
   try {
     const remIp = localStorage.getItem('fn_remote_node');
     document.getElementById('ni-remote').textContent = remIp ? remIp + ':7509' : '—';
   } catch {}
+  const peers = node ? await readPeerCount(node) : 0;
+  const shown = peers === null ? '—' : String(peers);
+  document.getElementById('ni-peers').textContent = shown;
+  document.getElementById('node-peers').textContent = shown + ' peer';
+  graphSetPeers(node ? peers : null);
   if (node) {
     dot.className = 'node-dot on';
     txt.textContent = 'Nodo online: ' + node.name;
-    document.getElementById('ni-net').textContent   = 'Online ✓';
-    document.getElementById('ni-ver').textContent   = FN.getNodeVersion() || '—';
-    document.getElementById('ni-addr').textContent  = node.base.replace('http://', '');
-    document.getElementById('ni-peers').textContent = node.type === 'new' ? '8–12 peer' : '5–8 peer';
-    document.getElementById('node-peers').textContent   = node.type === 'new' ? '~10 peer' : '~6 peer';
-    document.getElementById('node-routing').textContent = node.type === 'new' ? 'routing attivo' : 'routing Fred';
+    document.getElementById('ni-net').textContent  = 'Online ✓';
+    document.getElementById('ni-ver').textContent  = FN.getNodeVersion() || '—';
+    document.getElementById('ni-addr').textContent = node.base.replace('http://', '');
     document.getElementById('node-addr').textContent = node.base.replace('http://', '');
-    graphSetOnline(true);
   } else {
     dot.className = 'node-dot off';
     txt.textContent = 'Nodo offline — avvia l\'app Freenet';
-    document.getElementById('ni-net').textContent   = 'Offline';
-    document.getElementById('ni-ver').textContent   = '—';
-    document.getElementById('ni-peers').textContent = '0';
-    graphSetOnline(false);
+    document.getElementById('ni-net').textContent = 'Offline';
+    document.getElementById('ni-ver').textContent = '—';
   }
+}
+
+// ── grafico nodi: un punto per ogni peer reale ─────────────────────────────────
+function graphSetPeers(count) {
+  const canvas = document.getElementById('node-graph');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height, cx = W / 2, cy = H / 2 - 8;
+  const n = count || 0;
+  ctx.clearRect(0, 0, W, H);
+  for (let i = 0; i < n; i++) {
+    const a = i / n * Math.PI * 2 - Math.PI / 2;
+    const x = cx + Math.cos(a) * 200, y = cy + Math.sin(a) * 90;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y);
+    ctx.strokeStyle = 'rgba(10,132,255,.3)'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#0a84ff'; ctx.fill();
+  }
+  ctx.beginPath(); ctx.arc(cx, cy, 20, 0, Math.PI * 2);
+  ctx.fillStyle = count === null ? '#2a3a4e' : '#0a60c0'; ctx.fill();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 13px system-ui';
+  ctx.fillText(count === null ? '—' : String(n), cx, cy);
+  ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.font = '11px system-ui';
+  ctx.fillText('Nodo locale', cx, cy + 34);
 }
 checkNode();
 setInterval(checkNode, 15000);
-
-// ── grafico nodi ───────────────────────────────────────────────────────────────
-(function initNodeGraph() {
-  const canvas = document.getElementById('node-graph');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  const cx = W / 2, cy = H / 2;
-
-  // Peer nodes: posizioni fisse attorno al centro
-  const peers = [
-    {angle: 0,    r: 100, label: '185.220.x.x', lag: 42},
-    {angle: 40,   r: 110, label: '45.33.x.x',   lag: 78},
-    {angle: 80,   r: 95,  label: '78.46.x.x',   lag: 31},
-    {angle: 130,  r: 115, label: 'Nodo LAN',     lag: 5, local: true},
-    {angle: 190,  r: 100, label: '194.165.x.x',  lag: 65},
-    {angle: 240,  r: 108, label: '89.207.x.x',   lag: 88},
-    {angle: 290,  r: 98,  label: '176.9.x.x',    lag: 55},
-    {angle: 330,  r: 112, label: '5.9.x.x',      lag: 72},
-  ].map(p => {
-    const rad = p.angle * Math.PI / 180;
-    return { ...p, x: cx + Math.cos(rad) * p.r, y: cy + Math.sin(rad) * p.r, pulse: Math.random() * Math.PI * 2 };
-  });
-
-  let online = false;
-  let t = 0;
-
-  // Particelle che viaggiano lungo i link
-  const particles = peers.flatMap((p, i) => [
-    { peer: i, progress: Math.random(), speed: 0.004 + Math.random() * 0.003, dir: 1 },
-    { peer: i, progress: Math.random(), speed: 0.003 + Math.random() * 0.004, dir: -1 },
-  ]);
-
-  function draw() {
-    ctx.clearRect(0, 0, W, H);
-    t += 0.02;
-
-    // sfondo scuro con gradient
-    const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, 160);
-    bg.addColorStop(0, 'rgba(10,132,255,0.06)');
-    bg.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, W, H);
-
-    peers.forEach((p, i) => {
-      // linea di connessione
-      const alpha = online ? (0.15 + 0.1 * Math.sin(t + i)) : 0.06;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(p.x, p.y);
-      ctx.strokeStyle = online
-        ? (p.local ? 'rgba(0,200,150,' + alpha + ')' : 'rgba(10,132,255,' + alpha + ')')
-        : 'rgba(100,120,150,0.08)';
-      ctx.lineWidth = p.local ? 1.5 : 1;
-      ctx.stroke();
-
-      // particella che scorre (solo online)
-      if (online) {
-        const part = particles.find(q => q.peer === i && q.dir === 1);
-        if (part) {
-          part.progress = (part.progress + part.speed) % 1;
-          const px = cx + (p.x - cx) * part.progress;
-          const py = cy + (p.y - cy) * part.progress;
-          ctx.beginPath();
-          ctx.arc(px, py, 2, 0, Math.PI * 2);
-          ctx.fillStyle = p.local ? 'rgba(0,200,150,0.9)' : 'rgba(10,132,255,0.8)';
-          ctx.fill();
-        }
-      }
-
-      // nodo peer
-      p.pulse += 0.04;
-      const pr = 6 + (online ? 1.5 * Math.sin(p.pulse) : 0);
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, pr, 0, Math.PI * 2);
-      ctx.fillStyle = online
-        ? (p.local ? '#00c896' : '#0a84ff')
-        : '#3a4a5e';
-      ctx.fill();
-
-      // label lag (solo online)
-      if (online) {
-        ctx.fillStyle = p.local ? '#00c896' : 'rgba(200,220,255,0.6)';
-        ctx.font = '9px system-ui';
-        ctx.textAlign = 'center';
-        ctx.fillText(p.lag + 'ms', p.x, p.y - 11);
-      }
-    });
-
-    // nodo centrale
-    const cr = 20 + (online ? 2 * Math.sin(t * 1.5) : 0);
-    // alone pulsante
-    if (online) {
-      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, cr + 20);
-      glow.addColorStop(0, 'rgba(10,132,255,0.3)');
-      glow.addColorStop(1, 'rgba(10,132,255,0)');
-      ctx.beginPath();
-      ctx.arc(cx, cy, cr + 20, 0, Math.PI * 2);
-      ctx.fillStyle = glow;
-      ctx.fill();
-    }
-    ctx.beginPath();
-    ctx.arc(cx, cy, cr, 0, Math.PI * 2);
-    const grad = ctx.createRadialGradient(cx - 5, cy - 5, 0, cx, cy, cr);
-    grad.addColorStop(0, online ? '#3fa0ff' : '#2a3a4e');
-    grad.addColorStop(1, online ? '#0a60c0' : '#1a2a3e');
-    ctx.fillStyle = grad;
-    ctx.fill();
-    ctx.font = 'bold 11px system-ui';
-    ctx.fillStyle = '#fff';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🌐', cx, cy);
-    ctx.font = '9px system-ui';
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.fillText('Nodo locale', cx, cy + 30);
-
-    requestAnimationFrame(draw);
-  }
-
-  window.graphSetOnline = function(v) { online = v; };
-  draw();
-})();
 
 // ── archivio siti visitati (persistente) ──────────────────────────────────────
 function loadSiteArchive()  { try { return JSON.parse(localStorage.getItem('fn_site_archive')||'[]'); } catch { return []; } }
@@ -832,20 +394,6 @@ function updateNavUI(url) {
   document.getElementById('addr').value = url || 'freenet://home';
 }
 
-let _progressTimer = null;
-function showProgress() {
-  const bar = document.getElementById('progress-bar');
-  bar.style.width = '0%'; bar.classList.add('loading');
-  let w = 10;
-  _progressTimer = setInterval(() => { w = Math.min(w + (90 - w) * .08 + 1, 88); bar.style.width = w + '%'; }, 120);
-}
-function hideProgress() {
-  clearInterval(_progressTimer);
-  const bar = document.getElementById('progress-bar');
-  bar.style.width = '100%';
-  setTimeout(() => { bar.classList.remove('loading'); bar.style.width = '0%'; }, 400);
-}
-
 function navigate(url) {
   url = url || document.getElementById('addr').value.trim();
   if (!url) return;
@@ -854,193 +402,91 @@ function navigate(url) {
   updateNavUI(url);
   loadUrl(url);
 }
-function goBack()    { if (histIdx > 0) { const url = history_[--histIdx]; updateNavUI(url); loadUrl(url, true); } }
-function goForward() { if (histIdx < history_.length-1) { const url = history_[++histIdx]; updateNavUI(url); loadUrl(url, true); } }
-function reload()    { loadUrl(history_[histIdx], true); }
+function goBack()    { if (histIdx > 0) { const url = history_[--histIdx]; updateNavUI(url); loadUrl(url); } }
+function goForward() { if (histIdx < history_.length-1) { const url = history_[++histIdx]; updateNavUI(url); loadUrl(url); } }
+function reload()    { loadUrl(history_[histIdx]); }
 
-function loadUrl(url, skipHist) {
-  if (!skipHist) { document.getElementById('addr').value = url; }
-  const frame  = document.getElementById('fn-frame');
-  const home   = document.getElementById('home-overlay');
+const LOCAL_APPS = {
+  'freenet://video':  'video.html',
+  'freenet://photos': 'photos.html',
+  'freenet://posts':  'posts.html',
+  'freenet://chess':  'chess.html',
+  'freenet://search': 'search.html',
+};
+const NAMED_APPS = ['atlas', 'river', 'mail', 'editor', 'delta', 'ghostkey', 'freenetorg', 'impostazioni'];
+const KEY_RE = /^[1-9A-HJ-NP-Za-km-z]{32,50}$/;
 
+// Solo app Freenet e pagine del nodo: un indirizzo qualsiasi farebbe rispondere al nodo 404 o 500.
+function resolveTarget(url) {
+  if (url.startsWith('freenet://')) {
+    const name = url.slice('freenet://'.length).replace(/\/+$/, '');
+    return NAMED_APPS.includes(name) || KEY_RE.test(name) ? FN.resolveUrl('freenet://' + name) : null;
+  }
+  if (KEY_RE.test(url)) return FN.resolveUrl('freenet://' + url);
+  const node = FN.getActiveNode() || FN.NODES[0];
+  return url.startsWith(node.base + '/') ? url : null;
+}
+
+function shellLink(label, msg) {
+  return `<button onclick='window.parent.postMessage(${JSON.stringify({ __freenet_shell__: true, ...msg })},"*")' style="background:#112240;color:#e8edf4;border:1px solid #1e3a5f;border-radius:10px;padding:12px 16px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:8px">${label}</button>`;
+}
+
+function showMessage(icon, title, text, links) {
+  const frame = document.getElementById('fn-frame');
+  frame.srcdoc = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="background:#0d1b2a;color:#e8edf4;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;box-sizing:border-box"><div style="max-width:420px;width:100%;text-align:center"><div style="font-size:44px;margin-bottom:12px">${icon}</div><div style="font-size:19px;font-weight:700;margin-bottom:8px">${title}</div><div style="font-size:13px;color:#8fa8c8;margin-bottom:16px;line-height:1.6">${text}</div>${links.join('')}</div></body></html>`;
+}
+
+const HOME_LINK = ['🏠 Torna alla home', { type: 'navigate', href: 'freenet://home' }];
+
+async function loadUrl(url) {
+  const frame = document.getElementById('fn-frame');
+  const home  = document.getElementById('home-overlay');
   if (url === 'freenet://home' || !url) {
     frame.style.display = 'none';
     home.style.display  = 'flex';
     return;
   }
-  // app sociali locali
-  const LOCAL_APPS = {
-    'freenet://video':  'video.html',
-    'freenet://photos': 'photos.html',
-    'freenet://posts':  'posts.html',
-  };
   if (LOCAL_APPS[url]) { window.open(LOCAL_APPS[url], '_self'); return; }
-  // usa FN.resolveUrl per compatibilità nuovo/vecchio Freenet
-  const target = FN.resolveUrl(url) || url;
-  if (target === 'video.html') { window.open('video.html', '_self'); return; }
   home.style.display  = 'none';
   frame.style.display = 'block';
 
-  if (nodeOnline) {
-    showProgress();
-    const reloadBtn = document.getElementById('btn-reload');
-    reloadBtn.textContent = '✕';
-    reloadBtn.onclick = () => { frame.src = 'about:blank'; hideProgress(); reloadBtn.textContent = '↺'; reloadBtn.onclick = reload; };
-    frame.onload = () => { hideProgress(); reloadBtn.textContent = '↺'; reloadBtn.onclick = reload; };
-    frame.src = target;
-  } else {
-    // Nodo offline: pagina utile con istruzioni e link alle app locali sempre disponibili
-    frame.srcdoc = `<!DOCTYPE html><html><body style="background:#0d1b2a;color:#e8edf4;font-family:'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:0;margin:0;padding:24px;box-sizing:border-box">
-      <div style="max-width:420px;width:100%;text-align:center">
-        <div style="font-size:48px;margin-bottom:12px">🔌</div>
-        <div style="font-size:20px;font-weight:700;margin-bottom:8px">Nodo Freenet non attivo</div>
-        <div style="font-size:13px;color:#8fa8c8;margin-bottom:24px;line-height:1.6">Questa app Freenet richiede un nodo P2P attivo.<br>Avvia il nodo, poi premi Ricarica.</div>
-        <button onclick="window.parent.postMessage({__freenet_shell__:true,type:'navigate',href:'freenet://home'},'*')" style="background:#0a84ff;color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px;width:100%">🏠 Torna alla home</button>
-        <button onclick="location.reload()" style="background:#1a3358;color:#e8edf4;border:1px solid #1e3a5f;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:20px;width:100%">↺ Ricarica (nodo attivo?)</button>
-        <div style="font-size:11px;color:#4a6a8a;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">Sempre disponibili (senza nodo)</div>
-        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-          <a onclick="window.parent.postMessage({__freenet_shell__:true,type:'navigate',href:'freenet://video'},'*')" style="background:#112240;border:1px solid #1e3a5f;border-radius:12px;padding:12px 16px;text-decoration:none;color:#e8edf4;cursor:pointer;font-size:13px;text-align:center;min-width:90px">▶️<br><b>FreenetTV</b></a>
-          <a onclick="window.parent.postMessage({__freenet_shell__:true,type:'navigate',href:'freenet://photos'},'*')" style="background:#112240;border:1px solid #1e3a5f;border-radius:12px;padding:12px 16px;text-decoration:none;color:#e8edf4;cursor:pointer;font-size:13px;text-align:center;min-width:90px">📸<br><b>Gram</b></a>
-          <a onclick="window.parent.postMessage({__freenet_shell__:true,type:'navigate',href:'freenet://posts'},'*')" style="background:#112240;border:1px solid #1e3a5f;border-radius:12px;padding:12px 16px;text-decoration:none;color:#e8edf4;cursor:pointer;font-size:13px;text-align:center;min-width:90px">🐤<br><b>Posts</b></a>
-        </div>
-        <div style="font-size:10px;color:#2a4a6a;margin-top:20px;word-break:break-all">${target}</div>
-      </div>
-    </body></html>`;
+  if (!nodeOnline) await checkNode();
+  const target = resolveTarget(url);
+  if (!target) {
+    showMessage('🔎', 'Indirizzo non valido',
+      'Web 7.0 apre solo app Freenet e chiavi di contratto, non indirizzi di Internet.',
+      [shellLink(...HOME_LINK)]);
+    return;
   }
+  if (!nodeOnline) {
+    showMessage('🔌', 'Nodo Freenet non attivo', 'Questa pagina è sulla rete Freenet: serve il nodo acceso.', [
+      shellLink('↺ Riprova', { type: 'reload' }),
+      shellLink(...HOME_LINK),
+    ]);
+    return;
+  }
+  // Le app Freenet si aprono a tutta pagina: dentro un riquadro alcune funzioni restano bloccate.
+  window.location.href = target;
 }
 
 function doSearch() {
   const q = document.getElementById('search-q').value.trim();
-  if (!q) return;
-  // Chiave Freenet diretta (USK/CHK/contratto) — naviga nel nodo
-  if (/^[A-Za-z0-9_-]{30,60}$/.test(q)) { navigate('freenet://' + q); return; }
-  // Ricerca web reale: apri Brave Search nel browser esterno
-  // Su Android usa Android.openExternal() (BootstrapActivity NodeBridge)
-  // Su PC usa window.open() per aprire una nuova scheda
-  const url = 'https://search.brave.com/search?q=' + encodeURIComponent(q);
-  if (typeof Android !== 'undefined' && Android.openExternal) {
-    Android.openExternal(url);
-  } else {
-    window.open(url, '_blank');
-  }
+  if (KEY_RE.test(q)) navigate('freenet://' + q);
+  else location.href = 'search.html?q=' + encodeURIComponent(q);
 }
 
-// ── Shell postMessage handler (da freenet-core navigation_interceptor.js) ────
-// I contratti dentro iframe mandano { __freenet_shell__: true, type:'navigate', href:'...' }
+// Messaggi dalle app nel frame (da freenet-core navigation_interceptor.js) e dalle pagine di avviso.
 window.addEventListener('message', function(e) {
+  if (e.source !== document.getElementById('fn-frame').contentWindow) return;
   if (!e.data || !e.data.__freenet_shell__) return;
-  if (e.data.type === 'navigate' && e.data.href) {
-    navigate(e.data.href);
-  }
+  if (e.data.type === 'navigate' && typeof e.data.href === 'string') navigate(e.data.href);
+  if (e.data.type === 'reload') reload();
 });
 
-// ── panels ────────────────────────────────────────────────────────────────────
-const SPAM = [
-  { mac:'A4:C3:F0:11:22:33', ip:'192.0.2.55',   rpm:312, status:'blocked' },
-  { mac:'B8:27:EB:AA:BB:CC', ip:'203.0.113.4',  rpm:189, status:'blocked' },
-  { mac:'DC:A6:32:FF:EE:DD', ip:'198.51.100.9', rpm:95,  status:'blocked' },
-  { mac:'E4:5F:01:12:34:56', ip:'192.0.2.200',  rpm:58,  status:'watch'   },
-  { mac:'F0:2F:4B:99:88:77', ip:'203.0.113.99', rpm:54,  status:'watch'   },
-];
-const REQS = [
-  { sev:'danger', title:'Payload vuoto su /store',        detail:'POST senza body da B8:27:EB — bloccato',      time:'13:50:47' },
-  { sev:'danger', title:'Firma ECDSA non valida',         detail:'Firma corrotta da 192.0.2.55 — scartata',     time:'13:47:58' },
-  { sev:'warn',   title:'Header mancante: X-Node-ID',     detail:'12 req da 192.0.2.55 — campo assente',        time:'13:51:02' },
-  { sev:'warn',   title:'Protocollo obsoleto',            detail:'node-1e9d usa proto/0.1 (min: proto/0.3)',     time:'13:49:33' },
-  { sev:'info',   title:'Richiesta duplicata (dedup)',     detail:'Hash identico 3x da node-8c1b in 5s',         time:'13:48:11' },
-];
-
-function openPanel(id) {
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('open'));
-  const p = document.getElementById('panel-' + id);
-  if (id === 'antispam') renderSpam();
-  else                   renderScan();
-  p.classList.add('open');
-  toggleUM(false);
-}
-function closePanel(id) { document.getElementById('panel-' + id).classList.remove('open'); }
-
-function renderSpam() {
-  document.getElementById('spam-list').innerHTML = SPAM.map((s,i) => `
-    <div class="mac-row">
-      <div>
-        <div class="mac">${s.mac}</div>
-        <div class="ip">${s.ip}</div>
-      </div>
-      <div class="rpm">${s.rpm} rpm</div>
-      <button class="block-btn ${s.status}" onclick="toggleMAC(${i})">${s.status === 'blocked' ? 'Bloccato' : 'In osservazione'}</button>
-    </div>`).join('');
-}
-function toggleMAC(i) {
-  SPAM[i].status = SPAM[i].status === 'blocked' ? 'watch' : 'blocked';
-  renderSpam();
-}
-function renderScan() {
-  document.getElementById('scan-list').innerHTML = REQS.map(r => `
-    <div class="req-row">
-      <span class="badge badge-${r.sev}">${r.sev.toUpperCase()}</span>
-      <div>
-        <div class="rtitle">${r.title}</div>
-        <div class="rdet">${r.detail}</div>
-        <div class="rtime">${r.time}</div>
-      </div>
-    </div>`).join('');
-}
-
-// ── auth ──────────────────────────────────────────────────────────────────────
-function getAcc()  { try { return JSON.parse(localStorage.getItem('fn_acc')||'{}'); } catch { return {}; } }
-function saveAcc(a){ try { localStorage.setItem('fn_acc', JSON.stringify(a)); } catch {} }
-function getUser() { try { return localStorage.getItem('fn_user')||null; } catch { return null; } }
-function setUser(u){ try { localStorage.setItem('fn_user', u||''); } catch {} }
-
-(function init(){
-  const u=getUser(); if(u) applyLogin(u);
-  // mostra contatori iscrizioni sulla home
-  try {
-    const subs = Object.keys(JSON.parse(localStorage.getItem('fn_subs')||'{}')).length;
-    if(subs>0) document.getElementById('ql-subs').textContent=subs+' iscrizioni';
-    const gf = Object.keys(JSON.parse(localStorage.getItem('fn_gram_follows')||'{}')).length;
-    if(gf>0) document.getElementById('ql-follows-g').textContent=gf+' seguiti';
-    const pf = Object.keys(JSON.parse(localStorage.getItem('fn_follows')||'{}')).length;
-    if(pf>0) document.getElementById('ql-follows-p').textContent=pf+' seguiti';
-  } catch {}
+(function init() {
+  const open = (location.hash.match(/^#open=([A-Za-z0-9]+)$/) || [])[1];
+  if (open) { history.replaceState(null, '', location.pathname); navigate('freenet://' + open); }
 })();
-
-function openLogin() { document.getElementById('modal-bg').classList.add('open'); showLogin(); }
-function closeModal(){ document.getElementById('modal-bg').classList.remove('open'); }
-function closeMBG(e) { if(e.target===document.getElementById('modal-bg')) closeModal(); }
-function showLogin() { document.getElementById('m-login').style.display='block'; document.getElementById('m-reg').style.display='none'; clearE(); }
-function showReg()   { document.getElementById('m-login').style.display='none'; document.getElementById('m-reg').style.display='block'; clearE(); }
-function clearE()    { document.querySelectorAll('.err').forEach(e=>e.style.display='none'); }
-function showE(id)   { document.getElementById(id).style.display='block'; }
-
-function doLogin() {
-  clearE();
-  const n=document.getElementById('l-n').value.trim(), p=document.getElementById('l-p').value;
-  const a=getAcc();
-  if (!n||!a[n]) { showE('le-n'); return; }
-  if (a[n]!==btoa(p)) { showE('le-p'); return; }
-  setUser(n); applyLogin(n); closeModal();
-}
-function doReg() {
-  clearE();
-  const n=document.getElementById('r-n').value.trim(), p=document.getElementById('r-p').value, p2=document.getElementById('r-p2').value;
-  const a=getAcc(); let ok=true;
-  if(!n||a[n]){showE('re-n');ok=false;}
-  if(p.length<6){showE('re-p');ok=false;}
-  if(p!==p2){showE('re-p2');ok=false;}
-  if(!ok) return;
-  a[n]=btoa(p); saveAcc(a); setUser(n); applyLogin(n); closeModal();
-}
-function applyLogin(n) {
-  document.getElementById('btn-accedi').style.display='none';
-  const av=document.getElementById('btn-avatar');
-  av.style.display='flex'; av.textContent=n[0].toUpperCase();
-  document.getElementById('um-name').textContent=n;
-}
-function doLogout() { setUser(null); document.getElementById('btn-accedi').style.display='flex'; document.getElementById('btn-avatar').style.display='none'; toggleUM(false); }
-function toggleUM(f) { const m=document.getElementById('user-menu'); m.classList.toggle('open',f!==undefined?f:!m.classList.contains('open')); }
-document.addEventListener('click',e=>{ if(!e.target.closest('#btn-avatar')&&!e.target.closest('#user-menu')) document.getElementById('user-menu').classList.remove('open'); });
 </script>
 </body>
 </html>
