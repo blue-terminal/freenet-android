@@ -12,12 +12,12 @@
     }
   },
   "beta": {
-    "version": "v1.5.1",
-    "notes": "• Web 7.0 integrato nell'app, apre subito senza nodo\n• Apre Web 7.0 automaticamente se il nodo non risponde\n• Layout compatto, nessun IP esposto",
+    "version": "v1.5.2",
+    "notes": "• Apertura Web 7.0 in ~1s senza nodo (era ~6s)\n• Rilevamento nodo parallelo — più veloce\n• Redesign PC: layout a griglia, 6 sezioni, 30+ siti decentralizzati\n• Fediverse, P2P Storage, Privacy, Git OS, Nostr, I2P, Signal…\n• Nessun server centrale · Nessuna raccolta dati",
     "assets": {
       "arm64-v8a": {
-        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.5.1/freenet-mobile-v1.5.1-arm64-signed.apk",
-        "sha256": "10a4e47312ab8cb684bee66eb1d1a176025f438402aa4474666ae2d16a6be0c1"
+        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.5.2/freenet-mobile-v1.5.2-arm64-signed.apk",
+        "sha256": "284a54dc82ffafb4719adf8c84e3cab89608a472106a511c533e1b12c7c67d4d"
       }
     }
   }

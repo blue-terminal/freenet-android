@@ -108,13 +108,17 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 .search-box input { flex:1; padding: 11px 16px; border-radius: var(--r) 0 0 var(--r); background: var(--bg3); border: 1px solid var(--border); border-right: none; color: var(--text); font-size: 14px; outline: none; }
 .search-box input:focus { border-color: var(--accent); }
 .search-box button { padding: 11px 18px; background: var(--accent); border: none; border-radius: 0 var(--r) var(--r) 0; color: #fff; font-size: 14px; cursor: pointer; font-weight: 700; }
-.quick-links { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; max-width: 680px; margin-bottom: 32px; }
-.ql { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: .15s; text-decoration: none; color: var(--text); }
-.ql:hover { border-color: var(--accent); background: var(--bg3); }
-.ql-icon { font-size: 22px; line-height: 1; }
+/* grid 3 colonne su PC, 2 su tablet, 1 su mobile */
+.ql-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 10px; width: 100%; max-width: 900px; margin-bottom: 32px; }
+.ql { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 14px 16px; background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; cursor: pointer; transition: all .15s; text-decoration: none; color: var(--text); }
+.ql:hover { border-color: var(--accent); background: var(--bg3); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(10,132,255,.12); }
+.ql-icon { font-size: 26px; line-height: 1; margin-bottom: 6px; }
 .ql-name { font-size: 13px; font-weight: 700; }
-.ql-desc { display: none; }
-.node-info-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; width: 100%; max-width: 520px; font-size: 13px; }
+.ql-desc { font-size: 11px; color: var(--text2); display: block; }
+/* sezioni con linea separatrice */
+.sec-label { font-size: 11px; color: var(--text2); letter-spacing: .6px; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; width: 100%; max-width: 900px; padding: 0 2px; }
+.sec-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.node-info-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; width: 100%; max-width: 900px; font-size: 13px; }
 .node-info-box h3 { font-size: 13px; color: var(--text2); margin-bottom: 10px; letter-spacing: .5px; text-transform: uppercase; }
 .ni-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); }
 .ni-row:last-child { border: none; }
@@ -212,60 +216,60 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
   <!-- home overlay (shown when addr=freenet://home) -->
   <div class="home-overlay" id="home-overlay">
     <div class="fn-logo">🌐</div>
-    <div class="fn-title">Browser Freenet</div>
-    <div class="fn-sub">Rete decentralizzata · Nessuna censura · Tutti i nodi connessi<br>Infrastruttura: <a href="https://freenet.org" target="_blank" style="color:var(--accent)">freenet.org</a> — nodo locale: 127.0.0.1:7509</div>
+    <div class="fn-title">Web 7.0 — Browser Decentralizzato</div>
+    <div class="fn-sub">Nessun server centrale · Nessuna raccolta dati · Open source · Per tutti<br><a href="https://freenet.org" target="_blank" style="color:var(--accent)">freenet.org</a> · <a href="https://github.com/blue-terminal/freenet-android" target="_blank" style="color:var(--text2)">GitHub</a></div>
 
-    <div class="search-box">
-      <input id="search-q" type="text" placeholder="Cerca su Freenet (USK, CHK, parole chiave)…" onkeydown="if(event.key==='Enter')doSearch()">
+    <div class="search-box" style="max-width:580px">
+      <input id="search-q" type="text" placeholder="Freenet USK/CHK, URL, parole chiave…" onkeydown="if(event.key==='Enter')doSearch()">
       <button onclick="doSearch()">🔍</button>
     </div>
 
-    <div style="font-size:11px;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:14px;align-self:flex-start;max-width:680px;padding:0 4px">Web 7.0 — Social Decentralizzato</div>
-    <div class="quick-links">
+    <div class="sec-label">▶ Web 7.0 Social — P2P senza server</div>
+    <div class="ql-grid">
       <a class="ql" onclick="navigate('freenet://video')">
         <span class="ql-icon">▶️</span>
         <span class="ql-name">FreenetTV</span>
-        <span class="ql-desc">Video P2P senza server</span>
-        <span id="ql-subs" style="position:absolute;top:10px;right:12px;font-size:10px;color:var(--green)"></span>
+        <span class="ql-desc">Video P2P · senza server</span>
+        <span id="ql-subs" style="font-size:10px;color:var(--green)"></span>
       </a>
       <a class="ql" onclick="navigate('freenet://photos')">
         <span class="ql-icon">📸</span>
         <span class="ql-name">FreenetGram</span>
-        <span class="ql-desc">Foto e storie P2P</span>
-        <span id="ql-follows-g" style="position:absolute;top:10px;right:12px;font-size:10px;color:var(--green)"></span>
+        <span class="ql-desc">Foto e storie decentralizzate</span>
+        <span id="ql-follows-g" style="font-size:10px;color:var(--green)"></span>
       </a>
       <a class="ql" onclick="navigate('freenet://posts')">
         <span class="ql-icon">🐤</span>
         <span class="ql-name">FreenetPosts</span>
-        <span class="ql-desc">Feed post decentralizzato</span>
-        <span id="ql-follows-p" style="position:absolute;top:10px;right:12px;font-size:10px;color:var(--green)"></span>
+        <span class="ql-desc">Feed P2P · nessun algoritmo</span>
+        <span id="ql-follows-p" style="font-size:10px;color:var(--green)"></span>
       </a>
       <a class="ql" onclick="navigate('freenet://river')">
         <span class="ql-icon">💬</span>
         <span class="ql-name">River Chat</span>
-        <span class="ql-desc">Chat senza server</span>
+        <span class="ql-desc">Chat di gruppo senza server</span>
       </a>
       <a class="ql" onclick="navigate('freenet://mail')">
         <span class="ql-icon">✉️</span>
         <span class="ql-name">Freenet Mail</span>
-        <span class="ql-desc">Email decentralizzata</span>
+        <span class="ql-desc">Email P2P · nessun provider</span>
       </a>
       <a class="ql" onclick="navigate('freenet://ghostkey')">
         <span class="ql-icon">🔑</span>
         <span class="ql-name">Ghostkey</span>
-        <span class="ql-desc">Gestione identità</span>
+        <span class="ql-desc">Identità crittografica</span>
       </a>
     </div>
 
-    <div style="font-size:11px;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:14px;margin-top:4px;align-self:flex-start;max-width:680px;padding:0 4px">App Freenet ufficiali</div>
-    <div class="quick-links">
+    <div class="sec-label">🌐 App Freenet ufficiali</div>
+    <div class="ql-grid">
       <a class="ql" onclick="navigate('freenet://atlas')">
         <span class="ql-icon">🗺️</span>
         <span class="ql-name">Atlas</span>
         <span class="ql-desc">Discovery decentralizzato</span>
       </a>
       <a class="ql" onclick="navigate('freenet://delta')">
-        <span class="ql-icon">🌐</span>
+        <span class="ql-icon">✏️</span>
         <span class="ql-name">Delta</span>
         <span class="ql-desc">Costruttore siti P2P</span>
       </a>
@@ -274,40 +278,161 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
         <span class="ql-name">freenet.org</span>
         <span class="ql-desc">Sito ufficiale sulla rete</span>
       </a>
-      <a class="ql" style="opacity:.65" onclick="window.open('https://github.com/freenet/freenet-wiki','_blank')">
+      <a class="ql" style="opacity:.6" onclick="window.open('https://github.com/freenet/freenet-wiki','_blank')">
         <span class="ql-icon">📖</span>
         <span class="ql-name">Wiki</span>
         <span class="ql-desc">In sviluppo · GitHub</span>
       </a>
-      <a class="ql" style="opacity:.65" onclick="window.open('https://github.com/freenet/raven','_blank')">
+      <a class="ql" style="opacity:.6" onclick="window.open('https://github.com/freenet/raven','_blank')">
         <span class="ql-icon">🐦</span>
         <span class="ql-name">Raven</span>
         <span class="ql-desc">Messaggistica P2P</span>
       </a>
-      <a class="ql" style="opacity:.65" onclick="window.open('https://github.com/freenet/freenet-git','_blank')">
+      <a class="ql" style="opacity:.6" onclick="window.open('https://github.com/freenet/freenet-git','_blank')">
         <span class="ql-icon">🔀</span>
-        <span class="ql-name">Git Freenet</span>
+        <span class="ql-name">Freenet Git</span>
         <span class="ql-desc">Hosting git decentralizzato</span>
-      </a>
-      <a class="ql" style="opacity:.65" onclick="window.open('https://github.com/freenet/freenet-telemetry-dashboard','_blank')">
-        <span class="ql-icon">📡</span>
-        <span class="ql-name">Telemetry</span>
-        <span class="ql-desc">Dashboard rete live</span>
-      </a>
-      <a class="ql" style="opacity:.65" onclick="window.open('https://github.com/freenet/portal','_blank')">
-        <span class="ql-icon">🚀</span>
-        <span class="ql-name">Portal</span>
-        <span class="ql-desc">Portale d'ingresso</span>
       </a>
       <a class="ql" onclick="navigate('freenet://gitea')">
         <span class="ql-icon">🐙</span>
         <span class="ql-name">Gitea locale</span>
-        <span class="ql-desc">Git su questo PC :3000</span>
+        <span class="ql-desc">Git su questo PC · :3000</span>
       </a>
       <a class="ql" onclick="navigate('freenet://impostazioni')">
         <span class="ql-icon">⚙️</span>
-        <span class="ql-name">Impostazioni</span>
-        <span class="ql-desc">Configurazione nodo</span>
+        <span class="ql-name">Impostazioni nodo</span>
+        <span class="ql-desc">Configurazione Freenet</span>
+      </a>
+    </div>
+
+    <div class="sec-label">🐘 Fediverse — Social federato</div>
+    <div class="ql-grid">
+      <a class="ql" onclick="navigate('https://joinmastodon.org')">
+        <span class="ql-icon">🐘</span>
+        <span class="ql-name">Mastodon</span>
+        <span class="ql-desc">Twitter alternativo federato</span>
+      </a>
+      <a class="ql" onclick="navigate('https://joinpeertube.org')">
+        <span class="ql-icon">📺</span>
+        <span class="ql-name">PeerTube</span>
+        <span class="ql-desc">YouTube alternativo P2P</span>
+      </a>
+      <a class="ql" onclick="navigate('https://pixelfed.org')">
+        <span class="ql-icon">🖼️</span>
+        <span class="ql-name">Pixelfed</span>
+        <span class="ql-desc">Instagram alternativo</span>
+      </a>
+      <a class="ql" onclick="navigate('https://join-lemmy.org')">
+        <span class="ql-icon">🔗</span>
+        <span class="ql-name">Lemmy</span>
+        <span class="ql-desc">Reddit alternativo federato</span>
+      </a>
+      <a class="ql" onclick="navigate('https://element.io')">
+        <span class="ql-icon">💬</span>
+        <span class="ql-name">Matrix/Element</span>
+        <span class="ql-desc">Chat E2E decentralizzata</span>
+      </a>
+      <a class="ql" onclick="navigate('https://diasporafoundation.org')">
+        <span class="ql-icon">🌱</span>
+        <span class="ql-name">Diaspora</span>
+        <span class="ql-desc">Social federato pioniere</span>
+      </a>
+    </div>
+
+    <div class="sec-label">📦 P2P Storage &amp; Protocolli</div>
+    <div class="ql-grid">
+      <a class="ql" onclick="navigate('https://ipfs.tech')">
+        <span class="ql-icon">📦</span>
+        <span class="ql-name">IPFS</span>
+        <span class="ql-desc">Storage P2P distribuito</span>
+      </a>
+      <a class="ql" onclick="navigate('https://www.torproject.org')">
+        <span class="ql-icon">🧅</span>
+        <span class="ql-name">Tor Project</span>
+        <span class="ql-desc">Anonimato · .onion sites</span>
+      </a>
+      <a class="ql" onclick="navigate('https://i2p.net')">
+        <span class="ql-icon">🔒</span>
+        <span class="ql-name">I2P</span>
+        <span class="ql-desc">Rete anonima overlay</span>
+      </a>
+      <a class="ql" onclick="navigate('https://yggdrasil-network.github.io')">
+        <span class="ql-icon">🌿</span>
+        <span class="ql-name">Yggdrasil</span>
+        <span class="ql-desc">IPv6 mesh decentralizzato</span>
+      </a>
+      <a class="ql" onclick="navigate('https://hypercore-protocol.org')">
+        <span class="ql-icon">🌀</span>
+        <span class="ql-name">Hypercore</span>
+        <span class="ql-desc">P2P data protocol</span>
+      </a>
+      <a class="ql" onclick="navigate('https://nostr.com')">
+        <span class="ql-icon">⚡</span>
+        <span class="ql-name">Nostr</span>
+        <span class="ql-desc">Protocollo note aperte</span>
+      </a>
+    </div>
+
+    <div class="sec-label">🏔️ Git Open Source</div>
+    <div class="ql-grid">
+      <a class="ql" onclick="navigate('https://codeberg.org')">
+        <span class="ql-icon">🏔️</span>
+        <span class="ql-name">Codeberg</span>
+        <span class="ql-desc">Git senza raccolta dati</span>
+      </a>
+      <a class="ql" onclick="navigate('https://sr.ht')">
+        <span class="ql-icon">🔧</span>
+        <span class="ql-name">SourceHut</span>
+        <span class="ql-desc">Dev tools minimalisti</span>
+      </a>
+      <a class="ql" onclick="navigate('https://about.gitlab.com')">
+        <span class="ql-icon">🦊</span>
+        <span class="ql-name">GitLab</span>
+        <span class="ql-desc">Auto-hostabile · CE</span>
+      </a>
+      <a class="ql" onclick="navigate('https://forgejo.org')">
+        <span class="ql-icon">🔥</span>
+        <span class="ql-name">Forgejo</span>
+        <span class="ql-desc">Fork Gitea · community</span>
+      </a>
+      <a class="ql" onclick="navigate('https://github.com')">
+        <span class="ql-icon">🐱</span>
+        <span class="ql-name">GitHub</span>
+        <span class="ql-desc">Hosting più grande</span>
+      </a>
+    </div>
+
+    <div class="sec-label">🛡 Privacy &amp; Sicurezza</div>
+    <div class="ql-grid">
+      <a class="ql" onclick="navigate('https://signal.org')">
+        <span class="ql-icon">🔐</span>
+        <span class="ql-name">Signal</span>
+        <span class="ql-desc">Messaggistica E2E sicura</span>
+      </a>
+      <a class="ql" onclick="navigate('https://www.mullvad.net')">
+        <span class="ql-icon">🦔</span>
+        <span class="ql-name">Mullvad VPN</span>
+        <span class="ql-desc">VPN senza dati · no log</span>
+      </a>
+      <a class="ql" onclick="navigate('https://www.eff.org')">
+        <span class="ql-icon">🏛️</span>
+        <span class="ql-name">EFF</span>
+        <span class="ql-desc">Diritti digitali</span>
+      </a>
+      <a class="ql" onclick="navigate('https://www.gnu.org')">
+        <span class="ql-icon">🐃</span>
+        <span class="ql-name">GNU / FSF</span>
+        <span class="ql-desc">Software libero</span>
+      </a>
+      <a class="ql" onclick="navigate('https://privacyguides.org')">
+        <span class="ql-icon">📋</span>
+        <span class="ql-name">Privacy Guides</span>
+        <span class="ql-desc">Guide privacy pratiche</span>
+      </a>
+      <a class="ql" onclick="navigate('https://www.mozilla.org')">
+        <span class="ql-icon">🦊</span>
+        <span class="ql-name">Mozilla</span>
+        <span class="ql-desc">Firefox · open web</span>
       </a>
     </div>
     <div style="height:16px"></div>
