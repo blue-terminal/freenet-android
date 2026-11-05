@@ -17,7 +17,7 @@
     "assets": {
       "arm64-v8a": {
         "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.5.3/freenet-mobile-v1.5.3-arm64-signed.apk",
-        "sha256": "aa6500b548b624d28fc035c5280fcb35e634cc0c84e06625bb55d4147c046226"
+        "sha256": "bcd3d4091e40fd4600c60e3babc9509ad0a331537910ae7ebbffc6cde2c5d66b"
       }
     }
   }
