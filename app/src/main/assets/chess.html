@@ -17,6 +17,9 @@
 .sq.check { background: #e35d4f; }
 .sq.hint::after { content: ''; position: absolute; width: 26%; height: 26%; border-radius: 50%; background: rgba(20,80,70,.55); }
 .sq.hint.take::after { width: 84%; height: 84%; background: none; border: 4px solid rgba(20,80,70,.55); }
+.captured { display: flex; align-items: center; gap: 1px; min-height: 30px; font-size: 22px; line-height: 1; padding: 3px 2px; flex-wrap: wrap; }
+.captured .who { font-size: 13px; color: var(--muted); margin-right: 6px; }
+.captured .adv { font-size: 13px; font-weight: 700; color: var(--teal); margin-left: 6px; }
 .status { font-weight: 700; padding: 10px 0; min-height: 44px; }
 .moves { max-height: 180px; overflow-y: auto; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
 .game { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); min-width: 0; }
@@ -34,7 +37,9 @@
   <div class="layout">
     <section>
       <div class="status" id="status" aria-live="polite"></div>
+      <div class="captured" id="cap-top"></div>
       <div class="board" id="board"></div>
+      <div class="captured" id="cap-bottom"></div>
       <div class="row wrap" id="board-actions" style="margin-top:10px"></div>
     </section>
     <section>
@@ -43,7 +48,11 @@
         <label class="field"><span>Giochi con</span><select id="color"><option value="w">Bianco</option><option value="b">Nero</option></select></label>
         <button class="btn main" style="width:100%" onclick="startBot()">Nuova partita</button></div>
       <div class="panel"><h2>Contro persone della rete Freenet</h2>
-        <button class="btn main" style="width:100%;margin-bottom:10px" onclick="createOnline()">Crea una partita</button>
+        <button class="btn main" style="width:100%;margin-bottom:8px" onclick="findOpponent(this)">🔍 Cerca giocatore</button>
+        <button class="btn" style="width:100%;margin-bottom:10px" onclick="createOnline()">Crea una partita e aspetta</button>
+        <h3 style="font-size:14px;margin:6px 0">Giocatori connessi ora</h3>
+        <div id="players"><p class="sub">Cerco chi è collegato…</p></div>
+        <h3 style="font-size:14px;margin:12px 0 6px">Partite aperte e sfide</h3>
         <div id="lobby"><p class="sub">Leggo le partite aperte…</p></div></div>
       <div class="panel"><h2>Mosse</h2><div class="moves" id="moves">—</div></div>
     </section>
@@ -169,6 +178,35 @@ function playMove(m) {
   applyLocal(m);
 }
 
+// Pezzi mangiati: quelli che mancano rispetto all'inizio (una promozione non conta come pezzo perso).
+const START_COUNT = { p: 8, n: 2, b: 2, r: 2, q: 1 };
+const POINTS = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+function capturedBy(color) {
+  const victim = color === 'w' ? 'b' : 'w';
+  const left = { p: 0, n: 0, b: 0, r: 0, q: 0 };
+  for (const piece of game.pos.b) {
+    if (piece !== '.' && Chess.colorOf(piece) === victim && piece.toLowerCase() in left) left[piece.toLowerCase()]++;
+  }
+  const out = [];
+  for (const kind of ['q', 'r', 'b', 'n', 'p']) {
+    for (let i = left[kind]; i < START_COUNT[kind]; i++) out.push(kind);
+  }
+  return out;
+}
+function material(color) {
+  return game.pos.b.reduce((sum, piece) => sum + (piece !== '.' && Chess.colorOf(piece) === color ? POINTS[piece.toLowerCase()] || 0 : 0), 0);
+}
+function drawCaptured() {
+  const me = game.you || 'w', other = me === 'w' ? 'b' : 'w';
+  const line = (color, label) => {
+    const glyphs = capturedBy(color).map(k => GLYPH[k]).join('');
+    const lead = material(color) - material(color === 'w' ? 'b' : 'w');
+    return `<span class="who">${label}</span>${glyphs}${lead > 0 ? `<span class="adv">+${lead}</span>` : ''}`;
+  };
+  document.getElementById('cap-top').innerHTML = line(other, game.mode === 'bot' ? 'Computer' : 'Avversario');
+  document.getElementById('cap-bottom').innerHTML = line(me, 'Tu');
+}
+
 function draw() {
   const board = document.getElementById('board');
   const st = currentStatus();
@@ -189,6 +227,7 @@ function draw() {
     html += `<button class="${cls.join(' ')}" onclick="clickSquare(${s})" aria-label="${Chess.sqName(s)}">${p === '.' ? '' : GLYPH[p]}</button>`;
   }
   board.innerHTML = html;
+  drawCaptured();
   let text;
   if (st.over) {
     text = st.winner ? `${colorName(st.winner)} vince: ${st.reason}` : `Patta: ${st.reason}`;
@@ -208,15 +247,59 @@ function draw() {
 
 // ── partite online: ogni mossa è un messaggio firmato sulla bacheca della partita ─
 const gameTopic = id => 'chess:g:' + id;
-async function createOnline() {
+// Entra nella partita aperta più vecchia di un altro giocatore; se non c'è, ne apre una e aspetta.
+async function findOpponent(button) {
+  if (!FNet.hasBridge()) { toast("Le partite online funzionano nell'app Freenet"); return; }
+  button.disabled = true;
+  button.textContent = 'Cerco un avversario…';
+  try {
+    me = me || await FNet.identity();
+    const open = (await FNet.readItems(LOBBY))
+      .filter(g => g.author !== me.pub && Date.now() - g.created < OPEN_MS && (!g.to || g.to === me.tag))
+      .sort((a, b) => a.created - b.created);
+    for (const g of open) {
+      const taken = (await FNet.read(gameTopic(g.id))).some(m => m.k === 'join');
+      if (!taken) {
+        await joinOnline(g.id, g.color === 'w' ? 'w' : 'b', g.author);
+        toast('Avversario trovato: ' + g.name);
+        return;
+      }
+    }
+    await createOnline();
+  } finally {
+    button.disabled = false;
+    button.textContent = '🔍 Cerca giocatore';
+  }
+}
+async function createOnline(to, toName) {
   me = me || await FNet.identity();
   if (!FNet.hasBridge()) { toast("Le partite online funzionano nell'app Freenet"); return; }
   const id = FNet.newId('g');
   const color = Math.random() < 0.5 ? 'w' : 'b';
-  await FNet.saveItem(LOBBY, id, { color, vis: 'public' });
+  await FNet.saveItem(LOBBY, id, to ? { color, vis: 'public', to } : { color, vis: 'public' });
   enterOnline(id, color, me.pub);
-  toast('Partita creata: aspetto un avversario');
+  toast(to ? `Sfida inviata a ${toName}: aspetto che accetti` : 'Partita creata: aspetto un avversario');
+  heartbeat();
   loadLobby();
+}
+
+// ── presenza: chi ha la pagina aperta lo dice ogni minuto, con un messaggio firmato ─
+const PRESENCE = 'chess:presence';
+const ONLINE_MS = 150 * 1000;
+const playing = () => !!(game && game.mode === 'online' && !currentStatus().over);
+async function heartbeat() {
+  if (!FNet.hasBridge() || document.hidden) return;
+  me = me || await FNet.identity();
+  try { await FNet.saveItem(PRESENCE, me.tag.replace(/[^A-Za-z0-9_-]/g, ''), { busy: playing(), vis: 'public' }); } catch {}
+}
+async function loadPlayers() {
+  const box = document.getElementById('players');
+  me = me || await FNet.identity();
+  const people = (await FNet.readItems(PRESENCE)).filter(p => p.author !== me.pub && Date.now() - p.updated < ONLINE_MS);
+  box.innerHTML = people.length ? people.map(p => `<div class="game"><span class="grow"><b style="overflow-wrap:anywhere">${esc(p.name)}</b>
+      <div class="sub">${p.busy ? '🔴 in partita' : '🟢 libero'} · visto ${esc(timeAgo(p.updated))}</div></span>
+      ${p.busy ? '' : `<button class="btn" data-tag="${esc(p.tag)}" data-name="${esc(p.name)}" onclick="createOnline(this.dataset.tag,this.dataset.name)">Sfida</button>`}</div>`).join('')
+    : `<p class="sub">${FNet.hasBridge() ? 'Nessun altro giocatore collegato in questo momento.' : "Si vede chi è collegato solo nell'app Freenet."}</p>`;
 }
 async function joinOnline(id, color, host) {
   me = me || await FNet.identity();
@@ -292,12 +375,22 @@ async function resign() {
 }
 async function loadLobby() {
   const box = document.getElementById('lobby');
-  const list = (await FNet.readItems(LOBBY)).filter(g => Date.now() - g.created < OPEN_MS);
   me = me || await FNet.identity();
-  box.innerHTML = Social.offlineNotice(list.online) + (list.length ? list.map(g => `<div class="game">
-      <span class="grow"><b style="overflow-wrap:anywhere">${esc(g.name)}</b><div class="sub">gioca col ${g.color === 'w' ? 'bianco' : 'nero'} · ${esc(timeAgo(g.created))}</div></span>
-      <button class="btn" data-id="${esc(g.id)}" data-color="${g.color === 'w' ? 'w' : 'b'}" data-host="${esc(g.author)}" onclick="joinOnline(this.dataset.id,this.dataset.color,this.dataset.host)">${g.author === me.pub ? 'Riprendi' : 'Gioca'}</button></div>`).join('')
-    : '<p class="sub">Nessuna partita aperta: creane una.</p>');
+  const all = (await FNet.readItems(LOBBY)).filter(g => Date.now() - g.created < OPEN_MS);
+  const list = all.filter(g => !g.to || g.to === me.tag || g.author === me.pub);
+  const invites = list.filter(g => g.to === me.tag && g.author !== me.pub);
+  const seen = store.get('chess_invites_seen', {});
+  for (const g of invites) {
+    if (!seen[g.id]) { seen[g.id] = 1; toast(`${g.name} ti sfida a scacchi`); }
+  }
+  store.set('chess_invites_seen', seen);
+  box.innerHTML = Social.offlineNotice(all.online) + (list.length ? list.map(g => {
+    const invite = g.to === me.tag && g.author !== me.pub;
+    const label = g.author === me.pub ? 'Riprendi' : invite ? 'Accetta' : 'Gioca';
+    return `<div class="game">
+      <span class="grow"><b style="overflow-wrap:anywhere">${esc(g.name)}</b><div class="sub">${invite ? '⚔️ ti ha sfidato · ' : g.to ? 'sfida privata · ' : ''}gioca col ${g.color === 'w' ? 'bianco' : 'nero'} · ${esc(timeAgo(g.created))}</div></span>
+      <button class="btn ${invite ? 'main' : ''}" data-id="${esc(g.id)}" data-color="${g.color === 'w' ? 'w' : 'b'}" data-host="${esc(g.author)}" onclick="joinOnline(this.dataset.id,this.dataset.color,this.dataset.host)">${label}</button></div>`;
+  }).join('') : '<p class="sub">Nessuna partita aperta: sfida un giocatore connesso o creane una.</p>');
 }
 
 (async function init() {
@@ -306,7 +399,11 @@ async function loadLobby() {
   if (online) enterOnline(online.id, online.hostColor, online.host);
   else resumeBot();
   loadLobby();
+  heartbeat().then(loadPlayers);
   setInterval(loadLobby, 20000);
+  setInterval(loadPlayers, 20000);
+  setInterval(heartbeat, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { heartbeat(); loadPlayers(); loadLobby(); } });
 })();
 </script>
 </body>

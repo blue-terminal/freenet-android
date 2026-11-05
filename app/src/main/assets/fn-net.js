@@ -25,6 +25,8 @@
   const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
   const newId = (prefix) => prefix + b64u(crypto.getRandomValues(new Uint8Array(12)));
   const sha = async text => b64u(await crypto.subtle.digest('SHA-256', enc.encode(text)));
+  // Impronta di un file: va nel messaggio firmato, e chi scarica controlla che il contenuto sia quello.
+  const hashBlob = async blob => b64u(await crypto.subtle.digest('SHA-256', await blob.arrayBuffer()));
 
   function timeAgo(t) {
     const s = Math.max(0, (Date.now() - t) / 1000);
@@ -349,7 +351,7 @@ var l=document.getElementById('l');(f.items||[]).forEach(function(i){var a=docum
       await writeText(site, 'index.html', STUB_PAGE);
       await writeBlob(site, 'data.bin', piece, bytes => onProgress && onProgress('Preparo', (n + bytes / piece.size) / count));
       if (onProgress) onProgress(`Pubblico in rete (parte ${n + 1} di ${count})`, n / count);
-      parts.push({ key: await publishSite(site), site });
+      parts.push({ key: await publishSite(site), site, sha: await hashBlob(piece) });
       await call('siteDelete', { site });
     }
     return parts;
@@ -365,9 +367,11 @@ var l=document.getElementById('l');(f.items||[]).forEach(function(i){var a=docum
   }
 
   // Il primo recupero dalla rete può fallire finché il nodo non trova il contratto.
-  async function fetchPart(url, onBytes) {
+  // Con expectedSha il contenuto deve essere esattamente quello annunciato nel messaggio firmato.
+  async function fetchPart(url, onBytes, expectedSha) {
     let lastError = null;
     for (let attempt = 0; attempt < 4; attempt++) {
+      let blob;
       try {
         const r = await fetch(url);
         if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -381,25 +385,49 @@ var l=document.getElementById('l');(f.items||[]).forEach(function(i){var a=docum
           got += value.length;
           if (onBytes) onBytes(got);
         }
-        return new Blob(chunks);
+        blob = new Blob(chunks);
       } catch (e) {
         lastError = e;
         await new Promise(res => setTimeout(res, 3000 * (attempt + 1)));
+        continue;
       }
+      if (expectedSha !== undefined && (await hashBlob(blob)) !== expectedSha) {
+        throw new Error('Contenuto alterato: non corrisponde a quello pubblicato');
+      }
+      return blob;
     }
     throw new Error('Contenuto non trovato sulla rete: ' + lastError.message);
   }
 
   async function downloadVideo(item, onProgress) {
-    const parts = (item.parts || []).filter(p => p && SAFE_KEY.test(p.key));
-    if (!parts.length) throw new Error('Video senza contenuto');
+    const parts = (item.parts || []).filter(p => p && SAFE_KEY.test(p.key) && typeof p.sha === 'string');
+    if (!parts.length || parts.length !== (item.parts || []).length) throw new Error('Video senza impronta: non verificabile');
     const blobs = [];
     let done = 0;
     for (const part of parts) {
-      blobs.push(await fetchPart(siteUrl(part.key, 'data.bin'), b => onProgress && onProgress(done + b, item.size)));
+      blobs.push(await fetchPart(siteUrl(part.key, 'data.bin'), b => onProgress && onProgress(done + b, item.size), part.sha));
       done += blobs[blobs.length - 1].size;
     }
     return new Blob(blobs, { type: /^video\/[a-z0-9.+-]+$/i.test(item.mime || '') ? item.mime : 'video/mp4' });
+  }
+
+  // Immagini in pagina: <img data-src="..." data-sha="..."> si mostrano solo se l'impronta coincide.
+  async function loadVerifiedImages(root) {
+    for (const img of (root || document).querySelectorAll('img[data-src]')) {
+      const url = img.dataset.src;
+      img.removeAttribute('data-src');
+      try {
+        const blob = await fetchPart(url, null, img.dataset.sha || '');
+        img.src = URL.createObjectURL(new Blob([blob], { type: 'image/jpeg' }));
+      } catch (e) {
+        img.alt = e.message;
+        img.classList.add('unverified');
+        const note = document.createElement('div');
+        note.className = 'bad-note';
+        note.textContent = '⚠️ ' + e.message;
+        img.after(note);
+      }
+    }
   }
 
   function imageToJpeg(file, maxSide, quality) {
@@ -464,6 +492,6 @@ var l=document.getElementById('l');(f.items||[]).forEach(function(i){var a=docum
     blocked, blockUser, unblockUser, filteredTotal: () => filteredCount,
     post, read, foldItems, foldActivity, readItems, isVisible, saveItem, deleteItem, reportItem, flushOutbox,
     call, writeBlob, writeText, publishSite, siteUrl, updateChannel, publishMedia, removeFromChannel,
-    uploadVideoParts, wipeVideoParts, downloadVideo, videoFacts, fetchPart, imageToJpeg, smallImage, blobToDataUrl,
+    uploadVideoParts, wipeVideoParts, downloadVideo, videoFacts, hashBlob, loadVerifiedImages, fetchPart, imageToJpeg, smallImage, blobToDataUrl,
   };
 })(window);
