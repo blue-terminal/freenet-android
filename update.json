@@ -13,11 +13,11 @@
   },
   "beta": {
     "version": "v1.5.2",
-    "notes": "• Apertura Web 7.0 in ~1s senza nodo (era ~6s)\n• Rilevamento nodo parallelo — più veloce\n• Redesign PC: layout a griglia, 6 sezioni, 30+ siti decentralizzati\n• Fediverse, P2P Storage, Privacy, Git OS, Nostr, I2P, Signal…\n• Nessun server centrale · Nessuna raccolta dati",
+    "notes": "• Apertura Web 7.0 in ~1s senza nodo (era ~6s)\n• Rilevamento nodo parallelo in loading + Web 7.0\n• Redesign PC: layout a griglia, 6 sezioni, 30+ siti\n• Fediverse, P2P Storage, Privacy, Git OS, Nostr, I2P…\n• FreenetTV, FreenetGram, Posts inclusi nell'APK\n• Nessun server centrale · Nessuna raccolta dati",
     "assets": {
       "arm64-v8a": {
         "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.5.2/freenet-mobile-v1.5.2-arm64-signed.apk",
-        "sha256": "284a54dc82ffafb4719adf8c84e3cab89608a472106a511c533e1b12c7c67d4d"
+        "sha256": "a015a0f2ac6f31008d91c63a9dc871eec7d44bd633cb633f98cbd9071c17958d"
       }
     }
   }

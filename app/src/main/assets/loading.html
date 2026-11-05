@@ -94,7 +94,7 @@ const LOCAL_NODES = ['http://127.0.0.1:7509', 'http://127.0.0.1:8888'];
 let nodeUrl = null;
 let done = false;
 let attempts = 0;
-const MAX_ATTEMPTS = 2; // 2 tentativi: 500ms + 1.5s = ~2s poi apre Web 7.0 offline
+const MAX_ATTEMPTS = 1; // 1 tentativo: 500ms per nodo (~1-1.5s max) poi apre Web 7.0 offline
 
 const stEl  = document.getElementById('status');
 const btnO  = document.getElementById('btn-open');
@@ -113,28 +113,35 @@ setInterval(updateClock, 1000);
 
 async function detectNode(timeoutMs) {
   const to = timeoutMs || 1500;
-  for (const base of LOCAL_NODES) {
+  const nodes = [...LOCAL_NODES];
+  try { const ip = localStorage.getItem('fn_remote_node'); if (ip) nodes.push('http://' + ip + ':7509'); } catch {}
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), to);
+
+  async function tryBase(base) {
     try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), to);
       const r = await fetch(base + '/v1/version', { signal: ctrl.signal });
-      clearTimeout(t);
       if (r.ok) return base;
     } catch {}
+    throw new Error('no');
   }
-  let remIp = null;
-  try { remIp = localStorage.getItem('fn_remote_node'); } catch {}
-  if (remIp) {
-    const base = 'http://' + remIp + ':7509';
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), to);
-      const r = await fetch(base + '/v1/version', { signal: ctrl.signal });
-      clearTimeout(t);
-      if (r.ok) return base;
-    } catch {}
+
+  function anyOf(ps) {
+    return new Promise((res, rej) => {
+      let left = ps.length;
+      if (!left) { rej(); return; }
+      ps.forEach(p => p.then(res).catch(() => { if (!--left) rej(); }));
+    });
   }
-  return null;
+
+  try {
+    const base = await anyOf(nodes.map(tryBase));
+    clearTimeout(timer); ctrl.abort();
+    return base;
+  } catch {
+    clearTimeout(timer);
+    return null;
+  }
 }
 
 function openWeb7() {
@@ -151,7 +158,7 @@ function openWeb7() {
 
 async function tryConnect() {
   // Prima verifica veloce (500ms per nodo) — se il nodo è già su, apre subito
-  const found = await detectNode(attempts === 1 ? 500 : 1500);
+  const found = await detectNode(500);
   if (found) {
     nodeUrl = found;
     nfEl.textContent = '✓ Nodo Freenet attivo — ' + found.replace('http://', '');

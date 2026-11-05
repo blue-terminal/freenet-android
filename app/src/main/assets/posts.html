@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FreenetPosts — Decentralized Posts · Post Decentralizzati</title>
+<link rel="stylesheet" href="fn-theme.css">
+<script src="fn-api.js"></script>
+<script type="module">
+import * as FNC from './fn-crypto.js';
+window.FNC = FNC;
+(async()=>{
+  const raw = localStorage.getItem('fn7_identity_pub');
+  if(raw){ window._fn7id = JSON.parse(raw); }
+})();
+</script>
+<style>
+:root{--bg:#0d1b2a;--bg2:#112240;--bg3:#1a3358;--accent:#0a84ff;--cyan:#1da1f2;--green:#00c896;--text:#e8edf4;--text2:#8fa8c8;--border:#1e3a5f;--r:12px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+.topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;}
+.logo{font-size:18px;font-weight:900;color:var(--cyan);}
+.logo span{font-size:20px;}
+.tb-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.btn{padding:7px 16px;border-radius:20px;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;}
+.btn-cyan{background:var(--cyan);color:#fff;}.btn-cyan:hover{opacity:.85;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text2);}.btn-ghost:hover{border-color:var(--cyan);color:var(--text);}
+.user-chip{display:none;align-items:center;gap:6px;font-size:13px;font-weight:600;}
+.av{width:28px;height:28px;border-radius:50%;background:var(--cyan);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;}
+.main{max-width:620px;margin:0 auto;padding:0 0 80px;}
+.compose-box{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 16px;}
+.compose-inner{display:flex;gap:10px;}
+.compose-av{width:40px;height:40px;border-radius:50%;background:var(--cyan);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;}
+.compose-right{flex:1;}
+textarea#compose-txt{width:100%;background:transparent;border:none;color:var(--text);font-size:16px;resize:none;outline:none;min-height:54px;font-family:inherit;line-height:1.5;}
+.compose-footer{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+.char-count{font-size:12px;color:var(--text2);margin-left:auto;}
+.char-count.warn{color:#ff9f0a;}.char-count.over{color:#ff453a;}
+.post-item{display:flex;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);transition:.15s;}
+.post-item:hover{background:var(--bg2);}
+.post-av{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;}
+.post-right{flex:1;min-width:0;}
+.post-head{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;}
+.post-user{font-weight:700;font-size:14px;}
+.post-handle{font-size:13px;color:var(--text2);}
+.post-time{font-size:12px;color:var(--text2);margin-left:auto;}
+.post-body{font-size:15px;line-height:1.5;margin-bottom:8px;word-break:break-word;}
+.post-body a{color:var(--cyan);}
+.post-actions{display:flex;gap:20px;}
+.pa-btn{display:flex;align-items:center;gap:5px;background:none;border:none;color:var(--text2);font-size:13px;cursor:pointer;padding:3px 6px;border-radius:20px;transition:.15s;}
+.pa-btn:hover{color:var(--cyan);background:rgba(29,161,242,.1);}
+.pa-btn.liked{color:#e0245e;}
+.pa-btn.liked:hover{color:#e0245e;background:rgba(224,36,94,.1);}
+.pa-btn.retweeted{color:var(--green);}
+.key-bar{background:var(--bg3);border:1px solid var(--border);padding:10px 14px;font-size:11px;color:var(--text2);display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--border);}
+.key-bar span{color:var(--accent);font-family:monospace;word-break:break-all;}
+.modal-bg{position:fixed;inset:0;background:#000a;backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:999;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:28px 32px;width:100%;max-width:400px;position:relative;}
+.modal h2{font-size:18px;margin-bottom:16px;}
+.modal-x{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;}
+.field{margin-bottom:14px;}
+.field label{font-size:12px;color:var(--text2);display:block;margin-bottom:5px;}
+.field input{width:100%;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;}
+.field input:focus{border-color:var(--accent);}
+.err{color:#ff453a;font-size:11px;display:none;margin-top:3px;}
+.btn-sub{width:100%;padding:12px;background:var(--cyan);border:none;border-radius:20px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;}
+.back-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text2);cursor:pointer;margin-bottom:0;text-decoration:none;}
+.back-btn:hover{border-color:var(--accent);color:var(--text);}
+.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg2);}
+.tab{flex:1;padding:12px;text-align:center;font-size:14px;font-weight:600;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;transition:.15s;}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.tab:hover{background:var(--bg3);}
+.follow-btn{padding:4px 12px;border-radius:16px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid;transition:.15s;}
+.follow-btn.unf{background:transparent;border-color:var(--cyan);color:var(--cyan);}
+.follow-btn.unf:hover{background:var(--cyan);color:#fff;}
+.follow-btn.fol{background:var(--bg3);border-color:var(--border);color:var(--text2);}
+.follow-btn.fol:hover{border-color:#e0245e;color:#e0245e;}
+.cmt-box{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+.cmt-row{display:flex;gap:6px;margin-bottom:6px;align-items:flex-start;}
+.cmt-mini-av{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;}
+.cmt-mini-body{font-size:12px;line-height:1.4;flex:1;}
+.cmt-mini-name{font-weight:700;color:var(--cyan);font-size:11px;}
+.cmt-inp-row{display:flex;gap:6px;margin-top:4px;}
+.cmt-inp{flex:1;padding:6px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:16px;color:var(--text);font-size:12px;outline:none;}
+.cmt-inp:focus{border-color:var(--cyan);}
+.cmt-send{padding:6px 12px;background:var(--cyan);border:none;border-radius:16px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back-btn" href="index.html">‹ Browser</a>
+  <span class="logo"><span>🐤</span> FreenetPosts</span>
+  <span style="font-size:11px;color:var(--text2);margin-left:2px">· Twitter/X su Freenet</span>
+  <div class="tb-right">
+    <div class="user-chip" id="user-chip"><div class="av" id="av-letter">?</div><span id="tb-user">—</span></div>
+    <button class="btn btn-ghost" id="btn-accedi" onclick="openModal('login')">Accedi</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="key-bar">
+    📡 <span id="key-txt">Rileva nodo…</span>
+    <span style="margin-left:auto;cursor:pointer;font-size:11px" onclick="showPubGuide()">Pubblica →</span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('all')">Tutti</div>
+    <div class="tab" onclick="switchTab('mine')">I miei</div>
+    <div class="tab" onclick="switchTab('follow')">Seguiti</div>
+  </div>
+
+  <div class="compose-box">
+    <div class="compose-inner">
+      <div class="compose-av" id="compose-av">🌐</div>
+      <div class="compose-right">
+        <textarea id="compose-txt" maxlength="280" placeholder="Cosa sta succedendo su Freenet?" oninput="updateCount()"></textarea>
+        <div class="compose-footer">
+          <button class="btn btn-cyan" onclick="doPost()">Posta</button>
+          <span class="char-count" id="char-count">280</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="feed"></div>
+</div>
+
+<!-- MODAL: login -->
+<div class="modal-bg" id="modal-login" onclick="closeMBG(event,'modal-login')">
+  <div class="modal">
+    <button class="modal-x" onclick="closeModal('modal-login')">✕</button>
+    <div id="ml-login">
+      <h2>Accedi</h2>
+      <div class="field"><label>Nome utente</label><input id="ll-n" type="text" placeholder="nome_nodo"></div>
+      <div class="field"><label>Password</label><input id="ll-p" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="err" id="ll-err">Credenziali non valide</div>
+      <button class="btn-sub" onclick="doLogin()">Accedi</button>
+      <p style="text-align:center;font-size:12px;margin-top:12px;color:var(--text2)">Non hai un account? <a onclick="showReg()" style="color:var(--accent);cursor:pointer">Registrati</a></p>
+    </div>
+    <div id="ml-reg" style="display:none">
+      <h2>Crea account</h2>
+      <p style="text-align:center;font-size:12px;color:#4caf50;margin:0 0 10px">🔒 Solo nome utente e password — nessuna email, nessun tracciamento<br><span style="color:#8b949e">Username &amp; password only — no email, no tracking</span></p>
+      <div class="field"><label>Nome utente</label><input id="lr-n" type="text" placeholder="nome_nodo"></div>
+      <div class="field"><label>Password</label><input id="lr-p" type="password" placeholder="min. 6 caratteri"></div>
+      <div class="field"><label>Conferma</label><input id="lr-p2" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doReg()"></div>
+      <div class="err" id="lr-err">Errore</div>
+      <button class="btn-sub" onclick="doReg()">Crea account</button>
+      <p style="text-align:center;font-size:12px;margin-top:12px;color:var(--text2)">Hai già un account? <a onclick="showLogin()" style="color:var(--accent);cursor:pointer">Accedi</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: pub guide -->
+<div class="modal-bg" id="modal-pub" onclick="closeMBG(event,'modal-pub')">
+  <div class="modal">
+    <button class="modal-x" onclick="closeModal('modal-pub')">✕</button>
+    <h2>Pubblica FreenetPosts</h2>
+    <pre id="pub-guide" style="font-size:11px;line-height:1.7;color:var(--text2);white-space:pre-wrap;background:var(--bg3);padding:12px;border-radius:8px;margin-top:10px"></pre>
+  </div>
+</div>
+
+<script>
+const ARCHIVE_KEY = 'fn_posts';
+const MAX_LEN = 280;
+const COLORS = ['#1da1f2','#e1306c','#00c896','#ff9f0a','#7c3aed','#ef4444','#0a84ff'];
+
+// La rete inizia vuota — i post vengono creati dagli utenti Freenet
+function loadPosts() {
+  try { return JSON.parse(localStorage.getItem(ARCHIVE_KEY)||'null') || []; } catch { return []; }
+}
+function savePosts(arr) { try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(arr)); } catch {} }
+function loadPD()  { try { return JSON.parse(localStorage.getItem('fn_postd')||'{}'); } catch { return {}; } }
+function savePD(d) { try { localStorage.setItem('fn_postd', JSON.stringify(d)); } catch {} }
+
+let POSTS = loadPosts();
+let currentTab = 'all';
+
+function getColor(u) { let h=0; for(let c of u) h=(h*31+c.charCodeAt(0))&0xffffffff; return COLORS[Math.abs(h)%COLORS.length]; }
+
+function switchTab(t) {
+  currentTab = t;
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['all','mine','follow'][i]===t));
+  render();
+}
+
+function render() {
+  const me = FN.getCurrentUser();
+  let list = [...POSTS].reverse();
+  if (currentTab==='mine')   list = list.filter(p=>p.user===me);
+  if (currentTab==='follow') list = list.filter(p=>isFollowing(p.user));
+  const pd = loadPD();
+  document.getElementById('feed').innerHTML = list.length
+    ? list.map(p=>postHtml(p,pd)).join('')
+    : '<div style="text-align:center;padding:40px;color:var(--text2)">Nessun post ancora</div>';
+}
+
+// ── follow ────────────────────────────────────────────────────────────────────
+function getFollows(){ try{return JSON.parse(localStorage.getItem('fn_follows')||'{}');}catch{return {};} }
+function saveFollows(f){ try{localStorage.setItem('fn_follows',JSON.stringify(f));}catch{} }
+function isFollowing(u){ return !!getFollows()[u]; }
+function toggleFollow(u){
+  const me=FN.getCurrentUser(); if(!me){openModal('login');return;}
+  if(u===me) return;
+  const f=getFollows();
+  if(f[u]) delete f[u]; else f[u]=Date.now();
+  saveFollows(f); render();
+}
+// commenti per post
+function getPostCmts(id){ try{const d=JSON.parse(localStorage.getItem('fn_pcmts')||'{}');return d[id]||[];}catch{return[];} }
+function savePostCmt(id,cmt){ try{const d=JSON.parse(localStorage.getItem('fn_pcmts')||'{}');if(!d[id])d[id]=[];d[id].push(cmt);localStorage.setItem('fn_pcmts',JSON.stringify(d));}catch{} }
+function sendCmt(id){
+  const inp=document.getElementById('cmti-'+id); if(!inp) return;
+  const t=inp.value.trim(); if(!t) return;
+  const me=FN.getCurrentUser()||'anonimo';
+  savePostCmt(id,{user:me,text:t,time:new Date().toISOString()});
+  inp.value='';
+  const box=document.getElementById('cmtbox-'+id); if(box) renderCmtBox(id,box);
+}
+function renderCmtBox(id,box){
+  const cmts=getPostCmts(id);
+  box.innerHTML=cmts.slice(-10).map(c=>`
+    <div class="cmt-row">
+      <div class="cmt-mini-av" style="background:${getColor(c.user)}">${c.user[0].toUpperCase()}</div>
+      <div class="cmt-mini-body"><span class="cmt-mini-name">@${escHtml(c.user)}</span> ${escHtml(c.text)}</div>
+    </div>`).join('')+`
+    <div class="cmt-inp-row">
+      <input class="cmt-inp" id="cmti-${escHtml(id)}" placeholder="Rispondi…" onkeydown="if(event.key==='Enter')sendCmt('${escHtml(id)}')">
+      <button class="cmt-send" onclick="sendCmt('${escHtml(id)}')">↩</button>
+    </div>`;
+}
+function toggleCmts(id){
+  const box=document.getElementById('cmtbox-'+id);
+  if(!box) return;
+  const open=box.style.display!=='block';
+  box.style.display=open?'block':'none';
+  if(open) renderCmtBox(id,box);
+}
+
+function postHtml(p,pd) {
+  const me = FN.getCurrentUser();
+  const st = pd[p.id] || { likes:p.likes, rt:p.rt, liked:p.liked, rted:p.rted };
+  const color = getColor(p.user);
+  const body  = escHtml(p.body).replace(/(#\w+)/g,'<span style="color:var(--cyan)">$1</span>');
+  const fol   = isFollowing(p.user);
+  const cmts  = getPostCmts(p.id);
+  const isMine = p.user===me;
+  return `
+  <div class="post-item">
+    <div class="post-av" style="background:${color}">${escHtml(p.user[0].toUpperCase())}</div>
+    <div class="post-right">
+      <div class="post-head">
+        <span class="post-user">${escHtml(p.user)}</span>
+        <span class="post-handle">@${escHtml(p.user)}.freenet</span>
+        <span class="post-time">${fmtTime(p.time)}</span>
+        ${!isMine?`<button class="follow-btn ${fol?'fol':'unf'}" onclick="toggleFollow('${escHtml(p.user)}')">${fol?'✓ Seguito':'+ Segui'}</button>`:''}
+      </div>
+      <div class="post-body">${body}</div>
+      <div class="post-actions">
+        <button class="pa-btn" onclick="doLike('${escHtml(p.id)}')">
+          ${st.liked?'❤️':'🤍'} <span id="lk-${escHtml(p.id)}">${st.likes}</span>
+        </button>
+        <button class="pa-btn ${st.rted?'retweeted':''}" onclick="doRT('${escHtml(p.id)}')">
+          🔁 <span id="rt-${escHtml(p.id)}">${st.rt}</span>
+        </button>
+        <button class="pa-btn" onclick="toggleCmts('${escHtml(p.id)}')">💬 ${cmts.length||''}</button>
+      </div>
+      <div class="cmt-box" id="cmtbox-${escHtml(p.id)}" style="display:none"></div>
+    </div>
+  </div>`;
+}
+
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtTime(t) { try { return new Date(t).toLocaleDateString('it-IT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); } catch { return ''; } }
+
+function doLike(id) {
+  const pd=loadPD(); if(!pd[id]){const p=POSTS.find(x=>x.id===id);pd[id]={likes:p?p.likes:0,rt:p?p.rt:0,liked:false,rted:false};}
+  pd[id].liked=!pd[id].liked; pd[id].likes+=pd[id].liked?1:-1; savePD(pd);
+  document.getElementById('lk-'+id).textContent=pd[id].likes;
+  const btn=document.querySelector(`[onclick="doLike('${id}')"]`);
+  if(btn) btn.innerHTML=(pd[id].liked?'❤️':'🤍')+' <span id="lk-'+id+'">'+pd[id].likes+'</span>';
+}
+function doRT(id) {
+  const pd=loadPD(); if(!pd[id]){const p=POSTS.find(x=>x.id===id);pd[id]={likes:p?p.likes:0,rt:p?p.rt:0,liked:false,rted:false};}
+  pd[id].rted=!pd[id].rted; pd[id].rt+=pd[id].rted?1:-1; savePD(pd);
+  document.getElementById('rt-'+id).textContent=pd[id].rt;
+}
+function doReply(id) {
+  const txt=document.getElementById('compose-txt');
+  txt.value='@'+POSTS.find(p=>p.id===id)?.user+' ';
+  txt.focus(); updateCount();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── compose ────────────────────────────────────────────────────────────────
+function updateCount() {
+  const len=document.getElementById('compose-txt').value.length;
+  const el=document.getElementById('char-count');
+  el.textContent=MAX_LEN-len;
+  el.className='char-count'+(len>MAX_LEN-20?' warn':'')+(len>=MAX_LEN?' over':'');
+}
+function doPost() {
+  const txt=document.getElementById('compose-txt').value.trim();
+  if(!txt||txt.length>MAX_LEN) return;
+  const user=FN.getCurrentUser()||'anonimo';
+  const p={id:'t'+Date.now(),user,body:txt,likes:0,rt:0,liked:false,rted:false,time:new Date().toISOString()};
+  POSTS.push(p); savePosts(POSTS);
+  document.getElementById('compose-txt').value=''; updateCount();
+  render();
+}
+
+// ── auth ───────────────────────────────────────────────────────────────────
+function showLogin(){document.getElementById('ml-login').style.display='block';document.getElementById('ml-reg').style.display='none';}
+function showReg(){document.getElementById('ml-login').style.display='none';document.getElementById('ml-reg').style.display='block';}
+function doLogin(){
+  const n=document.getElementById('ll-n').value.trim(),p=document.getElementById('ll-p').value;
+  const r=FN.login(n,p);
+  if(r==='ok'){applyLogin(n);closeModal('login');}
+  else{document.getElementById('ll-err').style.display='block';}
+}
+function doReg(){
+  const n=document.getElementById('lr-n').value.trim(),p=document.getElementById('lr-p').value,p2=document.getElementById('lr-p2').value;
+  const r=FN.register(n,p,p2);
+  const msgs={name_empty:'Nome vuoto',name_taken:'Nome già in uso',pass_short:'Password troppo corta',pass_mismatch:'Non coincidono'};
+  if(r==='ok'){applyLogin(n);closeModal('login');}
+  else{const e=document.getElementById('lr-err');e.textContent=msgs[r]||r;e.style.display='block';}
+}
+function applyLogin(u){
+  FN.setCurrentUser(u);
+  document.getElementById('btn-accedi').style.display='none';
+  document.getElementById('user-chip').style.display='flex';
+  document.getElementById('tb-user').textContent=u;
+  document.getElementById('av-letter').textContent=u[0].toUpperCase();
+  const color=getColor(u);
+  document.getElementById('compose-av').style.background=color;
+  document.getElementById('compose-av').textContent=u[0].toUpperCase();
+}
+(function(){const u=FN.getCurrentUser();if(u)applyLogin(u);})();
+
+// ── modali ─────────────────────────────────────────────────────────────────
+function openModal(id){document.getElementById('modal-'+id).classList.add('open');}
+function closeModal(id){document.getElementById('modal-'+id).classList.remove('open');}
+function closeMBG(e,id){if(e.target===document.getElementById('modal-'+id))closeModal(id);}
+
+function showPubGuide(){
+  const u=FN.getCurrentUser()||'utente';
+  document.getElementById('pub-guide').textContent=FN.publishGuide(u).replace(/fresnettv/g,'freenetposts').replace('FreenetTV','FreenetPosts').replace('video.html','posts.html');
+  openModal('pub');
+}
+
+// ── nodo ───────────────────────────────────────────────────────────────────
+FN.detectNode().then(node=>{
+  if(!node){document.getElementById('key-txt').textContent='Nodo non rilevato — avvia Freenet';return;}
+  const u=FN.getCurrentUser()||'utente';
+  document.getElementById('key-txt').textContent=FN.makeContractPreview(u+'-posts');
+});
+
+render();
+</script>
+</body>
+</html>

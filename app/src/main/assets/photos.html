@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FreenetGram — Decentralized Photos · Foto Decentralizzate</title>
+<link rel="stylesheet" href="fn-theme.css">
+<script src="fn-api.js"></script>
+<script type="module">
+import * as FNC from './fn-crypto.js';
+window.FNC = FNC;
+// Carica identità anonima se esiste
+(async()=>{
+  const raw = localStorage.getItem('fn7_identity_pub');
+  if(raw){ window._fn7id = JSON.parse(raw); }
+})();
+</script>
+<style>
+:root{--bg:#0d1b2a;--bg2:#112240;--bg3:#1a3358;--accent:#0a84ff;--pink:#e1306c;--green:#00c896;--text:#e8edf4;--text2:#8fa8c8;--border:#1e3a5f;--r:12px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+.topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;}
+.logo{font-size:20px;font-weight:900;background:linear-gradient(135deg,var(--pink),#f77737,#fcaf45);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.tb-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.btn{padding:7px 16px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;}
+.btn-pink{background:var(--pink);color:#fff;}.btn-pink:hover{opacity:.85;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text2);}.btn-ghost:hover{border-color:var(--accent);color:var(--text);}
+.user-chip{display:none;align-items:center;gap:6px;font-size:13px;font-weight:600;}
+.av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--pink),#f77737);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;}
+.container{max-width:900px;margin:0 auto;padding:24px 16px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.card-img{width:100%;aspect-ratio:1;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:72px;position:relative;overflow:hidden;}
+.card-img img{width:100%;height:100%;object-fit:cover;display:block;}
+.card-img .ph-emoji{position:absolute;font-size:64px;}
+.card-body{padding:12px;}
+.card-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.card-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--pink),#f77737);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;}
+.card-user{font-size:13px;font-weight:700;}
+.card-time{font-size:11px;color:var(--text2);margin-left:auto;}
+.card-caption{font-size:13px;margin-bottom:10px;line-height:1.5;}
+.card-actions{display:flex;gap:12px;align-items:center;}
+.action-btn{background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:2px 4px;border-radius:6px;transition:.15s;}
+.action-btn:hover{color:var(--text);}
+.action-btn.liked{color:var(--pink);}
+.like-count{font-size:13px;font-weight:600;}
+.cmts-toggle{margin-left:auto;font-size:12px;color:var(--text2);cursor:pointer;}
+.cmts-toggle:hover{color:var(--accent);}
+.cmts-box{margin-top:10px;border-top:1px solid var(--border);padding-top:10px;display:none;}
+.cmt-item{font-size:12px;padding:4px 0;border-bottom:1px solid var(--border);color:var(--text);}
+.cmt-item:last-child{border:none;}
+.cmt-user{font-weight:700;color:var(--accent);}
+.cmt-form{display:flex;gap:6px;margin-top:8px;}
+.cmt-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:12px;outline:none;}
+.cmt-input:focus{border-color:var(--accent);}
+.cmt-send{padding:7px 12px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;}
+.upload-btn{position:fixed;bottom:24px;right:24px;width:56px;height:56px;background:linear-gradient(135deg,var(--pink),#f77737);border:none;border-radius:50%;color:#fff;font-size:26px;cursor:pointer;box-shadow:0 4px 16px #0006;z-index:100;display:flex;align-items:center;justify-content:center;}
+.upload-btn:hover{transform:scale(1.08);}
+.modal-bg{position:fixed;inset:0;background:#000a;backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:999;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:28px 32px;width:100%;max-width:400px;position:relative;}
+.modal h2{font-size:18px;margin-bottom:16px;}
+.modal-x{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;}
+.field{margin-bottom:14px;}
+.field label{font-size:12px;color:var(--text2);display:block;margin-bottom:5px;}
+.field input,.field textarea,.field select{width:100%;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;font-family:inherit;}
+.field input:focus,.field textarea:focus{border-color:var(--accent);}
+.field textarea{min-height:80px;resize:vertical;}
+.emoji-picker{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.ep{font-size:28px;cursor:pointer;padding:4px;border-radius:8px;transition:.1s;}
+.ep:hover,.ep.sel{background:var(--bg3);}
+.err{color:#ff453a;font-size:11px;display:none;margin-top:3px;}
+.btn-sub{width:100%;padding:12px;background:linear-gradient(135deg,var(--pink),#f77737);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;}
+.key-bar{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--text2);margin-bottom:20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.key-bar span{color:var(--accent);font-family:monospace;word-break:break-all;}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text2);}
+.empty-state div:first-child{font-size:60px;margin-bottom:14px;}
+.back-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text2);cursor:pointer;margin-bottom:16px;text-decoration:none;}
+.back-btn:hover{border-color:var(--accent);color:var(--text);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back-btn" href="index.html">‹ Browser</a>
+  <span class="logo">FreenetGram</span>
+  <span style="font-size:11px;color:var(--text2);margin-left:4px">· Instagram su Freenet</span>
+  <div class="tb-right">
+    <div class="user-chip" id="user-chip"><div class="av" id="av-letter">?</div><span id="tb-user">—</span></div>
+    <button class="btn btn-ghost" id="btn-accedi" onclick="openModal('login')">Accedi</button>
+    <button class="btn btn-pink" onclick="openUpload()">+ Foto</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="key-bar" id="key-bar">
+    📡 Chiave contratto Freenet: <span id="key-txt">Rileva nodo…</span>
+    <span style="margin-left:auto;cursor:pointer;color:var(--text2);font-size:11px" onclick="showPubGuide()">Pubblica →</span>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<button class="upload-btn" title="Carica foto" onclick="openUpload()">📸</button>
+
+<!-- MODAL: upload foto -->
+<div class="modal-bg" id="modal-upload" onclick="closeMBG(event,'modal-upload')">
+  <div class="modal">
+    <button class="modal-x" onclick="closeModal('modal-upload')">✕</button>
+    <h2>📸 Carica foto</h2>
+    <div class="field"><label>Immagine (URL o emoji per demo)</label>
+      <div class="emoji-picker" id="emoji-pick">
+        🌅🌄🌃🏔️🌊🌺🌸🦋🐬🦅🍕🎨🎸🚀🌍🌈❄️🔥💫🎭
+      </div>
+      <input id="up-url" type="text" placeholder="Oppure incolla URL immagine…">
+    </div>
+    <div class="field"><label>Didascalia</label><textarea id="up-cap" placeholder="Scrivi qualcosa…"></textarea></div>
+    <div class="field"><label>Hashtag (opzionale)</label><input id="up-tags" type="text" placeholder="#freenet #natura #foto"></div>
+    <div class="err" id="up-err">Inserisci un'immagine o emoji</div>
+    <button class="btn-sub" onclick="doUpload()">Pubblica su Freenet</button>
+  </div>
+</div>
+
+<!-- MODAL: login -->
+<div class="modal-bg" id="modal-login" onclick="closeMBG(event,'modal-login')">
+  <div class="modal">
+    <button class="modal-x" onclick="closeModal('modal-login')">✕</button>
+    <div id="ml-login">
+      <h2>Accedi</h2>
+      <div class="field"><label>Nome utente</label><input id="ll-n" type="text" placeholder="nome_nodo"></div>
+      <div class="err" id="ll-err">Credenziali non valide</div>
+      <div class="field"><label>Password</label><input id="ll-p" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn-sub" onclick="doLogin()">Accedi</button>
+      <p style="text-align:center;font-size:12px;margin-top:12px;color:var(--text2)">Non hai un account? <a onclick="showReg()" style="color:var(--accent);cursor:pointer">Registrati</a></p>
+    </div>
+    <div id="ml-reg" style="display:none">
+      <h2>Crea account</h2>
+      <p style="text-align:center;font-size:12px;color:#4caf50;margin:0 0 10px">🔒 Solo nome utente e password — nessuna email, nessun tracciamento<br><span style="color:#8b949e">Username &amp; password only — no email, no tracking</span></p>
+      <div class="field"><label>Nome utente</label><input id="lr-n" type="text" placeholder="nome_nodo"></div>
+      <div class="field"><label>Password</label><input id="lr-p" type="password" placeholder="min. 6 caratteri"></div>
+      <div class="field"><label>Conferma</label><input id="lr-p2" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doReg()"></div>
+      <div class="err" id="lr-err">Errore</div>
+      <button class="btn-sub" onclick="doReg()">Crea account</button>
+      <p style="text-align:center;font-size:12px;margin-top:12px;color:var(--text2)">Hai già un account? <a onclick="showLogin()" style="color:var(--accent);cursor:pointer">Accedi</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: pubblica guida -->
+<div class="modal-bg" id="modal-pub" onclick="closeMBG(event,'modal-pub')">
+  <div class="modal">
+    <button class="modal-x" onclick="closeModal('modal-pub')">✕</button>
+    <h2>Pubblica FreenetGram</h2>
+    <pre id="pub-guide" style="font-size:11px;line-height:1.7;color:var(--text2);white-space:pre-wrap;background:var(--bg3);padding:12px;border-radius:8px;margin-top:10px"></pre>
+  </div>
+</div>
+
+<script>
+// ── costanti ──────────────────────────────────────────────────────────────
+const EMOJIS = ['🌅','🌄','🌃','🏔️','🌊','🌺','🌸','🦋','🐬','🦅','🍕','🎨','🎸','🚀','🌍','🌈','❄️','🔥','💫','🎭'];
+const ARCHIVE_KEY = 'fn_photos';
+
+// La rete inizia vuota — le foto vengono caricate dagli utenti Freenet
+// ── localStorage ──────────────────────────────────────────────────────────
+function loadPhotos() {
+  try { return JSON.parse(localStorage.getItem(ARCHIVE_KEY)||'null') || []; } catch { return []; }
+}
+function savePhotos(arr) {
+  try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(arr)); } catch {}
+}
+function loadPD()    { try { return JSON.parse(localStorage.getItem('fn_pd')||'{}'); } catch { return {}; } }
+function savePD(d)   { try { localStorage.setItem('fn_pd', JSON.stringify(d)); } catch {} }
+
+let PHOTOS = loadPhotos();
+
+// ── render griglia ────────────────────────────────────────────────────────
+function render() {
+  const g = document.getElementById('grid');
+  if (!PHOTOS.length) {
+    g.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div>📸</div><div>Nessuna foto ancora</div><div style="font-size:13px;margin-top:8px">Clicca + per caricare la prima</div></div>';
+    return;
+  }
+  g.innerHTML = [...PHOTOS].reverse().map(p => cardHtml(p)).join('');
+}
+
+// ── follow utenti (FreenetGram) ───────────────────────────────────────────
+function getFollows(){ try{return JSON.parse(localStorage.getItem('fn_gram_follows')||'{}');}catch{return {};} }
+function saveFollows(f){ try{localStorage.setItem('fn_gram_follows',JSON.stringify(f));}catch{} }
+function isFollowing(u){ return !!getFollows()[u]; }
+function toggleFollow(u){
+  const me=FN.getCurrentUser(); if(!me){openModal('login');return;}
+  if(u===me) return;
+  const f=getFollows();
+  if(f[u]) delete f[u]; else f[u]=Date.now();
+  saveFollows(f); render();
+}
+function sharePhoto(id){
+  const p=PHOTOS.find(x=>x.id===id);
+  if(!p) return;
+  prompt('Chiave contratto Freenet della foto:','CHK@'+btoa(id).replace(/[=+/]/g,'').substring(0,44)+'/foto.jpg');
+}
+
+function cardHtml(p) {
+  const me = FN.getCurrentUser();
+  const pd = loadPD();
+  const st = pd[p.id] || { likes: p.likes, liked: p.liked };
+  const fol = isFollowing(p.user);
+  const isMine = p.user===me;
+  const imgContent = p.url
+    ? `<img src="${escHtml(p.url)}" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`
+    : '';
+  return `
+  <div class="card" id="card-${escHtml(p.id)}">
+    <div class="card-img">${imgContent}<span class="ph-emoji">${escHtml(p.emoji||'📷')}</span></div>
+    <div class="card-body">
+      <div class="card-head">
+        <div class="card-av">${escHtml((p.user||'?')[0].toUpperCase())}</div>
+        <div style="flex:1"><span class="card-user">${escHtml(p.user)}</span> <span class="card-time">${fmtTime(p.time)}</span></div>
+        ${!isMine?`<button onclick="toggleFollow('${escHtml(p.user)}')" style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid;background:transparent;${fol?'border-color:var(--border);color:var(--text2)':'border-color:var(--pink);color:var(--pink)'}">${fol?'✓ Seguita':'+ Segui'}</button>`:''}
+      </div>
+      <div class="card-caption">${escHtml(p.caption||'')}</div>
+      ${p.tags ? `<div style="font-size:11px;color:var(--accent);margin-bottom:8px">${escHtml(p.tags)}</div>` : ''}
+      <div class="card-actions">
+        <button class="action-btn ${st.liked?'liked':''}" onclick="doLike('${escHtml(p.id)}')">${st.liked?'❤️':'🤍'}</button>
+        <span class="like-count" id="lk-${escHtml(p.id)}">${st.likes}</span>
+        <button class="action-btn" onclick="toggleCmts('${escHtml(p.id)}')">💬 <span id="cc-${escHtml(p.id)}">${(p.cmts||[]).length}</span></button>
+        <button class="action-btn" onclick="sharePhoto('${escHtml(p.id)}')" style="margin-left:auto;font-size:16px">↗</button>
+      </div>
+      <div class="cmts-box" id="cmts-${escHtml(p.id)}">
+        <div id="clist-${escHtml(p.id)}">${renderCmts(p.cmts||[])}</div>
+        <div class="cmt-form">
+          <input class="cmt-input" id="ci-${escHtml(p.id)}" placeholder="Commenta…" onkeydown="if(event.key==='Enter')postCmt('${escHtml(p.id)}')">
+          <button class="cmt-send" onclick="postCmt('${escHtml(p.id)}')">↑</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function renderCmts(cmts) {
+  if (!cmts.length) return '<div style="font-size:12px;color:var(--text2)">Nessun commento</div>';
+  return cmts.map(c=>`<div class="cmt-item"><span class="cmt-user">${escHtml(c.u)}</span>: ${escHtml(c.t)}</div>`).join('');
+}
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtTime(t) { try { return new Date(t).toLocaleDateString('it-IT',{day:'numeric',month:'short'}); } catch { return ''; } }
+
+// ── like ──────────────────────────────────────────────────────────────────
+function doLike(id) {
+  const pd = loadPD();
+  if (!pd[id]) { const p = PHOTOS.find(x=>x.id===id); pd[id]={likes:p?p.likes:0,liked:false}; }
+  pd[id].liked = !pd[id].liked;
+  pd[id].likes += pd[id].liked ? 1 : -1;
+  savePD(pd);
+  document.getElementById('lk-'+id).textContent = pd[id].likes;
+  const btn = document.querySelector(`#card-${id} .action-btn`);
+  if (btn) { btn.textContent = pd[id].liked ? '❤️' : '🤍'; btn.classList.toggle('liked', pd[id].liked); }
+}
+
+// ── commenti ──────────────────────────────────────────────────────────────
+function toggleCmts(id) {
+  const box = document.getElementById('cmts-'+id);
+  box.style.display = box.style.display === 'block' ? 'none' : 'block';
+}
+function postCmt(id) {
+  const inp = document.getElementById('ci-'+id);
+  const txt = inp.value.trim();
+  if (!txt) return;
+  const user = FN.getCurrentUser() || 'anonimo';
+  const p = PHOTOS.find(x=>x.id===id);
+  if (p) {
+    if (!p.cmts) p.cmts=[];
+    p.cmts.push({u:user,t:txt});
+    savePhotos(PHOTOS);
+    document.getElementById('clist-'+id).innerHTML = renderCmts(p.cmts);
+    document.getElementById('cc-'+id).textContent = p.cmts.length;
+  }
+  inp.value='';
+}
+
+// ── upload ────────────────────────────────────────────────────────────────
+let selEmoji = '📸';
+function openUpload() {
+  selEmoji = '📸';
+  document.getElementById('up-url').value='';
+  document.getElementById('up-cap').value='';
+  document.getElementById('up-tags').value='';
+  document.getElementById('up-err').style.display='none';
+  buildEmojiPicker();
+  openModal('upload');
+}
+function buildEmojiPicker() {
+  const d = document.getElementById('emoji-pick');
+  d.innerHTML = EMOJIS.map(e=>`<span class="ep${e===selEmoji?' sel':''}" onclick="pickEmoji('${e}')">${e}</span>`).join('');
+}
+function pickEmoji(e) { selEmoji=e; buildEmojiPicker(); }
+
+function doUpload() {
+  const url  = document.getElementById('up-url').value.trim();
+  const cap  = document.getElementById('up-cap').value.trim();
+  const tags = document.getElementById('up-tags').value.trim();
+  if (!cap && !url && selEmoji==='📸') { document.getElementById('up-err').style.display='block'; return; }
+  const user = FN.getCurrentUser() || 'anonimo';
+  const p = {
+    id: 'p'+Date.now(),
+    user, emoji: selEmoji, url: url||null,
+    caption: cap || '…', tags,
+    likes:0, liked:false, cmts:[],
+    time: new Date().toISOString(),
+    fnKey: null,
+  };
+  PHOTOS.push(p);
+  savePhotos(PHOTOS);
+  closeModal('upload');
+  render();
+}
+
+// ── auth ──────────────────────────────────────────────────────────────────
+function showLogin() { document.getElementById('ml-login').style.display='block'; document.getElementById('ml-reg').style.display='none'; }
+function showReg()   { document.getElementById('ml-login').style.display='none';  document.getElementById('ml-reg').style.display='block';  }
+function doLogin() {
+  const n=document.getElementById('ll-n').value.trim(), p=document.getElementById('ll-p').value;
+  const r=FN.login(n,p);
+  if(r==='ok'){applyLogin(n);closeModal('login');}
+  else{document.getElementById('ll-err').style.display='block';}
+}
+function doReg() {
+  const n=document.getElementById('lr-n').value.trim(), p=document.getElementById('lr-p').value, p2=document.getElementById('lr-p2').value;
+  const r=FN.register(n,p,p2);
+  const errEl=document.getElementById('lr-err');
+  const msgs={name_empty:'Nome vuoto',name_taken:'Nome già in uso',pass_short:'Password troppo corta',pass_mismatch:'Password non coincide'};
+  if(r==='ok'){applyLogin(n);closeModal('login');}
+  else{errEl.textContent=msgs[r]||r;errEl.style.display='block';}
+}
+function applyLogin(u) {
+  FN.setCurrentUser(u);
+  document.getElementById('btn-accedi').style.display='none';
+  document.getElementById('user-chip').style.display='flex';
+  document.getElementById('tb-user').textContent=u;
+  document.getElementById('av-letter').textContent=u[0].toUpperCase();
+}
+(function(){const u=FN.getCurrentUser();if(u)applyLogin(u);})();
+
+// ── modali ────────────────────────────────────────────────────────────────
+function openModal(id){document.getElementById('modal-'+id).classList.add('open');}
+function closeModal(id){document.getElementById('modal-'+id).classList.remove('open');}
+function closeMBG(e,id){if(e.target===document.getElementById('modal-'+id))closeModal(id);}
+
+// ── pubblica guida ────────────────────────────────────────────────────────
+function showPubGuide() {
+  const u = FN.getCurrentUser() || 'utente';
+  document.getElementById('pub-guide').textContent = FN.publishGuide(u).replace('FreenetTV','FreenetGram').replace('video.html','photos.html');
+  openModal('pub');
+}
+
+// ── nodo ──────────────────────────────────────────────────────────────────
+FN.detectNode().then(node => {
+  if (!node) { document.getElementById('key-txt').textContent = 'Nodo non rilevato — avvia Freenet'; return; }
+  const u = FN.getCurrentUser() || 'utente';
+  const preview = FN.makeContractPreview(u+'-gram');
+  document.getElementById('key-txt').textContent = preview;
+});
+
+render();
+</script>
+</body>
+</html>
