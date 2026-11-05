@@ -201,17 +201,30 @@ public final class Updater {
         check(activity, showResult, null);
     }
 
+    // Both sources are asked: the update file can lag a few minutes behind a new release.
     private static Release newestRelease(Context context) throws IOException, JSONException {
+        Release manifest = null;
+        Exception manifestError = null;
         try {
-            return fromManifest(context);
-        } catch (IOException | JSONException first) {
-            Log.w(TAG, "Update file not available, trying the GitHub API", first);
-            try {
-                return fromApi();
-            } catch (IOException | JSONException second) {
-                throw first; // the first failure says more about the phone's network
+            manifest = fromManifest(context);
+        } catch (IOException | JSONException e) {
+            Log.w(TAG, "Update file not available, trying the GitHub API", e);
+            manifestError = e;
+        }
+        Release api = null;
+        try {
+            api = fromApi();
+        } catch (IOException | JSONException e) {
+            if (manifestError instanceof IOException) {
+                throw (IOException) manifestError; // the first failure says more about the phone's network
+            }
+            if (manifestError instanceof JSONException) {
+                throw (JSONException) manifestError;
             }
         }
+        if (manifest == null) return api;
+        if (api == null) return manifest;
+        return compare(parseVersion(api.version), parseVersion(manifest.version)) > 0 ? api : manifest;
     }
 
     private static Release fromApi() throws IOException, JSONException {
