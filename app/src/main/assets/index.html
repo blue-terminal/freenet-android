@@ -832,9 +832,18 @@ function loadUrl(url, skipHist) {
 function doSearch() {
   const q = document.getElementById('search-q').value.trim();
   if (!q) return;
-  const node = FN.getActiveNode() || FN.NODES[0];
-  // Se sembra una chiave contratto naviga direttamente
+  // Se sembra una chiave contratto naviga direttamente (funziona anche offline)
   if (/^[A-Za-z0-9_-]{30,60}$/.test(q)) { navigate('freenet://' + q); return; }
+  if (!nodeOnline) {
+    // Nodo offline: mostra messaggio nell'iframe invece di caricare pagina di errore
+    const frame = document.getElementById('fn-frame');
+    const home  = document.getElementById('home-overlay');
+    home.style.display  = 'none';
+    frame.style.display = 'block';
+    frame.srcdoc = `<!DOCTYPE html><html><body style="background:#0d1b2a;color:#e8edf4;font-family:'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:0;margin:0;padding:24px;box-sizing:border-box"><div style="max-width:380px;width:100%;text-align:center"><div style="font-size:48px;margin-bottom:12px">🔌</div><div style="font-size:18px;font-weight:700;margin-bottom:8px">Ricerca non disponibile</div><div style="font-size:13px;color:#8fa8c8;margin-bottom:24px;line-height:1.6">La ricerca su Freenet richiede un nodo P2P attivo.<br>Avvia il nodo, poi cerca di nuovo.</div><button onclick="window.parent.postMessage({__freenet_shell__:true,type:'navigate',href:'freenet://home'},'*')" style="background:#0a84ff;color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;width:100%">🏠 Torna alla home</button></div></body></html>`;
+    return;
+  }
+  const node = FN.getActiveNode() || FN.NODES[0];
   navigate(node.base + '/search/?q=' + encodeURIComponent(q));
 }
 
