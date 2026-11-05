@@ -11,6 +11,7 @@ import android.os.Message;
 import android.util.Log;
 import android.view.WindowManager;
 import android.webkit.ConsoleMessage;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -77,6 +78,8 @@ public class BootstrapActivity extends AppCompatActivity {
         // Consente alle pagine in file:// (asset locali come loading.html / web70_preview.html)
         // di fare fetch verso il nodo Freenet su 127.0.0.1 e nodi remoti sulla LAN.
         settings.setAllowUniversalAccessFromFileURLs(true);
+        // Espone startNode() e getNodeStatus() a loading.html via Android.startNode()
+        web.addJavascriptInterface(new NodeBridge(), "Android");
         // Freenet opens links between its apps as new windows, from inside sandboxed frames.
         settings.setSupportMultipleWindows(true);
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
@@ -171,5 +174,19 @@ public class BootstrapActivity extends AppCompatActivity {
             }
         }
         return true;
+    }
+
+    /** Esposta a loading.html via window.Android — permette di avviare il nodo locale. */
+    private class NodeBridge {
+        @JavascriptInterface
+        public void startNode() {
+            Manager.getInstance().startService(BootstrapActivity.this);
+        }
+
+        @JavascriptInterface
+        public String getStatus() {
+            Manager.Status s = Manager.getInstance().getStatus().getValue();
+            return s != null ? s.name() : "STOPPED";
+        }
     }
 }

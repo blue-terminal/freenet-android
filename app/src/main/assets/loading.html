@@ -178,15 +178,53 @@ async function tryConnect() {
   stEl.innerHTML = statusMsgs[idx]
     + '<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>';
   if (attempts >= MAX_ATTEMPTS) {
-    stEl.textContent = 'Nodo non trovato';
-    nfEl.textContent = '⚠ Avvia il nodo Freenet e riprova';
-    nfEl.style.borderColor = 'rgba(255,100,50,.3)';
-    nfEl.style.background  = 'rgba(255,100,50,.1)';
-    nfEl.style.color = '#ff6432';
-    nfEl.classList.add('show');
-    btnO.textContent = '🚀 Apri Web 7.0';
-    btnO.classList.add('show');
-    openWeb7();
+    // Prova ad avviare il nodo locale tramite l'interfaccia Android
+    if (typeof Android !== 'undefined' && Android.startNode) {
+      stEl.innerHTML = 'Avvio nodo locale'
+        + '<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>';
+      Android.startNode();
+      // Riprova la connessione ogni 1s per max 20s mentre il nodo si avvia
+      let retries = 0;
+      const waitForNode = async () => {
+        retries++;
+        const found = await detectNode(800);
+        if (found) {
+          nodeUrl = found;
+          nfEl.textContent = '✓ Nodo Freenet avviato — ' + found.replace('http://', '');
+          nfEl.classList.add('show');
+          stEl.textContent = 'Connesso!';
+          btnO.classList.add('show');
+          openWeb7();
+        } else if (retries < 20) {
+          stEl.innerHTML = 'Avvio nodo locale (' + retries + 's)'
+            + '<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>';
+          setTimeout(waitForNode, 1000);
+        } else {
+          // Nodo non avviato dopo 20s — apri Web 7.0 offline
+          stEl.textContent = 'Nodo non disponibile';
+          nfEl.textContent = '📴 Modalità offline — funzioni P2P non disponibili';
+          nfEl.style.borderColor = 'rgba(255,100,50,.3)';
+          nfEl.style.background  = 'rgba(255,100,50,.1)';
+          nfEl.style.color = '#ff6432';
+          nfEl.classList.add('show');
+          btnO.textContent = '🚀 Apri Web 7.0';
+          btnO.classList.add('show');
+          openWeb7();
+        }
+      };
+      setTimeout(waitForNode, 1000);
+    } else {
+      // Fallback su PC/browser: apri direttamente
+      stEl.textContent = 'Nodo non trovato';
+      nfEl.textContent = '⚠ Avvia il nodo Freenet e riprova';
+      nfEl.style.borderColor = 'rgba(255,100,50,.3)';
+      nfEl.style.background  = 'rgba(255,100,50,.1)';
+      nfEl.style.color = '#ff6432';
+      nfEl.classList.add('show');
+      btnO.textContent = '🚀 Apri Web 7.0';
+      btnO.classList.add('show');
+      openWeb7();
+    }
     return;
   }
   setTimeout(tryConnect, 2000);
