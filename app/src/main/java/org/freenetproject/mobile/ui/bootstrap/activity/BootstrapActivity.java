@@ -150,6 +150,10 @@ public class BootstrapActivity extends AppCompatActivity {
 
     /** Returns false for local/LAN Freenet nodes (any host on WEB_PORT). Anything else leaves the app. */
     private boolean openOutside(Uri url) {
+        // Navigazione tra asset locali (file:///android_asset/) — deve restare nel WebView
+        if ("file".equals(url.getScheme())) {
+            return false;
+        }
         if ("127.0.0.1".equals(url.getHost()) && url.getPort() == Manager.WEB_PORT) {
             return false;
         }
@@ -176,7 +180,7 @@ public class BootstrapActivity extends AppCompatActivity {
         return true;
     }
 
-    /** Esposta a loading.html via window.Android — permette di avviare il nodo locale. */
+    /** Esposta a loading.html e index.html via window.Android */
     private class NodeBridge {
         @JavascriptInterface
         public void startNode() {
@@ -187,6 +191,20 @@ public class BootstrapActivity extends AppCompatActivity {
         public String getStatus() {
             Manager.Status s = Manager.getInstance().getStatus().getValue();
             return s != null ? s.name() : "STOPPED";
+        }
+
+        /** Apre un URL https:// nel browser esterno del dispositivo. */
+        @JavascriptInterface
+        public void openExternal(String url) {
+            if (url == null) return;
+            String s = url.trim();
+            if (!s.startsWith("https://") && !s.startsWith("http://")) return;
+            Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse(s));
+            browser.addCategory(Intent.CATEGORY_BROWSABLE);
+            try {
+                startActivity(browser);
+            } catch (ActivityNotFoundException ignored) {
+            }
         }
     }
 }
