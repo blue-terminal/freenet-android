@@ -92,7 +92,6 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 <script>
 const LOCAL_NODES = ['http://127.0.0.1:7509', 'http://127.0.0.1:8888'];
 let nodeUrl = null;
-let done = false;
 let attempts = 0;
 const MAX_ATTEMPTS = 1; // 1 tentativo: 500ms per nodo (~1-1.5s max) poi apre Web 7.0 offline
 
@@ -145,15 +144,13 @@ async function detectNode(timeoutMs) {
 }
 
 function openWeb7() {
-  if (done) return;
-  done = true;
-  // Se trovato su LAN (non 127.0.0.1), salva IP per Web 7.0
+  // Salva IP remoto se trovato su LAN
   if (nodeUrl && !nodeUrl.includes('127.0.0.1') && !nodeUrl.includes('localhost')) {
     const ip = nodeUrl.replace(/^https?:\/\//, '').split(':')[0];
     try { localStorage.setItem('fn_remote_node', ip); } catch {}
   }
-  // Web 7.0 bundlato nell'APK — funziona sempre
-  window.location.href = 'file:///android_asset/index.html';
+  // Web 7.0 bundlato nell'APK — funziona sempre, non bloccare con done
+  window.location.replace('file:///android_asset/index.html');
 }
 
 async function tryConnect() {
