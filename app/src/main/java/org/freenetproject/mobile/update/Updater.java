@@ -249,7 +249,7 @@ public final class Updater {
 
     private static Release fromManifest(Context context) throws IOException, JSONException {
         boolean betaChannel = PreferenceManager.getDefaultSharedPreferences(context)
-                .getBoolean("beta_channel", false);
+                .getBoolean("beta_channel", true);
         JSONObject manifest = new JSONObject(fetchText(MANIFEST_URL));
 
         // On beta channel, prefer the beta entry if it exists and is newer
