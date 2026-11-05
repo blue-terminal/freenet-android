@@ -169,16 +169,9 @@ const FN = (() => {
       'freenet://impostazioni': null,
     };
 
-    if (fnUrl === 'freenet://gitea') {
-      // Gitea è un servizio locale, non un contratto Freenet
-      const remoteIp = (() => { try { return localStorage.getItem('fn_remote_node'); } catch { return null; } })();
-      const base = remoteIp ? 'http://' + remoteIp : 'http://127.0.0.1';
-      return base + ':3000/';
-    }
-
     if (fnUrl in ROUTE_MAP) {
       const key = ROUTE_MAP[fnUrl];
-      if (!key) return node.base + '/config/';
+      if (!key) return node.base + '/';
       return contractUrl(node, key);
     }
 
