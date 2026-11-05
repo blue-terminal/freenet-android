@@ -68,7 +68,7 @@ async function refresh() {
   return list.online;
 }
 
-const imageUrl = m => (FNet.SAFE_KEY.test(m.ch || '') && /^[A-Za-z0-9_-]+\.jpg$/.test(m.file || '') ? FNet.siteUrl(m.ch, m.file) : '');
+const { imageUrl } = Social;
 function mediaHtml(n) {
   const media = Array.isArray(n.media) ? n.media : [];
   const video = media.find(m => m && m.type === 'video');
@@ -76,9 +76,9 @@ function mediaHtml(n) {
     const thumb = FNet.safeImage(video.thumb);
     return `<div class="media n1" data-media="${esc(n.id)}"><div class="play" onclick="playVideo('${esc(n.id)}',this)">${thumb ? `<img src="${thumb}" alt="">` : ''}<span>▶</span></div></div>`;
   }
-  const images = media.filter(m => m && m.type === 'image').slice(0, MAX_IMAGES).map(imageUrl).filter(Boolean);
+  const images = media.filter(m => m && m.type === 'image' && imageUrl(m)).slice(0, MAX_IMAGES);
   if (!images.length) return '';
-  return `<div class="media n${images.length}" data-media="${esc(n.id)}">${images.map(src => `<img src="${esc(src)}" alt="" loading="lazy">`).join('')}</div>`;
+  return `<div class="media n${images.length}" data-media="${esc(n.id)}">${images.map(m => `<img data-src="${esc(imageUrl(m))}" data-sha="${esc(m.sha || '')}" alt="">`).join('')}</div>`;
 }
 
 function noteHtml(n) {
@@ -192,32 +192,6 @@ async function noteMenu(id) {
   if (choice === '2') { FNet.blockUser(n.tag, n.name); toast('Utente bloccato'); render(); }
 }
 
-// Foto e video del post: le foto vanno nel sito dei post, il video in contratti suoi come su FreenetTV.
-async function uploadMedia(files, id, say) {
-  const videos = files.filter(f => f.type.startsWith('video/'));
-  if (videos.length) {
-    const file = videos[0];
-    say('Analizzo il video');
-    const facts = await FNet.videoFacts(file);
-    const parts = await FNet.uploadVideoParts(file, id, text => say(text));
-    return [{ type: 'video', parts, mime: file.type, size: file.size, thumb: facts.thumb, dur: facts.dur }];
-  }
-  const images = files.filter(f => f.type.startsWith('image/')).slice(0, MAX_IMAGES);
-  if (!images.length) return [];
-  const existing = await FNet.call('siteRead', { site: SITE, file: 'index.html' });
-  if (!existing.text) await FNet.writeText(SITE, 'index.html', '<!doctype html><meta charset="utf-8"><title>FreenetPosts</title><p>Immagini di FreenetPosts.</p>');
-  const names = [];
-  for (let i = 0; i < images.length; i++) {
-    say(`Preparo la foto ${i + 1} di ${images.length}`);
-    const name = `${id}-${i}.jpg`;
-    await FNet.writeBlob(SITE, name, await FNet.imageToJpeg(images[i], 1600, 0.82));
-    names.push(name);
-  }
-  say('Pubblico le foto in rete');
-  const ch = await FNet.publishSite(SITE);
-  return names.map(file => ({ type: 'image', ch, file }));
-}
-
 function showPicked(input) {
   const box = document.getElementById('picked');
   const files = [...input.files];
@@ -232,7 +206,7 @@ async function sendNote(form) {
   button.disabled = true;
   try {
     const id = FNet.newId('n');
-    const media = files.length ? await uploadMedia(files, id, t => { state.textContent = t; }) : [];
+    const media = files.length ? await Social.uploadMedia(files, id, SITE, t => { state.textContent = t; }, MAX_IMAGES) : [];
     state.textContent = 'Pubblico il post';
     await FNet.publishMedia('post', FEED, id, { text, media, vis: 'public' }, { title: 'Post', text, media: media.map(m => m.type) });
     form.reset();
@@ -319,6 +293,7 @@ async function render() {
     else if (page === 'user') await viewUser(param);
     else if (page === 'p') await viewNote(param);
     else await viewAll();
+    FNet.loadVerifiedImages(app);
   } catch (e) {
     app.innerHTML = `<div class="empty"><div>⚠️</div><h2>Qualcosa non ha funzionato</h2><p>${esc(e.message)}</p></div>`;
   }

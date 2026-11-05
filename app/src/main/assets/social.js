@@ -62,5 +62,33 @@
     return { liked: !liked, likes: a.likes + (liked ? -1 : 1) };
   }
 
-  root.Social = { toast, avatar, offlineNotice, drawComments, toggleVote };
+  // Foto nel sito indicato, con impronta; un video in contratti suoi come su FreenetTV.
+  async function uploadMedia(files, id, site, say, maxImages) {
+    const video = files.find(f => f.type.startsWith('video/'));
+    if (video) {
+      say('Analizzo il video');
+      const facts = await FNet.videoFacts(video);
+      const parts = await FNet.uploadVideoParts(video, id, text => say(text));
+      return [{ type: 'video', parts, mime: video.type, size: video.size, thumb: facts.thumb, dur: facts.dur }];
+    }
+    const images = files.filter(f => f.type.startsWith('image/')).slice(0, maxImages || 4);
+    if (!images.length) return [];
+    const existing = await FNet.call('siteRead', { site, file: 'index.html' });
+    if (!existing.text) await FNet.writeText(site, 'index.html', '<!doctype html><meta charset="utf-8"><title>Web 7.0</title><p>Immagini di Web 7.0.</p>');
+    const written = [];
+    for (let i = 0; i < images.length; i++) {
+      say(`Preparo la foto ${i + 1} di ${images.length}`);
+      const file = `${id}-${i}.jpg`;
+      const jpeg = await FNet.imageToJpeg(images[i], 1600, 0.82);
+      await FNet.writeBlob(site, file, jpeg);
+      written.push({ file, sha: await FNet.hashBlob(jpeg) });
+    }
+    say('Pubblico in rete');
+    const ch = await FNet.publishSite(site);
+    return written.map(w => ({ type: 'image', ch, ...w }));
+  }
+
+  const imageUrl = m => (m && FNet.SAFE_KEY.test(m.ch || '') && /^[A-Za-z0-9_-]+\.jpg$/.test(m.file || '') ? FNet.siteUrl(m.ch, m.file) : '');
+
+  root.Social = { toast, avatar, offlineNotice, drawComments, toggleVote, uploadMedia, imageUrl };
 })(window);

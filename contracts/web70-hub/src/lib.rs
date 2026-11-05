@@ -1,15 +1,17 @@
 //! Shared message board: comments, likes, reports, channel directory, chess moves.
 //! The parameters are a topic name, so every topic is its own contract instance.
-//! Signatures are checked by the readers. The contract keeps the state mergeable and makes
-//! flooding expensive: every message carries proof of work, every author has a quota.
+//! The network itself refuses forged messages: every message must carry a valid ECDSA P-256
+//! signature of its author, proof of work, and fit in the author's quota.
+use base64ct::{Base64UrlUnpadded, Encoding};
 use freenet_stdlib::prelude::*;
+use p256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-const MAX_MESSAGES: usize = 1000;
+const MAX_MESSAGES: usize = 250;
 const MAX_MESSAGE_BYTES: usize = 16 * 1024;
-const MAX_PER_AUTHOR: usize = 200;
+const MAX_PER_AUTHOR: usize = 50;
 #[cfg(not(test))]
 const WORK_BITS: u32 = 14;
 #[cfg(test)]
@@ -45,16 +47,43 @@ fn leading_zero_bits(hash: &[u8]) -> u32 {
     bits
 }
 
+/// The author is the public key as JWK "x.y" (base64url); the signature is r||s from WebCrypto.
+fn signature_ok(author: &str, text: &str, signature: &str) -> bool {
+    let Some((x, y)) = author.split_once('.') else {
+        return false;
+    };
+    let mut point = [0u8; 65];
+    point[0] = 4;
+    let coordinates_ok = matches!(Base64UrlUnpadded::decode(x, &mut point[1..33]), Ok(d) if d.len() == 32)
+        && matches!(Base64UrlUnpadded::decode(y, &mut point[33..65]), Ok(d) if d.len() == 32);
+    let mut raw = [0u8; 64];
+    let signature_len = Base64UrlUnpadded::decode(signature, &mut raw).map(|d| d.len());
+    if !coordinates_ok || signature_len != Ok(64) {
+        return false;
+    }
+    match (VerifyingKey::from_sec1_bytes(&point), Signature::from_slice(&raw)) {
+        (Ok(key), Ok(sig)) => key.verify(text.as_bytes(), &sig).is_ok(),
+        _ => false,
+    }
+}
+
 type Board = BTreeMap<String, Message>;
 
-fn parse_message(value: &Value) -> Option<(String, Message)> {
+struct Parsed {
+    id: String,
+    message: Message,
+    text: String,
+    signature: String,
+}
+
+fn parse_message(value: &Value) -> Option<Parsed> {
     let id = value.get("i")?.as_str()?;
     let time = value.get("t")?.as_u64()?;
     let author = value.get("a")?.as_str()?;
     let name = value.get("n")?.as_str()?;
     let payload = value.get("p")?.as_str()?;
     let work = value.get("w")?.as_str()?;
-    value.get("s")?.as_str()?;
+    let signature = value.get("s")?.as_str()?;
     let raw = value.to_string();
     if raw.len() > MAX_MESSAGE_BYTES {
         return None;
@@ -66,7 +95,12 @@ fn parse_message(value: &Value) -> Option<(String, Message)> {
     if leading_zero_bits(&Sha256::digest(format!("{id}|{work}").as_bytes())) < WORK_BITS {
         return None;
     }
-    Some((id.to_owned(), Message { time, author: author.to_owned(), raw }))
+    Some(Parsed {
+        id: id.to_owned(),
+        message: Message { time, author: author.to_owned(), raw },
+        text,
+        signature: signature.to_owned(),
+    })
 }
 
 fn add(board: &mut Board, id: String, message: Message) {
@@ -79,7 +113,7 @@ fn add(board: &mut Board, id: String, message: Message) {
     }
 }
 
-fn read_messages(bytes: &[u8]) -> Result<Vec<(String, Message)>, ContractError> {
+fn parse_all(bytes: &[u8]) -> Result<Vec<Parsed>, ContractError> {
     if bytes.is_empty() {
         return Ok(Vec::new());
     }
@@ -93,9 +127,28 @@ fn read_messages(bytes: &[u8]) -> Result<Vec<(String, Message)>, ContractError> 
         .collect()
 }
 
-fn merge_into(board: &mut Board, bytes: &[u8]) -> Result<(), ContractError> {
-    for (id, message) in read_messages(bytes)? {
-        add(board, id, message);
+/// Every message checked, signature included: for anything that comes from outside.
+fn read_messages(bytes: &[u8]) -> Result<Vec<(String, Message)>, ContractError> {
+    parse_all(bytes)?
+        .into_iter()
+        .map(|p| {
+            if signature_ok(&p.message.author, &p.text, &p.signature) {
+                Ok((p.id, p.message))
+            } else {
+                Err(ContractError::InvalidState)
+            }
+        })
+        .collect()
+}
+
+/// The stored state was validated when it arrived: only messages not already in it need a signature check.
+fn merge_into(board: &mut Board, bytes: &[u8], trusted: bool) -> Result<(), ContractError> {
+    for p in parse_all(bytes)? {
+        let known = board.get(&p.id).is_some_and(|old| old.raw == p.message.raw);
+        if !trusted && !known && !signature_ok(&p.message.author, &p.text, &p.signature) {
+            return Err(ContractError::InvalidUpdate);
+        }
+        add(board, p.id, p.message);
     }
     Ok(())
 }
@@ -119,17 +172,17 @@ fn write_board(board: &Board) -> Vec<u8> {
 
 fn merge_all(state: &[u8], updates: &[&[u8]]) -> Result<Vec<u8>, ContractError> {
     let mut board = Board::new();
-    merge_into(&mut board, state)?;
+    merge_into(&mut board, state, true)?;
     for update in updates {
-        merge_into(&mut board, update)?;
+        merge_into(&mut board, update, false)?;
     }
     Ok(write_board(&board))
 }
 
 fn ids_of(state: &[u8]) -> Result<Vec<u8>, ContractError> {
-    let ids: Vec<Value> = read_messages(state)?
+    let ids: Vec<Value> = parse_all(state)?
         .into_iter()
-        .map(|(id, _)| Value::String(id))
+        .map(|p| Value::String(p.id))
         .collect();
     Ok(Value::Array(ids).to_string().into_bytes())
 }
@@ -141,9 +194,9 @@ fn missing_from(state: &[u8], summary: &[u8]) -> Result<Vec<u8>, ContractError> 
         serde_json::from_slice(summary).map_err(|_| ContractError::InvalidUpdate)?
     };
     let mut board = Board::new();
-    for (id, message) in read_messages(state)? {
-        if !known.contains(&id) {
-            add(&mut board, id, message);
+    for p in parse_all(state)? {
+        if !known.contains(&p.id) {
+            add(&mut board, p.id, p.message);
         }
     }
     Ok(write_board(&board))
@@ -205,18 +258,31 @@ impl ContractInterface for Contract {
 mod tests {
     use super::*;
 
-    fn signed(author: &str, time: u64, text: &str) -> (String, String) {
-        let body = format!("{time}|{author}|n|{text}");
+    use p256::ecdsa::{signature::Signer, SigningKey};
+
+    fn key(label: &str) -> SigningKey {
+        SigningKey::from_slice(&Sha256::digest(label.as_bytes())).unwrap()
+    }
+    fn author(label: &str) -> String {
+        let point = key(label).verifying_key().to_encoded_point(false);
+        format!("{}.{}", Base64UrlUnpadded::encode_string(&point.as_bytes()[1..33]),
+            Base64UrlUnpadded::encode_string(&point.as_bytes()[33..65]))
+    }
+    fn signed(label: &str, time: u64, text: &str) -> (String, String) {
+        let who = author(label);
+        let body = format!("{time}|{who}|n|{text}");
         let id = base64url_prefix(&Sha256::digest(body.as_bytes()));
         let mut nonce = 0u64;
         while leading_zero_bits(&Sha256::digest(format!("{id}|{nonce}").as_bytes())) < WORK_BITS {
             nonce += 1;
         }
-        let raw = format!("{{\"a\":\"{author}\",\"i\":\"{id}\",\"n\":\"n\",\"p\":\"{text}\",\"s\":\"x\",\"t\":{time},\"w\":\"{nonce}\"}}");
+        let sig: Signature = key(label).sign(body.as_bytes());
+        let sig = Base64UrlUnpadded::encode_string(&sig.to_bytes());
+        let raw = format!("{{\"a\":\"{who}\",\"i\":\"{id}\",\"n\":\"n\",\"p\":\"{text}\",\"s\":\"{sig}\",\"t\":{time},\"w\":\"{nonce}\"}}");
         (id, raw)
     }
-    fn msg(author: &str, time: u64, text: &str) -> String {
-        signed(author, time, text).1
+    fn msg(label: &str, time: u64, text: &str) -> String {
+        signed(label, time, text).1
     }
     fn state(items: &[String]) -> Vec<u8> {
         format!("{{\"m\":[{}]}}", items.join(",")).into_bytes()
@@ -252,8 +318,8 @@ mod tests {
         items.push(msg("quiet", 1, "hello"));
         let out = merge_all(&state(&items), &[]).unwrap();
         let list = read_messages(&out).unwrap();
-        assert_eq!(list.iter().filter(|(_, m)| m.author == "flood").count(), MAX_PER_AUTHOR);
-        assert_eq!(list.iter().filter(|(_, m)| m.author == "quiet").count(), 1);
+        assert_eq!(list.iter().filter(|(_, m)| m.author == author("flood")).count(), MAX_PER_AUTHOR);
+        assert_eq!(list.iter().filter(|(_, m)| m.author == author("quiet")).count(), 1);
         let again = merge_all(&out, &[&state(&items)]).unwrap();
         assert_eq!(again, out);
     }
@@ -272,8 +338,58 @@ mod tests {
         while leading_zero_bits(&Sha256::digest(format!("{id}|{bad_nonce}").as_bytes())) >= WORK_BITS {
             bad_nonce += 1;
         }
-        let no_work = format!("{{\"a\":\"a\",\"i\":\"{id}\",\"n\":\"n\",\"p\":\"x\",\"s\":\"x\",\"t\":1,\"w\":\"{bad_nonce}\"}}");
+        let no_work = good.replace(&format!("\"w\":\"{}\"", work_of(&good)), &format!("\"w\":\"{bad_nonce}\""));
         assert!(read_messages(&state(&[no_work])).is_err());
+    }
+
+    fn work_of(raw: &str) -> String {
+        serde_json::from_str::<Value>(raw).unwrap()["w"].as_str().unwrap().to_owned()
+    }
+
+    #[test]
+    fn refuses_forged_signatures_everywhere() {
+        let good = msg("a", 1, "x");
+        let other = msg("b", 1, "x");
+        let sig_of = |raw: &str| serde_json::from_str::<Value>(raw).unwrap()["s"].as_str().unwrap().to_owned();
+        // Firma di un altro autore messa sul messaggio di "a".
+        let stolen = good.replace(&sig_of(&good), &sig_of(&other));
+        assert!(read_messages(&state(&[stolen.clone()])).is_err());
+        assert!(merge_all(&state(&[msg("c", 1, "y")]), &[&state(&[stolen])]).is_err());
+        let garbage = good.replace(&sig_of(&good), "AAAA");
+        assert!(read_messages(&state(&[garbage])).is_err());
+        let base = state(&[good.clone()]);
+        assert!(merge_all(&base, &[&state(&[good])]).is_ok());
+    }
+
+    // Stato pieno (1000 messaggi veri, lavoro reale da 14 bit) per misurare il contratto compilato su un nodo:
+    // WEB70_BIG_STATE=percorso cargo test -- --ignored emit_full_board
+    #[test]
+    #[ignore]
+    fn emit_full_board() {
+        let path = std::env::var("WEB70_BIG_STATE").expect("WEB70_BIG_STATE");
+        let mut items = Vec::new();
+        for n in 0..MAX_MESSAGES as u64 {
+            let label = format!("autore{}", n % 5);
+            let who = author(&label);
+            let body = format!("{}|{who}|n|messaggio {n}", 1_000 + n);
+            let id = base64url_prefix(&Sha256::digest(body.as_bytes()));
+            let mut nonce = 0u64;
+            while leading_zero_bits(&Sha256::digest(format!("{id}|{nonce}").as_bytes())) < 14 {
+                nonce += 1;
+            }
+            let sig: Signature = key(&label).sign(body.as_bytes());
+            let sig = Base64UrlUnpadded::encode_string(&sig.to_bytes());
+            items.push(format!("{{\"a\":\"{who}\",\"i\":\"{id}\",\"n\":\"n\",\"p\":\"messaggio {n}\",\"s\":\"{sig}\",\"t\":{},\"w\":\"{nonce}\"}}", 1_000 + n));
+        }
+        std::fs::write(path, state(&items)).unwrap();
+    }
+
+    // Messaggi firmati dalle pagine (WebCrypto, come in fn-net.js): il contratto deve accettarli tutti.
+    #[test]
+    fn accepts_signatures_made_by_the_pages() {
+        let vectors = include_str!("../tests/js_vectors.json");
+        let list = read_messages(vectors.as_bytes()).expect("all page-made messages must verify");
+        assert!(list.len() >= 40);
     }
 
     #[test]
