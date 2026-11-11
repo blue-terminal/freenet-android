@@ -40,7 +40,7 @@
     <input name="q" type="search" placeholder="Cerca" aria-label="Cerca" autocomplete="off">
   </form>
   <button class="crea" onclick="toggleMenu()" title="Crea" aria-label="Crea">＋ <span class="only-wide">Crea</span></button>
-  <a class="round only-wide" href="#/studio/comments" title="Notifiche: commenti ai tuoi video" aria-label="Notifiche">🔔</a>
+  <a class="round" href="#/notifications" title="Notifiche" aria-label="Notifiche" id="bell" style="position:relative">🔔</a>
   <a href="#/channel/me" id="me-avatar" aria-label="Il tuo canale"></a>
 </header>
 <div class="menu" id="menu" hidden>
@@ -168,7 +168,79 @@ async function viewLibrary() {
   };
   app.innerHTML = section('Cronologia', store.get('tv_history', []), 'Nessun video guardato.')
     + section('Da guardare dopo', store.get('tv_later', []), 'Premi Salva su un video per trovarlo qui.')
-    + section('Video che ti piacciono', store.get('tv_liked', []), 'Nessun video.');
+    + section('Video che ti piacciono', store.get('tv_liked', []), 'Nessun video.')
+    + `<h2 style="margin:16px 0 10px">Playlist</h2>` + (playlists().length
+      ? playlists().map(p => `<a class="vrow" href="#/playlist/${esc(p.id)}"><span class="thumb" style="width:112px">▶️</span><span class="grow"><b>${esc(p.name)}</b><div class="sub">${p.items.length} video</div></span></a>`).join('')
+      : '<p class="sub">Nessuna playlist: aggiungi un video con ＋ Playlist.</p>');
+}
+
+// ── playlist (sul telefono) ────────────────────────────────────────────────
+const playlists = () => store.get('tv_playlists', []);
+function addToPlaylist() {
+  const list = playlists();
+  const names = list.map((p, i) => `${i + 1}. ${p.name}`).join('\n');
+  const answer = prompt((names ? names + '\n\n' : '') + 'Scrivi il numero di una playlist oppure il nome di una nuova:');
+  if (!answer || !answer.trim()) return;
+  const index = Number(answer) - 1;
+  let target = Number.isInteger(index) && list[index] ? list[index] : null;
+  if (!target) { target = { id: FNet.newId('l'), name: answer.trim().slice(0, 60), items: [] }; list.push(target); }
+  if (!target.items.includes(current.id)) target.items.push(current.id);
+  store.set('tv_playlists', list);
+  toast(`Aggiunto a «${target.name}»`);
+}
+async function viewPlaylist(id) {
+  await refresh();
+  const p = playlists().find(x => x.id === id);
+  if (!p) { app.innerHTML = emptyBox('📃', 'Playlist non trovata', ''); return; }
+  const byId = new Map(items.map(v => [v.id, v]));
+  const list = p.items.map(i => byId.get(i)).filter(Boolean);
+  app.innerHTML = `<h1 style="font-size:21px;margin-bottom:10px">${esc(p.name)}</h1>
+    <div class="row wrap" style="margin-bottom:12px">${list.length ? `<button class="btn main" onclick="playPlaylist('${esc(id)}',0)">▶ Riproduci tutto</button>` : ''}<button class="btn danger" onclick="deletePlaylist('${esc(id)}')">Elimina playlist</button></div>`
+    + (list.length ? list.map((v, i) => `<div class="vrow">${thumbHtml(v)}<div class="grow"><b style="overflow-wrap:anywhere">${esc(v.title)}</b><div class="sub">${esc(v.name)}</div>
+      <div class="row wrap" style="margin-top:6px"><button class="btn" onclick="playPlaylist('${esc(id)}',${i})">▶ Guarda</button><button class="btn" onclick="removeFromPlaylist('${esc(id)}','${esc(v.id)}')">Togli</button></div></div></div>`).join('') : emptyBox('📃', 'Playlist vuota', 'Aggiungi video con ＋ Playlist dalla pagina di un video.'));
+}
+function playPlaylist(id, i) {
+  const p = playlists().find(x => x.id === id);
+  if (!p || !p.items[i]) return;
+  store.set('tv_playing', { pl: id, i });
+  location.hash = '#/watch/' + p.items[i];
+}
+function removeFromPlaylist(id, video) {
+  const list = playlists();
+  const p = list.find(x => x.id === id);
+  p.items = p.items.filter(x => x !== video);
+  store.set('tv_playlists', list);
+  render();
+}
+function deletePlaylist(id) {
+  if (!confirm('Eliminare la playlist? I video restano.')) return;
+  store.set('tv_playlists', playlists().filter(x => x.id !== id));
+  location.hash = '#/library';
+}
+
+// ── notifiche: nuovi video dai canali seguiti e commenti ai tuoi video ──────
+async function viewNotifications() {
+  await refresh();
+  me = me || await FNet.identity();
+  const seen = store.get('tv_notif_seen', 0);
+  const mySubs = subs();
+  const rows = items.filter(FNet.isVisible).filter(v => mySubs[v.tag]).map(v => ({ time: v.created, html: `<a class="vrow" href="#/watch/${esc(v.id)}">${thumbHtml(v)}<span class="grow"><b style="overflow-wrap:anywhere">${esc(v.name)}</b> ha pubblicato: ${esc(v.title)}<div class="sub">${esc(timeAgo(v.created))}</div></span></a>` }));
+  app.innerHTML = '<h1 style="font-size:21px;margin-bottom:10px">Notifiche</h1><div id="notif"><p class="sub">Leggo dalla rete…</p></div>';
+  for (const v of items.filter(x => x.tag === me.tag).slice(0, 10)) {
+    for (const c of FNet.foldActivity(await FNet.read('c:' + v.id)).comments) {
+      if (c.author !== me.pub) rows.push({ time: c.time, html: `<a class="vrow" href="#/watch/${esc(v.id)}">${avatarHtml(c.name)}<span class="grow"><b>${esc(c.name)}</b> ha commentato «${esc(v.title)}»: ${esc(c.text.slice(0, 140))}<div class="sub">${esc(timeAgo(c.time))}</div></span></a>` });
+    }
+  }
+  rows.sort((a, b) => b.time - a.time);
+  const box = document.getElementById('notif');
+  if (box) box.innerHTML = rows.length ? rows.map(r => (r.time > seen ? '<div style="border-left:3px solid var(--accent);padding-left:8px">' + r.html + '</div>' : r.html)).join('') : emptyBox('🔔', 'Nessuna notifica', 'Iscriviti ai canali per sapere quando pubblicano.');
+  store.set('tv_notif_seen', Date.now());
+  drawChrome();
+}
+function unreadCount() {
+  const seen = store.get('tv_notif_seen', 0);
+  const mySubs = subs();
+  return items.filter(v => mySubs[v.tag] && v.created > seen && FNet.isVisible(v)).length;
 }
 
 // ── pagina video ───────────────────────────────────────────────────────────
@@ -177,9 +249,16 @@ async function viewWatch(id) {
   const v = items.find(x => x.id === id);
   if (!v) { app.innerHTML = emptyBox('🔎', 'Video non trovato', 'Potrebbe essere stato eliminato dal suo autore.'); return; }
   current = v;
+  me = me || await FNet.identity();
+  const own = v.tag === me.tag;
   const subscribed = !!subs()[v.tag];
   const saved = store.get('tv_later', []).includes(v.id);
   const next = items.filter(FNet.isVisible).filter(x => x.id !== v.id).slice(0, 12);
+  // Il successivo: il prossimo della playlist in corso, altrimenti il primo consigliato.
+  const playing = store.get('tv_playing', null);
+  const pl = playing && playlists().find(p => p.id === playing.pl && p.items[playing.i] === v.id);
+  nextUp = pl ? { id: pl.items[playing.i + 1], playlist: pl.id, i: playing.i + 1 } : { id: next[0] && next[0].id };
+  if (!pl) store.del('tv_playing');
   const speed = store.get('tv_speed', 1);
   app.innerHTML = `<div class="watch"><div class="grow" style="min-width:0">
     <div class="player" id="player"><div id="player-state">Recupero il video dalla rete…</div></div>
@@ -193,7 +272,9 @@ async function viewWatch(id) {
       <select class="btn" aria-label="Velocità" onchange="setSpeed(this.value)">${[0.75, 1, 1.25, 1.5, 2].map(s => `<option value="${s}" ${s === speed ? 'selected' : ''}>${s}×</option>`).join('')}</select>
       <button class="btn" onclick="toggleLater()">${saved ? '✓ Salvato' : '🔖 Salva'}</button>
       <button class="btn" onclick="shareVideo()">🔗 Condividi</button>
-      <button class="btn" onclick="reportVideo()">🚩 Segnala</button>
+      <button class="btn" onclick="addToPlaylist()">＋ Playlist</button>
+      <button class="btn" onclick="downloadCurrent()">⬇ Scarica</button>
+      ${own ? `<button class="btn danger" onclick="removeVideo('${esc(v.id)}')">🗑 Elimina</button>` : '<button class="btn" onclick="reportVideo()">🚩 Segnala</button>'}
       <button class="btn" onclick="blockAuthor()">🚫 Blocca canale</button>
     </div>
     <div class="descr"><div class="sub" id="views-line">${esc(v.cat || '')} · ${esc(timeAgo(v.created))}</div>${esc(v.desc || '')}</div>
@@ -225,9 +306,22 @@ async function playVideo(v) {
     const el = document.getElementById('vid');
     el.playbackRate = store.get('tv_speed', 1);
     if (store.get('tv_autoplay', true)) el.play().catch(() => {});
+    el.onended = () => {
+      if (!store.get('tv_next', true) || !nextUp || !nextUp.id || current !== v) return;
+      if (nextUp.playlist) store.set('tv_playing', { pl: nextUp.playlist, i: nextUp.i });
+      location.hash = '#/watch/' + nextUp.id;
+    };
   } catch (e) {
     if (state) state.textContent = e.message;
   }
+}
+let nextUp = null;
+function downloadCurrent() {
+  if (!watchUrl) { toast('Aspetta che il video sia caricato'); return; }
+  const a = document.createElement('a');
+  a.href = watchUrl;
+  a.download = (current.title || 'video').replace(/[^\w\s.-]+/g, '').slice(0, 60) + ((current.mime || '').includes('webm') ? '.webm' : '.mp4');
+  a.click();
 }
 function enterFullscreen() {
   const el = document.getElementById('vid');
@@ -290,8 +384,25 @@ async function loadActivity() {
   dislike.classList.toggle('on', mine === -1);
   document.getElementById('comment-count').textContent = a.comments.length;
   document.getElementById('views-line').textContent = `${viewsText(a.views)} · ${v.cat || ''} · ${timeAgo(v.created)}`;
-  document.getElementById('comments').innerHTML = a.comments.map(c => `<div class="comment">${avatarHtml(c.name)}<div class="grow">
-    <div class="sub"><b>${esc(c.name)}</b> · ${esc(timeAgo(c.time))} ${c.author === me.pub ? `· <button class="sub" onclick="deleteComment('${esc(c.id)}')">Elimina</button>` : ''}</div><p>${esc(c.text)}</p></div></div>`).join('');
+  // Commenti con risposte sotto: prima i più nuovi, le risposte in ordine di arrivo.
+  const byParent = new Map();
+  for (const c of a.comments) if (c.reply) { if (!byParent.has(c.reply)) byParent.set(c.reply, []); byParent.get(c.reply).unshift(c); }
+  const one = (c, nested) => `<div class="comment" style="${nested ? 'margin-left:44px' : ''}">${avatarHtml(c.name)}<div class="grow">
+    <div class="sub"><b>${esc(c.name)}</b> · ${esc(timeAgo(c.time))}</div><p>${esc(c.text)}</p>
+    <div class="row wrap" style="gap:4px"><button class="sub" onclick="likeComment('${esc(c.id)}',${c.likedBy.has(me.pub)})">${c.likedBy.has(me.pub) ? '❤️' : '♡'} ${c.likedBy.size}</button>
+    ${nested ? '' : `<button class="sub" onclick="replyTo('${esc(c.id)}')">Rispondi</button>`}
+    ${c.author === me.pub ? `<button class="sub" onclick="deleteComment('${esc(c.id)}')">Elimina</button>` : ''}</div>
+    <div id="reply-${esc(c.id)}"></div></div></div>`;
+  document.getElementById('comments').innerHTML = a.comments.filter(c => !c.reply).map(c => one(c, false) + (byParent.get(c.id) || []).map(r => one(r, true)).join('')).join('');
+}
+function replyTo(id) {
+  const box = document.getElementById('reply-' + id);
+  box.innerHTML = `<form class="row" style="margin-top:6px" data-reply="${esc(id)}" onsubmit="event.preventDefault();sendComment(this)"><input class="grow" name="text" maxlength="2000" required placeholder="Rispondi" style="padding:8px 10px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);min-width:0"><button class="btn main">Invia</button></form>`;
+  box.querySelector('input').focus();
+}
+async function likeComment(ref, liked) {
+  await FNet.post('c:' + current.id, 'clike', { ref, on: !liked });
+  loadActivity();
 }
 async function markViewed(id) {
   const seen = store.get('tv_viewed', {});
@@ -314,7 +425,7 @@ async function sendComment(form) {
   const text = form.text.value.trim();
   if (!text) return;
   form.text.value = '';
-  const r = await FNet.post('c:' + current.id, 'comment', { text });
+  const r = await FNet.post('c:' + current.id, 'comment', form.dataset.reply ? { text, reply: form.dataset.reply } : { text });
   if (r.queued) toast('Salvato: partirà quando il nodo risponde');
   loadActivity();
 }
@@ -437,12 +548,12 @@ async function doUpload(form) {
 
 // ── studio ─────────────────────────────────────────────────────────────────
 async function viewStudio(tab) {
-  const studioTab = ['dashboard', 'content', 'comments'].includes(tab) ? tab : 'dashboard';
+  const studioTab = ['dashboard', 'content', 'analytics', 'comments', 'playlists'].includes(tab) ? tab : 'dashboard';
   await refresh();
   me = await FNet.identity();
   const mine = items.filter(v => v.tag === me.tag);
-  const tabs = [['dashboard', 'Panoramica'], ['content', 'Contenuti'], ['comments', 'Commenti']];
-  app.innerHTML = `<h1 style="font-size:21px;margin-bottom:10px">Studio</h1>
+  const tabs = [['dashboard', 'Panoramica'], ['content', 'Contenuti'], ['analytics', 'Analisi'], ['comments', 'Commenti'], ['playlists', 'Playlist']];
+  app.innerHTML = `<div class="row wrap" style="margin-bottom:10px"><h1 class="grow" style="font-size:21px">Studio</h1><a class="btn main" href="#/upload">⬆ Carica</a><a class="btn" href="#/live">🔴 Live</a></div>
     <div class="tabs">${tabs.map(([k, l]) => `<a class="tab ${k === studioTab ? 'on' : ''}" href="#/studio/${k}">${l}</a>`).join('')}<a class="tab" href="#/settings">Personalizza</a></div><div id="studio-body"><p class="sub">Leggo i dati dalla rete…</p></div>`;
   const activity = new Map();
   await Promise.all(mine.map(async v => activity.set(v.id, FNet.foldActivity(await FNet.read('c:' + v.id)))));
@@ -470,6 +581,18 @@ async function viewStudio(tab) {
         <div class="sub">${a.views} viste · ${a.likes} 👍 · ${a.dislikes} 👎 · ${a.comments.length} commenti${v.reports ? ` · ${v.reports} segnalazioni` : ''}</div>
         <div class="row wrap" style="margin-top:8px"><a class="btn" href="#/edit/${esc(v.id)}">Modifica</a><a class="btn" href="#/watch/${esc(v.id)}">Guarda</a><button class="btn danger" onclick="removeVideo('${esc(v.id)}')">Elimina</button></div></div></div>`;
     }).join('');
+  } else if (studioTab === 'analytics') {
+    const ranked = [...mine].sort((a, b) => activity.get(b.id).views - activity.get(a.id).views);
+    const byCat = new Map();
+    for (const v of mine) { const a = activity.get(v.id); const c = byCat.get(v.cat || '—') || { n: 0, views: 0, likes: 0 }; c.n++; c.views += a.views; c.likes += a.likes; byCat.set(v.cat || '—', c); }
+    const cell = 'style="padding:8px 6px;border-top:1px solid var(--line);text-align:right"';
+    body.innerHTML = `<div class="panel" style="overflow-x:auto"><h2>Per video</h2><table style="width:100%;border-collapse:collapse;font-size:13px">
+      <tr><th style="text-align:left">Video</th><th ${cell}>Viste</th><th ${cell}>👍</th><th ${cell}>👎</th><th ${cell}>Commenti</th><th ${cell}>Gradimento</th></tr>
+      ${ranked.map(v => { const a = activity.get(v.id); const votes = a.likes + a.dislikes; return `<tr><td style="padding:8px 6px;border-top:1px solid var(--line);overflow-wrap:anywhere"><a href="#/watch/${esc(v.id)}">${esc(v.title)}</a></td><td ${cell}>${a.views}</td><td ${cell}>${a.likes}</td><td ${cell}>${a.dislikes}</td><td ${cell}>${a.comments.length}</td><td ${cell}>${votes ? Math.round(a.likes / votes * 100) + '%' : '—'}</td></tr>`; }).join('')}</table></div>
+      <div class="panel" style="overflow-x:auto"><h2>Per categoria</h2><table style="width:100%;border-collapse:collapse;font-size:13px"><tr><th style="text-align:left">Categoria</th><th ${cell}>Video</th><th ${cell}>Viste</th><th ${cell}>👍</th></tr>
+      ${[...byCat].map(([k, c]) => `<tr><td style="padding:8px 6px;border-top:1px solid var(--line)">${esc(k)}</td><td ${cell}>${c.n}</td><td ${cell}>${c.views}</td><td ${cell}>${c.likes}</td></tr>`).join('')}</table></div>`;
+  } else if (studioTab === 'playlists') {
+    body.innerHTML = playlists().length ? playlists().map(p => `<a class="vrow" href="#/playlist/${esc(p.id)}"><span class="thumb" style="width:112px">▶️</span><span class="grow"><b>${esc(p.name)}</b><div class="sub">${p.items.length} video</div></span></a>`).join('') : emptyBox('📃', 'Nessuna playlist', 'Dalla pagina di un video premi ＋ Playlist.');
   } else {
     const rows = mine.flatMap(v => activity.get(v.id).comments.map(c => ({ c, v }))).sort((a, b) => b.c.time - a.c.time);
     body.innerHTML = rows.length ? rows.map(({ c, v }) => `<div class="comment">${avatarHtml(c.name)}<div class="grow"><div class="sub"><b>${esc(c.name)}</b> · ${esc(timeAgo(c.time))} · su <a href="#/watch/${esc(v.id)}">${esc(v.title)}</a></div><p>${esc(c.text)}</p></div></div>`).join('') : emptyBox('💬', 'Nessun commento', 'I commenti ai tuoi video compaiono qui.');
@@ -485,7 +608,8 @@ async function removeVideo(id) {
     await FNet.removeFromChannel(id);
     toast('Video eliminato');
   } catch (e) { toast('Eliminazione parziale: ' + e.message); }
-  render();
+  if (location.hash.startsWith('#/watch/')) location.hash = '#/studio/content';
+  else render();
 }
 async function viewEdit(id) {
   await refresh();
@@ -527,7 +651,7 @@ function viewSettings() {
     <button class="btn main">Salva il canale</button></form></div>
   <div class="panel"><h2>Aspetto</h2><label class="field" style="margin:0"><span>Tema</span><select onchange="FNet.store.set('theme',this.value);FNet.applyTheme()">
     <option value="dark" ${store.get('theme', 'dark') === 'dark' ? 'selected' : ''}>Scuro</option><option value="light" ${store.get('theme', 'dark') === 'light' ? 'selected' : ''}>Chiaro</option></select></label></div>
-  <div class="panel"><h2>Riproduzione</h2>${toggle('tv_autoplay', 'Avvia i video da soli', true)}</div>
+  <div class="panel"><h2>Riproduzione</h2>${toggle('tv_autoplay', 'Avvia i video da soli', true)}${toggle('tv_next', 'Alla fine riproduci il video successivo', true)}</div>
   <div class="panel"><h2>Sicurezza e protezione dallo spam</h2>
     <p class="sub" style="margin-bottom:10px">Sempre attive: ogni messaggio è firmato e richiede un piccolo calcolo, ogni autore ha un limite di messaggi per bacheca, e su questo telefono un autore non può mostrare più di 20 messaggi al minuto. Non fermano un attacco di rete contro il nodo.</p>
     <div class="sub" style="margin-bottom:10px">Messaggi filtrati da quando hai aperto la pagina: ${FNet.filteredTotal()}</div>
@@ -535,6 +659,8 @@ function viewSettings() {
     ${blocked.length ? blocked.map(([tag, name]) => `<div class="vrow" style="align-items:center"><span class="grow" style="overflow-wrap:anywhere">${esc(name)}</span><button class="btn" data-tag="${esc(tag)}" onclick="FNet.unblockUser(this.dataset.tag);render()">Sblocca</button></div>`).join('') : '<p class="sub">Nessuno.</p>'}</div>
   <div class="panel"><h2>Cronologia e privacy</h2>${toggle('tv_history_on', 'Salva i video guardati su questo telefono', true)}
     <button class="btn" style="margin-top:10px" onclick="FNet.store.del('tv_history');toast('Cronologia cancellata')">Cancella cronologia</button></div>
+  <div class="panel"><h2>Account</h2><p class="sub" style="margin-bottom:10px">Elimina il tuo account da questo dispositivo e ne crea uno nuovo, con un'altra identità e un canale vuoto. Ciò che hai già pubblicato su Freenet resta in rete, a meno che tu non scelga di eliminare prima i tuoi video.</p>
+    <button class="btn danger" onclick="resetAccount()">Elimina account e ricrea</button></div>
   <div class="panel"><h2>La tua identità</h2><p class="sub" style="margin-bottom:10px">Non ci sono account né password: il canale è legato a una chiave su questo telefono. Se la perdi perdi il canale, quindi salvane una copia in un posto sicuro.</p>
     <div class="row wrap"><button class="btn" onclick="backupIdentity()">Salva una copia</button><label class="btn">Ripristina<input type="file" accept="application/json" hidden onchange="restoreIdentity(this)"></label></div></div>`;
 }
@@ -549,6 +675,21 @@ async function saveChannel(form) {
   } catch (e) { toast(e.message); }
   drawChrome();
   viewSettings();
+}
+async function resetAccount() {
+  if (!confirm("Eliminare l'account da questo dispositivo e crearne uno nuovo? Senza una copia salvata non potrai più tornare a questo canale.")) return;
+  me = me || await FNet.identity();
+  if (confirm('Vuoi eliminare prima dalla rete anche tutti i tuoi video?')) {
+    await refresh();
+    for (const v of items.filter(x => x.tag === me.tag)) {
+      try { await FNet.deleteItem(FEED, v.id); await FNet.wipeVideoParts(v.parts || []); } catch {}
+    }
+  }
+  for (const key of ['identity', 'profile', 'channel_key', 'channel_listed', 'tv_my_ids', 'tv_subs', 'tv_history', 'tv_later', 'tv_liked', 'tv_viewed', 'tv_playlists', 'tv_playing', 'tv_notif_seen']) FNet.store.del(key);
+  FNet.logout();
+  toast('Nuovo account creato');
+  location.hash = '#/settings';
+  location.reload();
 }
 function backupIdentity() {
   const a = document.createElement('a');
@@ -695,6 +836,8 @@ async function drawChrome() {
   const entry = ([hash, icon, label]) => `<a class="nav-item ${route.startsWith(hash) ? 'on' : ''}" href="${hash}"><span>${icon}</span><span>${label}</span></a>`;
   document.getElementById('side').innerHTML = NAV.map(entry).join('');
   document.getElementById('bottom').innerHTML = NAV.filter(n => PHONE_NAV.includes(n[0])).map(entry).join('');
+  const unread = unreadCount();
+  document.getElementById('bell').innerHTML = '🔔' + (unread ? `<span style="position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">${unread > 9 ? '9+' : unread}</span>` : '');
 }
 async function render() {
   const seq = ++renderSeq;
@@ -712,6 +855,8 @@ async function render() {
     else if (page === 'studio') await viewStudio(param);
     else if (page === 'edit') await viewEdit(param);
     else if (page === 'settings') viewSettings();
+    else if (page === 'playlist') await viewPlaylist(param);
+    else if (page === 'notifications') await viewNotifications();
     else if (page === 'live') { await refresh(); viewLive(); }
     else await viewHome(param, seq);
   } catch (e) {
