@@ -58,82 +58,6 @@
   const SIGN = { name: 'ECDSA', hash: 'SHA-256' };
   let identityPromise = null;
 
-  // Identità da frase segreta: stessa frase, stessa chiave, su qualsiasi dispositivo.
-  // WebCrypto non accetta una chiave privata senza la parte pubblica, quindi il punto
-  // pubblico di P-256 si calcola qui; importKey poi verifica che stia sulla curva.
-  const P256_P = BigInt('0xffffffff00000001000000000000000000000000ffffffffffffffffffffffff');
-  const P256_N = BigInt('0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551');
-  const P256_G = [BigInt('0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296'),
-    BigInt('0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5')];
-  const fieldMod = x => ((x % P256_P) + P256_P) % P256_P;
-  function fieldInverse(a) {
-    let [t, nt, r, nr] = [0n, 1n, P256_P, fieldMod(a)];
-    while (nr) { const q = r / nr; [t, nt] = [nt, t - q * nt]; [r, nr] = [nr, r - q * nr]; }
-    return fieldMod(t);
-  }
-  function pointAdd(p, q) {
-    if (!p) return q;
-    if (!q) return p;
-    const [x1, y1] = p, [x2, y2] = q;
-    let slope;
-    if (x1 === x2) {
-      if (fieldMod(y1 + y2) === 0n) return null;
-      slope = fieldMod((3n * x1 * x1 + P256_P - 3n) * fieldInverse(2n * y1));
-    } else {
-      slope = fieldMod((y2 - y1) * fieldInverse(x2 - x1));
-    }
-    const x3 = fieldMod(slope * slope - x1 - x2);
-    return [x3, fieldMod(slope * (x1 - x3) - y1)];
-  }
-  function pointMultiply(k, p) {
-    let result = null;
-    while (k > 0n) { if (k & 1n) result = pointAdd(result, p); p = pointAdd(p, p); k >>= 1n; }
-    return result;
-  }
-  const bigToB64u = n => b64u(Uint8Array.from(n.toString(16).padStart(64, '0').match(/../g).map(h => parseInt(h, 16))));
-
-  async function identityFromPhrase(phrase) {
-    const material = await crypto.subtle.importKey('raw', enc.encode(phrase.normalize('NFKC')), 'PBKDF2', false, ['deriveBits']);
-    for (let round = 0; ; round++) {
-      const bits = new Uint8Array(await crypto.subtle.deriveBits(
-        { name: 'PBKDF2', hash: 'SHA-256', salt: enc.encode('web70-identita-v1:' + round), iterations: 310000 }, material, 256));
-      const d = BigInt('0x' + [...bits].map(b => b.toString(16).padStart(2, '0')).join(''));
-      if (d === 0n || d >= P256_N) continue;
-      const [x, y] = pointMultiply(d, P256_G);
-      const jwk = { kty: 'EC', crv: 'P-256', x: bigToB64u(x), y: bigToB64u(y), d: bigToB64u(d), ext: true };
-      await crypto.subtle.importKey('jwk', jwk, ECDSA, true, ['sign']);
-      return { jwk, pub: jwk.x + '.' + jwk.y };
-    }
-  }
-
-  function askPhrase() {
-    return new Promise(resolve => {
-      const box = document.createElement('div');
-      box.style.cssText = 'position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:16px';
-      box.innerHTML = `<form class="panel" style="max-width:420px;width:100%">
-        <h2>Entra in Web 7.0</h2>
-        <p class="sub" style="margin-bottom:12px">La tua identità nasce dalla tua frase segreta: con la stessa frase sei tu su ogni dispositivo. Chi la conosce può scrivere a nome tuo, quindi usa almeno 4 parole che sai solo tu. Non viene salvata né inviata.</p>
-        <label class="field"><span>Nome da mostrare</span><input name="name" maxlength="40" required></label>
-        <label class="field"><span>Frase segreta</span><input name="phrase" type="password" minlength="16" required autocomplete="current-password"></label>
-        <div class="sub" data-msg style="margin-bottom:8px"></div>
-        <button class="btn main" style="width:100%">Entra</button></form>`;
-      box.querySelector('form').onsubmit = async e => {
-        e.preventDefault();
-        const f = e.target;
-        if (f.phrase.value.trim().split(/\s+/).length < 4) { f.querySelector('[data-msg]').textContent = 'Usa almeno 4 parole.'; return; }
-        f.querySelector('button').disabled = true;
-        f.querySelector('[data-msg]').textContent = 'Calcolo la tua chiave…';
-        const saved = await identityFromPhrase(f.phrase.value);
-        const p = store.get('profile', { name: '', bio: '', avatar: '' });
-        p.name = f.name.value.trim();
-        store.set('profile', p);
-        box.remove();
-        resolve(saved);
-      };
-      document.body.append(box);
-    });
-  }
-
   function logout() {
     for (const k of Object.keys(session)) delete session[k];
     saveSession();
@@ -144,11 +68,8 @@
   function identity() {
     if (identityPromise) return identityPromise;
     identityPromise = (async () => {
+      // Nessuna password: se non c'è un'identità se ne crea una nuova, anonima.
       let saved = store.get('identity');
-      if (!saved && INSIDE_FREENET) {
-        saved = await askPhrase();
-        store.set('identity', saved);
-      }
       if (!saved) {
         const pair = await crypto.subtle.generateKey(ECDSA, true, ['sign', 'verify']);
         const jwk = await crypto.subtle.exportKey('jwk', pair.privateKey);

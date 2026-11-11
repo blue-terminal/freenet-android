@@ -82,9 +82,33 @@ function draw() {
   const found = words.length
     ? pool.map(e => ({ e, s: e.id === phrase ? 100 : score(e, words, low) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s || (b.e.time || 0) - (a.e.time || 0)).map(x => x.e)
     : pool;
-  document.getElementById('results').innerHTML = found.length
+  const keyBox = FNet.SAFE_KEY.test(phrase) ? `<div class="panel" id="keycheck"><b>Link Freenet</b><div class="sub" style="overflow-wrap:anywhere">${esc(phrase)}</div><p id="keystate" style="margin-top:6px">Controllo sulla rete se è pubblico…</p></div>` : '';
+  if (keyBox) checkKey(phrase);
+  document.getElementById('results').innerHTML = keyBox + (found.length
     ? found.slice(0, 100).map(e => `<a class="result" href="${esc(e.href)}"><div class="sub">${LABEL[e.type]}${e.time ? ' · ' + esc(timeAgo(e.time)) : ''}</div><h3>${esc(e.title)}</h3><p class="sub">${esc(e.text || '')}</p></a>`).join('')
-    : '<div class="empty"><div>🔎</div><h2>Nessun risultato</h2><p>La ricerca copre ciò che è stato pubblicato su Web 7.0 e i siti aggiunti all\'indice.</p></div>';
+    : keyBox ? '' : '<div class="empty"><div>🔎</div><h2>Nessun risultato</h2><p>La ricerca copre ciò che è stato pubblicato su Web 7.0 e i siti aggiunti all\'indice.</p></div>');
+}
+// Un link è pubblico se il nodo riesce a trovarne il contratto sulla rete Freenet.
+let keyCheckSeq = 0;
+async function checkKey(key) {
+  const seq = ++keyCheckSeq;
+  let text;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 60000);
+    const r = await fetch(FNet.siteUrl(key, 'index.html'), { signal: ctrl.signal });
+    clearTimeout(timer);
+    text = r.ok ? 'public' : 'missing';
+  } catch { text = 'unreachable'; }
+  const el = document.getElementById('keystate');
+  if (!el || seq !== keyCheckSeq) return;
+  const href = FNet.INSIDE_FREENET ? FNet.siteUrl(key, '') : 'index.html#open=' + key;
+  const target = FNet.INSIDE_FREENET ? ' target="_blank" rel="noopener"' : '';
+  el.innerHTML = text === 'public'
+    ? `✅ Pubblico: il sito è sulla rete Freenet. <a class="btn main" style="margin-left:6px" href="${esc(href)}"${target}>Apri</a>`
+    : text === 'missing'
+      ? '❌ Non trovato: nessun sito pubblico con questa chiave sulla rete Freenet.'
+      : '⚠️ Non riesco a controllare: il nodo non risponde.';
 }
 async function runSearch() {
   const q = document.getElementById('q').value.trim();
