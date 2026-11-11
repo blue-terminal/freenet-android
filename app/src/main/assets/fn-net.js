@@ -1,8 +1,9 @@
 // Rete Web 7.0: identità firmata, bacheche condivise (contratto hub) e siti su Freenet.
 (function (root) {
-  const ANDROID = typeof Android !== 'undefined' && !!Android.net;
-  // Pagina aperta come sito Freenet: niente app intorno, si parla col nodo che la serve.
-  const INSIDE_FREENET = !ANDROID && location.pathname.startsWith('/v1/contract/web/');
+  // Pagina aperta come sito Freenet: si parla col nodo che la serve, anche dentro l'app
+  // (lì il bridge esiste ma risponde solo alle pagine interne dell'app).
+  const INSIDE_FREENET = location.pathname.startsWith('/v1/contract/web/');
+  const ANDROID = !INSIDE_FREENET && typeof Android !== 'undefined' && !!Android.net;
   const NODE = INSIDE_FREENET ? location.protocol + '//' + location.host : 'http://127.0.0.1:7509';
   const PREFIX = 'fn7_';
   const PART_BYTES = 45 * 1024 * 1024;
@@ -58,8 +59,39 @@
   let identityPromise = null;
 
   // Identità da frase segreta: stessa frase, stessa chiave, su qualsiasi dispositivo.
+  // WebCrypto non accetta una chiave privata senza la parte pubblica, quindi il punto
+  // pubblico di P-256 si calcola qui; importKey poi verifica che stia sulla curva.
+  const P256_P = BigInt('0xffffffff00000001000000000000000000000000ffffffffffffffffffffffff');
   const P256_N = BigInt('0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551');
-  const PKCS8_HEAD = '308141020100301306072a8648ce3d020106082a8648ce3d030107042730250201010420';
+  const P256_G = [BigInt('0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296'),
+    BigInt('0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5')];
+  const fieldMod = x => ((x % P256_P) + P256_P) % P256_P;
+  function fieldInverse(a) {
+    let [t, nt, r, nr] = [0n, 1n, P256_P, fieldMod(a)];
+    while (nr) { const q = r / nr; [t, nt] = [nt, t - q * nt]; [r, nr] = [nr, r - q * nr]; }
+    return fieldMod(t);
+  }
+  function pointAdd(p, q) {
+    if (!p) return q;
+    if (!q) return p;
+    const [x1, y1] = p, [x2, y2] = q;
+    let slope;
+    if (x1 === x2) {
+      if (fieldMod(y1 + y2) === 0n) return null;
+      slope = fieldMod((3n * x1 * x1 + P256_P - 3n) * fieldInverse(2n * y1));
+    } else {
+      slope = fieldMod((y2 - y1) * fieldInverse(x2 - x1));
+    }
+    const x3 = fieldMod(slope * slope - x1 - x2);
+    return [x3, fieldMod(slope * (x1 - x3) - y1)];
+  }
+  function pointMultiply(k, p) {
+    let result = null;
+    while (k > 0n) { if (k & 1n) result = pointAdd(result, p); p = pointAdd(p, p); k >>= 1n; }
+    return result;
+  }
+  const bigToB64u = n => b64u(Uint8Array.from(n.toString(16).padStart(64, '0').match(/../g).map(h => parseInt(h, 16))));
+
   async function identityFromPhrase(phrase) {
     const material = await crypto.subtle.importKey('raw', enc.encode(phrase.normalize('NFKC')), 'PBKDF2', false, ['deriveBits']);
     for (let round = 0; ; round++) {
@@ -67,12 +99,9 @@
         { name: 'PBKDF2', hash: 'SHA-256', salt: enc.encode('web70-identita-v1:' + round), iterations: 310000 }, material, 256));
       const d = BigInt('0x' + [...bits].map(b => b.toString(16).padStart(2, '0')).join(''));
       if (d === 0n || d >= P256_N) continue;
-      const head = Uint8Array.from(PKCS8_HEAD.match(/../g).map(h => parseInt(h, 16)));
-      const der = new Uint8Array(head.length + 32);
-      der.set(head);
-      der.set(bits, head.length);
-      const key = await crypto.subtle.importKey('pkcs8', der, ECDSA, true, ['sign']);
-      const jwk = await crypto.subtle.exportKey('jwk', key);
+      const [x, y] = pointMultiply(d, P256_G);
+      const jwk = { kty: 'EC', crv: 'P-256', x: bigToB64u(x), y: bigToB64u(y), d: bigToB64u(d), ext: true };
+      await crypto.subtle.importKey('jwk', jwk, ECDSA, true, ['sign']);
       return { jwk, pub: jwk.x + '.' + jwk.y };
     }
   }

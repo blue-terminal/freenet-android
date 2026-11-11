@@ -149,6 +149,26 @@ function showBtn(label){
 
 /* ── Apri Web 7.0 ─────────────────────────────────────────── */
 let _nodeUrl=null;
+// Con il nodo acceso le pagine si aprono dal loro sito Freenet; altrimenti da quelle interne.
+function openFromFreenet(){
+  if(typeof Android==='undefined' || !Android.net){ openWeb7(); return; }
+  setStatus('Apro Web 7.0 da Freenet',true);
+  const go=()=>{
+    if(!window.__fnToken){ setTimeout(go,50); return; }
+    const id='p'+Date.now();
+    const timer=setTimeout(()=>{ window.__fnReply=null; openWeb7(); },120000);
+    window.__fnReply=(rid,json)=>{
+      if(rid!==id) return;
+      clearTimeout(timer);
+      const r=JSON.parse(json);
+      if(r.ok && /^[1-9A-HJ-NP-Za-km-z]{32,50}$/.test(r.key)) window.location.replace('http://127.0.0.1:7509/v1/contract/web/'+r.key+'/index.html');
+      else openWeb7();
+    };
+    Android.net(window.__fnToken,'pagesPublish','{}',id);
+  };
+  go();
+}
+
 function openWeb7(){
   if(_nodeUrl && !_nodeUrl.includes('127.0.0.1') && !_nodeUrl.includes('localhost')){
     const ip=_nodeUrl.replace(/^https?:\/\//,'').split(':')[0];
@@ -175,7 +195,7 @@ function bootAndroid(){
     if(s==='STARTED'){
       showBadge('✓ Nodo Freenet attivo');
       setStatus('Connesso!');
-      openWeb7();
+      openFromFreenet();
       return;
     }
     if(s==='ERROR' || s==='PAUSED'){

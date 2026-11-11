@@ -65,6 +65,9 @@ public final class Web70Net {
                 case "sitePublish":
                     reply.put("key", sitePublish(args.getString("site")));
                     break;
+                case "pagesPublish":
+                    reply.put("key", pagesPublish());
+                    break;
                 case "hubGet":
                     reply.put("state", hubGet(args.getString("topic")));
                     break;
@@ -150,6 +153,33 @@ public final class Web70Net {
                 vault.writeAll(key, vault.readAll(key));
             }
         }
+    }
+
+    private static final String PAGES_SITE = "w70-pagine";
+    private static final String[] PAGE_FILES = {
+        "index.html", "video.html", "photos.html", "posts.html", "chess.html", "search.html",
+        "fn-api.js", "fn-ws.js", "fn-net.js", "social.js", "chess-engine.js", "web7.css", "fn-theme.css",
+        "web70_hub.contract", "web70_client.wasm",
+    };
+
+    /** Publishes the app's own pages as a Freenet site, once per app version, and returns its key. */
+    private String pagesPublish() throws IOException, InterruptedException {
+        android.content.SharedPreferences prefs = context.getSharedPreferences("web70", Context.MODE_PRIVATE);
+        long version = org.freenetproject.mobile.BuildConfig.VERSION_CODE;
+        String known = prefs.getString("pages_key", null);
+        if (known != null && prefs.getLong("pages_version", 0) == version) {
+            return known;
+        }
+        File dir = siteDir(PAGES_SITE);
+        Files.createDirectories(dir.toPath());
+        for (String name : PAGE_FILES) {
+            try (InputStream in = context.getAssets().open(name)) {
+                Files.write(new File(dir, name).toPath(), readFully(in));
+            }
+        }
+        String key = sitePublish(PAGES_SITE);
+        prefs.edit().putString("pages_key", key).putLong("pages_version", version).apply();
+        return key;
     }
 
     private File hubCode() throws IOException {
