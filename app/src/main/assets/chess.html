@@ -308,7 +308,13 @@ async function heartbeat() {
 async function loadPlayers() {
   const box = document.getElementById('players');
   me = me || await FNet.identity();
-  const people = (await FNet.readItems(PRESENCE)).filter(p => p.author !== me.pub && Date.now() - p.updated < ONLINE_MS);
+  // Una riga per giocatore: lo stesso nome compare una volta, con l'annuncio più recente.
+  const byName = new Map();
+  for (const p of (await FNet.readItems(PRESENCE)).filter(p => p.author !== me.pub && Date.now() - p.updated < ONLINE_MS)) {
+    const known = byName.get(p.name);
+    if (!known || p.updated > known.updated) byName.set(p.name, p);
+  }
+  const people = [...byName.values()];
   box.innerHTML = people.length ? people.map(p => `<div class="game"><span class="grow"><b style="overflow-wrap:anywhere">${esc(p.name)}</b>
       <div class="sub">${p.busy ? '🔴 in partita' : '🟢 libero'} · visto ${esc(timeAgo(p.updated))}</div></span>
       ${p.busy ? '' : `<button class="btn" data-tag="${esc(p.tag)}" data-name="${esc(p.name)}" onclick="createOnline(this.dataset.tag,this.dataset.name)">Sfida</button>`}</div>`).join('')
@@ -412,7 +418,14 @@ async function loadLobby() {
   const box = document.getElementById('lobby');
   me = me || await FNet.identity();
   const all = (await FNet.readItems(LOBBY)).filter(g => Date.now() - g.created < OPEN_MS);
-  const list = all.filter(g => !g.to || g.to === me.tag || g.author === me.pub);
+  // Una partita per giocatore: la più recente, che è quella su cui sta aspettando.
+  const newest = new Map();
+  for (const g of all.filter(g => !g.to || g.to === me.tag || g.author === me.pub)) {
+    const key = g.name + '|' + (g.to || '');
+    const known = newest.get(key);
+    if (!known || g.created > known.created) newest.set(key, g);
+  }
+  const list = [...newest.values()].sort((a, b) => b.created - a.created);
   const invites = list.filter(g => g.to === me.tag && g.author !== me.pub);
   const seen = store.get('chess_invites_seen', {});
   for (const g of invites) {
