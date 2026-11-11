@@ -604,16 +604,22 @@ var l=document.getElementById('l');(f.items||[]).forEach(function(i){var a=docum
     });
   }
 
+  // Tema: scuro, chiaro o automatico (segue il telefono o il PC).
+  const systemLight = root.matchMedia ? root.matchMedia('(prefers-color-scheme: light)') : null;
   function applyTheme() {
-    document.documentElement.dataset.theme = store.get('theme', 'dark');
+    const t = store.get('theme', 'auto');
+    document.documentElement.dataset.theme = t === 'auto' ? (systemLight && systemLight.matches ? 'light' : 'dark') : t;
+    document.documentElement.style.colorScheme = document.documentElement.dataset.theme;
   }
+  function setTheme(t) { store.set('theme', ['dark', 'light', 'auto'].includes(t) ? t : 'auto'); applyTheme(); }
+  if (systemLight && systemLight.addEventListener) systemLight.addEventListener('change', applyTheme);
   applyTheme();
   if (hasBridge()) setTimeout(flushOutbox, 1500);
 
   root.FNet = {
     INSIDE_FREENET, IN_APP, logout, lastReadError: () => lastReadError,
     NODE, PART_BYTES, MAX_PARTS, CATEGORIES, SAFE_ID, SAFE_KEY,
-    store, esc, safeImage, timeAgo, newId, hasBridge, applyTheme,
+    store, esc, safeImage, timeAgo, newId, hasBridge, applyTheme, setTheme,
     sendDM, readDM, dmInbox, rememberDM,
     identity, exportIdentity, importIdentity, profile, displayName, saveProfile,
     blocked, blockUser, unblockUser, filteredTotal: () => filteredCount,
