@@ -550,7 +550,7 @@ var l=document.getElementById('l');(f.items||[]).forEach(function(i){var a=docum
   if (hasBridge()) setTimeout(flushOutbox, 1500);
 
   root.FNet = {
-    INSIDE_FREENET, logout, lastReadError: () => lastReadError,
+    INSIDE_FREENET, IN_APP, logout, lastReadError: () => lastReadError,
     NODE, PART_BYTES, MAX_PARTS, CATEGORIES, SAFE_ID, SAFE_KEY,
     store, esc, safeImage, timeAgo, newId, hasBridge, applyTheme,
     identity, exportIdentity, importIdentity, profile, displayName, saveProfile,

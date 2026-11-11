@@ -4,7 +4,7 @@
 //! what the node expects. The page passes bytes in and gets bytes or JSON back.
 //!
 //! ABI: every call returns a pointer to [len: u32 little endian][bytes]; free it with `release`.
-use freenet_stdlib::client_api::{ClientRequest, ContractRequest, ContractResponse, HostResponse};
+use freenet_stdlib::client_api::{ClientRequest, ContractRequest, ContractResponse, HostResponse, NodeQuery, QueryResponse};
 use freenet_stdlib::prelude::*;
 use serde_json::{json, Value};
 use std::cell::RefCell;
@@ -142,8 +142,16 @@ fn describe(result: HostResult) -> Value {
             ContractResponse::NotFound { instance_id } => json!({ "type": "notfound", "id": instance_id.encode() }),
             _ => json!({ "type": "other" }),
         },
+        // Only how many: the addresses of the peers never reach the page.
+        Ok(HostResponse::QueryResponse(QueryResponse::ConnectedPeers { peers })) => json!({ "type": "peers", "count": peers.len() }),
         Ok(_) => json!({ "type": "other" }),
     }
+}
+
+/// Asks the node how many peers it is connected to.
+#[no_mangle]
+pub extern "C" fn encode_peers() -> *mut u8 {
+    output(encode(ClientRequest::NodeQueries(NodeQuery::ConnectedPeers)).unwrap_or_else(failure))
 }
 
 /// Reads one WebSocket message. Chunks are kept until the reply is complete: until then
