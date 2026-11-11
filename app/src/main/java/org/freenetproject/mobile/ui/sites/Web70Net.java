@@ -242,7 +242,9 @@ public final class Web70Net {
         try {
             String output = run(Arrays.asList(fdev(), "execute", "get", topicId(topic), "-o", state.getAbsolutePath(),
                     "--timeout", String.valueOf(HUB_TIMEOUT_SECONDS)), HUB_TIMEOUT_SECONDS + 10);
-            if (output.contains("missing contract")) {
+            // A board nobody has written to yet: empty for whoever reads it.
+            String lower = output.toLowerCase(java.util.Locale.ROOT);
+            if (lower.contains("missing contract") || lower.contains("not found")) {
                 return "{\"m\":[]}";
             }
             if (output.contains("Error:")) {
