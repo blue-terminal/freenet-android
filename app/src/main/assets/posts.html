@@ -59,6 +59,7 @@ const NAV = [['#/all', '🏠', 'Tutti'], ['#/following', '👥', 'Seguiti'], ['#
 const app = document.getElementById('app');
 let items = [];
 let channels = new Map();
+let myPub = '';
 const follows = () => store.get('post_follows', {});
 const saved = () => store.get('post_saved', []);
 
@@ -66,6 +67,7 @@ async function refresh() {
   const [list, chans] = await Promise.all([FNet.readItems(FEED), FNet.readItems('feed:channels')]);
   items = list;
   channels = new Map(chans.map(c => [c.tag, c]));
+  myPub = (await FNet.identity()).pub;
   return list.online;
 }
 
@@ -94,6 +96,7 @@ function noteHtml(n) {
       <button class="round" onclick="repost('${esc(n.id)}')" aria-label="Rilancia">🔁</button>
       <button class="round" onclick="share('${esc(n.id)}')" aria-label="Condividi">↗</button>
       <span class="grow"></span>
+      ${n.author === myPub ? `<button class="round" onclick="deleteNote('${esc(n.id)}')" aria-label="Elimina" title="Elimina">🗑</button>` : ''}
       <button class="round" onclick="toggleSave('${esc(n.id)}',this)" aria-label="Salva">${isSaved ? '🔖' : '📑'}</button>
     </div></article>`;
 }
@@ -183,7 +186,17 @@ async function noteMenu(id) {
       toast('Post modificato');
       render();
     }
-    if (choice !== '2' || !confirm('Eliminare questo post?')) return;
+    if (choice === '2') deleteNote(id);
+    return;
+  }
+  const choice = prompt('Scrivi 1 per segnalare il post, 2 per bloccare questo utente');
+  if (choice === '1') { await FNet.reportItem(FEED, id); toast('Segnalazione inviata'); }
+  if (choice === '2') { FNet.blockUser(n.tag, n.name); toast('Utente bloccato'); render(); }
+}
+async function deleteNote(id) {
+  const n = items.find(x => x.id === id);
+  if (!n || n.author !== myPub || !confirm('Eliminare questo post?')) return;
+  {
     await FNet.deleteItem(FEED, id);
     try {
       for (const m of n.media || []) if (m.type === 'video') await FNet.wipeVideoParts(m.parts || []);
@@ -194,11 +207,7 @@ async function noteMenu(id) {
     } catch {}
     toast('Post eliminato');
     render();
-    return;
   }
-  const choice = prompt('Scrivi 1 per segnalare il post, 2 per bloccare questo utente');
-  if (choice === '1') { await FNet.reportItem(FEED, id); toast('Segnalazione inviata'); }
-  if (choice === '2') { FNet.blockUser(n.tag, n.name); toast('Utente bloccato'); render(); }
 }
 
 function showPicked(input) {
@@ -241,11 +250,38 @@ async function viewAll() {
   app.innerHTML = `<div class="column">${offlineNotice(online)}${composeBox}${listHtml(list, '<div class="empty"><div>🕊️</div><h2>Ancora nessun post</h2><p>Scrivi il primo, con foto o video.</p></div>')}</div>`;
   fillCounts();
 }
+// Persone della rete: chiunque abbia pubblicato o abbia un profilo. Si cerca per nome.
+function people() {
+  const map = new Map();
+  for (const n of items.filter(FNet.isVisible)) if (!map.has(n.tag)) map.set(n.tag, { tag: n.tag, name: n.name, author: n.author, count: 0 });
+  for (const n of items.filter(FNet.isVisible)) map.get(n.tag).count++;
+  for (const [tag, c] of channels) if (!map.has(tag) && c.name) map.set(tag, { tag, name: c.name, count: 0 });
+  map.delete(myPub.slice(0, 40));
+  return [...map.values()];
+}
+function personRow(p) {
+  const on = !!follows()[p.tag];
+  return `<div class="row panel" style="margin-bottom:8px"><a class="row grow" href="#/user/${esc(p.tag)}" style="min-width:0">${avatar(p.name, channels.get(p.tag)?.avatar)}<span class="grow" style="min-width:0"><b style="overflow-wrap:anywhere">${esc(p.name)}</b><div class="sub">${p.count} post · ${esc(p.tag.slice(0, 8))}</div></span></a>
+    <button class="btn ${on ? '' : 'main'}" onclick="toggleFollow('${esc(p.tag)}')">${on ? 'Segui già' : 'Segui'}</button></div>`;
+}
+function searchPeople(q) {
+  const t = q.trim().toLowerCase();
+  const box = document.getElementById('people');
+  if (!box) return;
+  const found = t ? people().filter(p => p.name.toLowerCase().includes(t)).sort((a, b) => b.count - a.count).slice(0, 30) : [];
+  box.innerHTML = !t ? '' : found.length ? found.map(personRow).join('') : '<p class="sub">Nessuno con questo nome.</p>';
+}
 async function viewFollowing() {
   const online = await refresh();
   const mine = follows();
   const list = items.filter(FNet.isVisible).filter(n => mine[n.tag]);
-  app.innerHTML = `<div class="column">${offlineNotice(online)}<h2 style="margin-bottom:12px">Seguiti</h2>${listHtml(list, '<div class="empty"><div>👥</div><h2>Non segui ancora nessuno</h2><p>Apri un profilo e premi Segui.</p></div>')}</div>`;
+  const followed = people().filter(p => mine[p.tag]);
+  app.innerHTML = `<div class="column">${offlineNotice(online)}<h2 style="margin-bottom:12px">Seguiti</h2>
+    <input id="find" type="search" placeholder="🔎 Cerca persone per nome" oninput="searchPeople(this.value)" style="width:100%;padding:10px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);margin-bottom:10px">
+    <div id="people"></div>
+    ${followed.length ? `<div class="sub" style="margin:6px 0">Segui ${followed.length} ${followed.length === 1 ? 'persona' : 'persone'}</div>${followed.map(personRow).join('')}` : ''}
+    <h3 style="margin:14px 0 8px">Post delle persone che segui</h3>
+    ${listHtml(list, '<div class="empty"><div>👥</div><h2>Non segui ancora nessuno</h2><p>Cerca un nome qui sopra e premi Segui.</p></div>')}</div>`;
   fillCounts();
 }
 async function viewSaved() {
@@ -274,7 +310,8 @@ function toggleFollow(tag) {
   const f = follows();
   if (f[tag]) delete f[tag]; else f[tag] = true;
   store.set('post_follows', f);
-  render();
+  const q = document.getElementById('find')?.value;
+  render().then(() => { const i = document.getElementById('find'); if (q && i) { i.value = q; searchPeople(q); } });
 }
 async function viewNote(id) {
   await refresh();
