@@ -1,27 +1,27 @@
 {
-  "version": "v1.6.9",
-  "notes": "• Video in pezzi da 8 MB con avanzamento\n• Bacheche nuove senza errore",
+  "version": "v1.7.0",
+  "notes": "• FreenetTV: playlist, notifiche, risposte\n• Studio con Analisi\n• Elimina account e ricrea",
   "assets": {
     "arm64-v8a": {
-      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.6.9/freenet-mobile-v1.6.9-freenet-0.2.154-arm64-v8a-release.apk",
-      "sha256": "7d4b3edfdfc84857c28bd68068c3057287a8110971b5f17b92a26555919014ad"
+      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.7.0/freenet-mobile-v1.7.0-freenet-0.2.154-arm64-v8a-release.apk",
+      "sha256": "f221a2111b981a4e474343ffd9b6124f0dd4a38ec7e7eea9a0c35cade685cb3a"
     },
     "x86_64": {
-      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.6.9/freenet-mobile-v1.6.9-freenet-0.2.154-x86_64-release.apk",
-      "sha256": "a402f4b567630e09e210b798f6b85e6b85cc21845d8370c3731b6fb8d2480943"
+      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.7.0/freenet-mobile-v1.7.0-freenet-0.2.154-x86_64-release.apk",
+      "sha256": "01def803b61667a8da1a66ee545fa8241d404a5988cddc8b25b3cda6b07762a0"
     }
   },
   "beta": {
-    "version": "v1.6.9",
-    "notes": "• Video in pezzi da 8 MB con avanzamento\n• Bacheche nuove senza errore",
+    "version": "v1.7.0",
+    "notes": "• FreenetTV: playlist, notifiche, risposte\n• Studio con Analisi\n• Elimina account e ricrea",
     "assets": {
       "arm64-v8a": {
-        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.6.9/freenet-mobile-v1.6.9-freenet-0.2.154-arm64-v8a-release.apk",
-        "sha256": "7d4b3edfdfc84857c28bd68068c3057287a8110971b5f17b92a26555919014ad"
+        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.7.0/freenet-mobile-v1.7.0-freenet-0.2.154-arm64-v8a-release.apk",
+        "sha256": "f221a2111b981a4e474343ffd9b6124f0dd4a38ec7e7eea9a0c35cade685cb3a"
       },
       "x86_64": {
-        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.6.9/freenet-mobile-v1.6.9-freenet-0.2.154-x86_64-release.apk",
-        "sha256": "a402f4b567630e09e210b798f6b85e6b85cc21845d8370c3731b6fb8d2480943"
+        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.7.0/freenet-mobile-v1.7.0-freenet-0.2.154-x86_64-release.apk",
+        "sha256": "01def803b61667a8da1a66ee545fa8241d404a5988cddc8b25b3cda6b07762a0"
       }
     }
   }
