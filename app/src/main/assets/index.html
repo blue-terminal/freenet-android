@@ -6,6 +6,8 @@
 <title>Web 7.0</title>
 <link rel="stylesheet" href="fn-theme.css">
 <script src="fn-api.js"></script>
+<script src="fn-ws.js"></script>
+<script src="fn-net.js"></script>
 <style>
 :root {
   --bg:     #0d1b2a;
@@ -157,6 +159,17 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
   .sec-label { font-size: 10px; }
   .node-info-box { padding: 12px 14px; }
 }
+.panel-bg { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 60; display: flex; align-items: flex-start; justify-content: center; padding: 60px 16px; }
+.panel-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 18px; width: 100%; max-width: 420px; }
+.panel-box h3 { margin-bottom: 12px; }
+.panel-box .row { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
+.panel-box .opt { flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 10px; text-align: center; cursor: pointer; background: none; color: inherit; font: inherit; }
+.panel-box .opt.on { border-color: var(--accent, #5b8cff); font-weight: 700; }
+.panel-box a.opt { display: block; text-decoration: none; }
+.pf-top { display: flex; gap: 14px; align-items: center; margin-bottom: 10px; }
+.pf-av { width: 64px; height: 64px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; overflow: hidden; flex-shrink: 0; }
+.pf-av img { width: 100%; height: 100%; object-fit: cover; }
+.pf-bio { white-space: pre-wrap; overflow-wrap: anywhere; opacity: .85; margin-bottom: 10px; }
 </style>
 </head>
 <body>
@@ -177,7 +190,8 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 
   <div class="topbar-right">
     <a class="nav-btn" href="search.html" title="Cerca" aria-label="Cerca">🔍</a>
-    <a class="nav-btn" href="video.html#/settings" title="Impostazioni" aria-label="Impostazioni">⚙️</a>
+    <button class="nav-btn" onclick="openPanel('profile')" title="Profilo" aria-label="Profilo">👤</button>
+    <button class="nav-btn" onclick="openPanel('settings')" title="Impostazioni" aria-label="Impostazioni">⚙️</button>
   </div>
 </div>
 
@@ -293,12 +307,103 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 </div>
 
 <script>
+// ── lingua: italiano, inglese, cinese ───────────────────────────────────────────
+const LANGS = { it: 'Italiano', en: 'English', zh: '中文' };
+const T = {
+  'Web 7.0 — Browser Decentralizzato': ['Web 7.0 — Decentralized Browser', 'Web 7.0 — 去中心化浏览器'],
+  'Nessun server centrale · Nessuna raccolta dati · Solo rete Freenet': ['No central server · No data collection · Freenet network only', '没有中央服务器 · 不收集数据 · 只用 Freenet 网络'],
+  'Cerca su Freenet o incolla una chiave…': ['Search Freenet or paste a key…', '搜索 Freenet 或粘贴密钥…'],
+  '▶ Web 7.0 Social — P2P senza server': ['▶ Web 7.0 Social — P2P without servers', '▶ Web 7.0 社交 — 无服务器点对点'],
+  'Video educativi · senza server': ['Educational videos · no servers', '教育视频 · 无服务器'],
+  'Foto e storie decentralizzate': ['Decentralized photos and stories', '去中心化的照片和故事'],
+  'Post brevi · nessun algoritmo': ['Short posts · no algorithm', '短帖子 · 没有算法'],
+  'Chat di gruppo senza server': ['Group chat without servers', '无服务器群聊'],
+  'Email P2P · nessun provider': ['P2P email · no provider', '点对点邮件 · 无提供商'],
+  'Scacchi': ['Chess', '国际象棋'],
+  'Contro il computer o persone della rete': ['Against the computer or people on the network', '对战电脑或网络上的玩家'],
+  'Cerca': ['Search', '搜索'],
+  'Motore di ricerca di Web 7.0': ['Web 7.0 search engine', 'Web 7.0 搜索引擎'],
+  'Identità crittografica': ['Cryptographic identity', '加密身份'],
+  '🌐 App Freenet ufficiali': ['🌐 Official Freenet apps', '🌐 Freenet 官方应用'],
+  'Discovery decentralizzato': ['Decentralized discovery', '去中心化发现'],
+  'Costruttore siti P2P': ['P2P site builder', '点对点网站构建器'],
+  'Sito ufficiale sulla rete': ['Official site on the network', '网络上的官方网站'],
+  'Stato nodo': ['Node status', '节点状态'],
+  'Pagina del nodo locale': ['Local node page', '本地节点页面'],
+  'Stato nodo Freenet': ['Freenet node status', 'Freenet 节点状态'],
+  'Nodo locale': ['Local node', '本地节点'],
+  'Nodo remoto LAN': ['Remote LAN node', '局域网远程节点'],
+  'Stato': ['Status', '状态'],
+  'Versione': ['Version', '版本'],
+  'Peer connessi': ['Connected peers', '已连接节点'],
+  '📡 Grafico rete — Nodi connessi': ['📡 Network graph — Connected nodes', '📡 网络图 — 已连接节点'],
+  'Impostazioni': ['Settings', '设置'], 'Lingua': ['Language', '语言'], 'Chiudi': ['Close', '关闭'],
+  'Altre impostazioni (nome, foto, account)': ['More settings (name, photo, account)', '更多设置（名字、照片、账户）'],
+  'Profilo': ['Profile', '个人资料'], 'Modifica profilo': ['Edit profile', '编辑资料'],
+  'I miei video': ['My videos', '我的视频'], 'Le mie foto': ['My photos', '我的照片'], 'I miei post': ['My posts', '我的帖子'],
+  'Nessuna descrizione: aggiungila in Modifica profilo.': ['No bio yet: add one in Edit profile.', '还没有简介：在“编辑资料”中添加。'],
+  'Codice identità': ['Identity code', '身份代码'],
+};
+function lang() { try { return localStorage.getItem('w70_lang') || ''; } catch { return window.__w70lang || ''; } }
+function curLang() { const l = lang() || (navigator.language || 'it').slice(0, 2); return LANGS[l] ? l : 'it'; }
+function tr(text) { const l = curLang(); return l === 'it' || !T[text] ? text : T[text][l === 'en' ? 0 : 1]; }
+const originals = new WeakMap();
+function applyLang() {
+  document.documentElement.lang = curLang();
+  for (const el of document.querySelectorAll('.fn-title,.fn-sub,.sec-label,.ql-name,.ql-desc,.node-info-box h3,.ni-row > span:first-child')) {
+    if (!originals.has(el)) originals.set(el, el.textContent.trim());
+    el.textContent = tr(originals.get(el));
+  }
+  const q = document.getElementById('search-q');
+  if (!originals.has(q)) originals.set(q, q.placeholder);
+  q.placeholder = tr(originals.get(q));
+}
+function setLang(l) {
+  try { localStorage.setItem('w70_lang', l); } catch { window.__w70lang = l; }
+  applyLang();
+  openPanel('settings');
+}
+function closePanel() { document.querySelector('.panel-bg')?.remove(); }
+async function openPanel(kind) {
+  closePanel();
+  const bg = document.createElement('div');
+  bg.className = 'panel-bg';
+  bg.onclick = e => { if (e.target === bg) closePanel(); };
+  const esc = x => String(x).replace(/[&<>"']/g, c => '&#' + c.charCodeAt(0) + ';');
+  if (kind === 'settings') {
+    bg.innerHTML = `<div class="panel-box"><h3>⚙️ ${tr('Impostazioni')}</h3>
+      <div>${tr('Lingua')}</div>
+      <div class="row">${Object.entries(LANGS).map(([k, name]) => `<button class="opt ${k === curLang() ? 'on' : ''}" onclick="setLang('${k}')">${name}</button>`).join('')}</div>
+      <div class="row"><a class="opt" href="video.html#/settings">${tr('Altre impostazioni (nome, foto, account)')}</a></div>
+      <div class="row"><button class="opt" onclick="closePanel()">${tr('Chiudi')}</button></div></div>`;
+  } else {
+    const id = await FNet.identity();
+    const p = FNet.profile();
+    const name = await FNet.displayName();
+    const pic = FNet.safeImage(p.avatar);
+    bg.innerHTML = `<div class="panel-box"><h3>👤 ${tr('Profilo')}</h3>
+      <div class="pf-top"><div class="pf-av">${pic ? `<img src="${pic}" alt="">` : esc(name[0].toUpperCase())}</div>
+        <div><b style="font-size:18px;overflow-wrap:anywhere">${esc(name)}</b><div style="opacity:.7;font-size:12px">${tr('Codice identità')}: ${esc(id.tag.slice(0, 12))}</div></div></div>
+      <div class="pf-bio">${esc(p.bio || tr('Nessuna descrizione: aggiungila in Modifica profilo.'))}</div>
+      <div class="row"><a class="opt" href="video.html#/settings">✏️ ${tr('Modifica profilo')}</a></div>
+      <div class="row"><a class="opt" href="video.html#/studio">▶️ ${tr('I miei video')}</a><a class="opt" href="photos.html#/me">📸 ${tr('Le mie foto')}</a><a class="opt" href="posts.html#/me">🐤 ${tr('I miei post')}</a></div>
+      <div class="row"><button class="opt" onclick="closePanel()">${tr('Chiudi')}</button></div></div>`;
+  }
+  document.body.append(bg);
+}
+addEventListener('DOMContentLoaded', applyLang);
+if (document.readyState !== 'loading') applyLang();
+
 // Usa FN da fn-api.js (tutti i contratti e le app del progetto github.com/freenet)
 // ── node status check ─────────────────────────────────────────────────────────
 let nodeOnline = false;
 
 // Il nodo non espone il dato in JSON: si legge dalla sua pagina di stato.
 async function readPeerCount(node) {
+  // Dentro Freenet (telefono): la pagina di stato non è leggibile, si chiede al nodo via WebSocket.
+  if (window.FreenetWS && location.pathname.startsWith('/v1/contract/web/')) {
+    try { const n = await FreenetWS.peerCount(); if (n !== null) return n; } catch {}
+  }
   try {
     // Sul PC il nodo è un'altra origine e la sua pagina si legge tramite web70.py.
     const r = await fetch(location.protocol === 'file:' ? node.base + '/' : '/__node/');
@@ -314,7 +419,9 @@ async function readPeerCount(node) {
 }
 
 async function checkNode() {
-  const node = await FN.detectNode();
+  let node = await FN.detectNode();
+  // Pagina servita dal nodo stesso: il nodo c'è per forza, anche se il controllo a parte non riesce.
+  if (!node && location.pathname.startsWith('/v1/contract/web/')) node = { name: 'Freenet', base: location.origin };
   nodeOnline = !!node;
   const dot = document.getElementById('node-dot');
   const txt = document.getElementById('node-status-txt');

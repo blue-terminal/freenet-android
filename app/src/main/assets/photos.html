@@ -27,6 +27,23 @@
 .carousel .play span, .reel .play span { position: relative; width: 64px; height: 64px; border-radius: 50%; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; font-size: 28px; }
 .carousel video { background: #000; object-fit: contain; }
 .media-wrap { position: relative; }
+.arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.85); color: #111; font-size: 20px; line-height: 34px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.4); z-index: 2; }
+.arrow.l { left: 8px; } .arrow.r { right: 8px; }
+.sheet { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
+.sheet > div { background: var(--panel); width: 100%; max-width: 520px; border-radius: 14px 14px 0 0; padding: 8px 0 14px; }
+.sheet button { display: block; width: 100%; padding: 14px; font-size: 16px; text-align: center; border-bottom: 1px solid var(--line); }
+.sheet .danger { color: var(--danger); font-weight: 700; }
+.filters { display: flex; gap: 8px; overflow-x: auto; padding: 8px 0; }
+.filters button { flex: 0 0 auto; text-align: center; font-size: 12px; color: var(--muted); }
+.filters button img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; display: block; margin-bottom: 4px; border: 2px solid transparent; }
+.filters button.on { color: var(--text); font-weight: 700; } .filters button.on img { border-color: var(--accent); }
+.picked { display: flex; gap: 6px; flex-wrap: wrap; }
+.picked .one { position: relative; } .picked .one img, .picked .one video { width: 84px; height: 84px; object-fit: cover; border-radius: 6px; display: block; }
+.picked .one button { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,.6); color: #fff; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; }
+.sources { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0; }
+.sources label { text-align: center; padding: 12px 4px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; font-size: 13px; }
+.sources label b { display: block; font-size: 24px; }
+.viewer .trash { position: absolute; bottom: 20px; right: 16px; color: #fff; font-size: 15px; background: rgba(0,0,0,.5); padding: 8px 12px; border-radius: 18px; z-index: 3; }
 .dots { display: flex; justify-content: center; gap: 4px; padding-top: 8px; }
 .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
 .dots i.on { background: var(--accent); }
@@ -130,16 +147,27 @@ function thumbOf(p) {
 function mediaHtml(p) {
   const media = mediaOf(p);
   const video = videoOf(p);
-  const slides = video
-    ? `<div class="play" onclick="playInline('${esc(p.id)}',this)">${FNet.safeImage(video.thumb) ? `<img src="${FNet.safeImage(video.thumb)}" alt="">` : ''}<span>▶</span></div>`
-    : media.map(m => imgTag(m)).join('');
-  const dots = !video && media.length > 1 ? `<div class="dots">${media.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : '';
-  return `<div class="media-wrap" data-media="${esc(p.id)}"><div class="carousel" onscroll="moveDots(this)">${slides}</div></div>${dots}`;
+  const slides = media.map((m, i) => m.type === 'video'
+    ? `<div class="play" onclick="playInline('${esc(p.id)}',this,${i})">${FNet.safeImage(m.thumb) ? `<img src="${FNet.safeImage(m.thumb)}" alt="">` : ''}<span>▶</span></div>`
+    : imgTag(m)).join('');
+  const many = media.length > 1;
+  const dots = many ? `<div class="dots">${media.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : '';
+  const arrows = many ? '<button class="arrow l" onclick="slide(this,-1)" aria-label="Precedente" hidden>‹</button><button class="arrow r" onclick="slide(this,1)" aria-label="Successiva">›</button>' : '';
+  return `<div class="media-wrap" data-media="${esc(p.id)}"><div class="carousel" onscroll="moveDots(this)">${slides}</div>${arrows}</div>${dots}`;
+}
+// Frecce del carosello: una foto alla volta, come scorrendo col dito.
+function slide(button, dir) {
+  const c = button.parentElement.querySelector('.carousel');
+  c.scrollBy({ left: dir * c.clientWidth, behavior: 'smooth' });
 }
 function moveDots(el) {
   const dots = el.parentElement.nextElementSibling;
-  if (!dots || !dots.classList.contains('dots')) return;
   const i = Math.round(el.scrollLeft / el.clientWidth);
+  const wrap = el.parentElement;
+  const l = wrap.querySelector('.arrow.l'), r = wrap.querySelector('.arrow.r');
+  if (l) l.hidden = i <= 0;
+  if (r) r.hidden = i >= el.children.length - 1;
+  if (!dots || !dots.classList.contains('dots')) return;
   [...dots.children].forEach((d, n) => d.classList.toggle('on', n === i));
 }
 function postHtml(p) {
@@ -200,12 +228,12 @@ document.addEventListener('click', e => {
   }
   lastTap = { id, t: now };
 });
-async function playInline(id, el) {
+async function playInline(id, el, index) {
   const p = items.find(x => x.id === id);
   const label = el.querySelector('span');
   label.textContent = '…';
   try {
-    const blob = await FNet.downloadVideo(videoOf(p), (got, total) => { label.textContent = total ? Math.round(got / total * 100) + '%' : '…'; });
+    const blob = await FNet.downloadVideo(index == null ? videoOf(p) : mediaOf(p)[index], (got, total) => { label.textContent = total ? Math.round(got / total * 100) + '%' : '…'; });
     const v = document.createElement('video');
     v.controls = true;
     v.playsInline = true;
@@ -228,27 +256,48 @@ function toggleSave(id, button) {
   button.textContent = now ? '🔖' : '📑';
   toast(now ? 'Salvato' : 'Tolto dai salvati');
 }
+function sheet(choices) {
+  return new Promise(done => {
+    const box = document.createElement('div');
+    box.className = 'sheet';
+    box.innerHTML = '<div>' + choices.map(([key, label, cls]) => `<button data-k="${key}" class="${cls || ''}">${esc(label)}</button>`).join('') + '<button data-k="">Annulla</button></div>';
+    box.onclick = e => { const b = e.target.closest('button'); if (b || e.target === box) { box.remove(); done(b ? b.dataset.k : ''); } };
+    document.body.append(box);
+  });
+}
+async function deletePost(p) {
+  if (!confirm(isStory(p) ? 'Eliminare questa storia?' : 'Eliminare questo post?')) return false;
+  await FNet.deleteItem(FEED, p.id);
+  try {
+    for (const m of mediaOf(p)) if (m.type === 'video') await FNet.wipeVideoParts(m.parts || []);
+    const photos = mediaOf(p).filter(m => m.type !== 'video');
+    for (const m of photos) await FNet.call('siteDeleteFile', { site: SITE, file: m.file });
+    if (photos.length) await FNet.publishSite(SITE);
+    await FNet.removeFromChannel(p.id);
+  } catch {}
+  toast(isStory(p) ? 'Storia eliminata' : 'Post eliminato');
+  return true;
+}
+async function editCaption(p) {
+  const text = prompt('Nuova didascalia', p.caption || '');
+  if (text === null) return;
+  await FNet.saveItem(FEED, p.id, { media: p.media, caption: text.trim().slice(0, 2200), story: !!p.story, vis: p.vis || 'public' });
+  toast('Didascalia aggiornata');
+  render();
+}
 async function postMenu(id) {
   const p = items.find(x => x.id === id);
   if (p.author === me.pub) {
-    if (!confirm('Eliminare questo post?')) return;
-    await FNet.deleteItem(FEED, id);
-    try {
-      const video = videoOf(p);
-      if (video) await FNet.wipeVideoParts(video.parts || []);
-      else {
-        for (const m of mediaOf(p)) await FNet.call('siteDeleteFile', { site: SITE, file: m.file });
-        await FNet.publishSite(SITE);
-      }
-      await FNet.removeFromChannel(id);
-    } catch {}
-    toast('Post eliminato');
-    render();
+    const k = await sheet([['edit', 'Modifica didascalia'], ['link', 'Copia codice del post'], ['del', 'Elimina', 'danger']]);
+    if (k === 'edit') editCaption(p);
+    if (k === 'link') share(id);
+    if (k === 'del' && await deletePost(p)) render();
     return;
   }
-  const choice = prompt('Scrivi 1 per segnalare il post, 2 per bloccare questo utente');
-  if (choice === '1') { await FNet.reportItem(FEED, id); toast('Segnalazione inviata'); }
-  if (choice === '2') { FNet.blockUser(p.tag, p.name); toast('Utente bloccato'); render(); }
+  const k = await sheet([['rep', 'Segnala', 'danger'], ['block', 'Blocca ' + p.name, 'danger'], ['link', 'Copia codice del post']]);
+  if (k === 'rep') { await FNet.reportItem(FEED, id); toast('Segnalazione inviata'); }
+  if (k === 'block') { FNet.blockUser(p.tag, p.name); toast('Utente bloccato'); render(); }
+  if (k === 'link') share(id);
 }
 
 // ── storie ─────────────────────────────────────────────────────────────────
@@ -295,9 +344,12 @@ function openStories(startTag) {
     v.innerHTML = `<div class="bars">${list.map((_, n) => `<i><b style="width:${n < i ? 100 : 0}%"></b></i>`).join('')}</div>
       <div class="who">${avatar(p.name, avatarOf(tag))}<span>${esc(p.name)} · ${esc(timeAgo(p.created))}</span></div>
       <button class="close" aria-label="Chiudi">✕</button>${imgTag(mediaOf(p)[0])}
+      ${p.author === me.pub ? '<button class="trash">🗑 Elimina</button>' : ''}
       <div class="zone" style="left:0"></div><div class="zone" style="right:0"></div>`;
     FNet.loadVerifiedImages(v);
     v.querySelector('.close').onclick = close;
+    const trash = v.querySelector('.trash');
+    if (trash) trash.onclick = async () => { clearTimeout(timer); if (await deletePost(p)) close(); else timer = setTimeout(() => { i++; show(); }, STORY_SHOW_MS); };
     v.querySelectorAll('.zone')[0].onclick = () => { clearTimeout(timer); i--; show(); };
     v.querySelectorAll('.zone')[1].onclick = () => { clearTimeout(timer); i++; show(); };
     const bar = v.querySelectorAll('.bars b')[i];
@@ -416,25 +468,75 @@ async function viewActivity() {
   if (box) box.innerHTML = rows.length ? rows.map(r => `<a class="row" style="padding:8px 0" href="#/p/${esc(r.p.id)}">${avatar(r.m.name)}<span class="grow" style="overflow-wrap:anywhere"><b>${esc(r.m.name)}</b> ${esc(r.text)} <span class="sub">${esc(timeAgo(r.m.time))}</span></span><span style="width:44px;height:44px;flex-shrink:0;overflow:hidden;border-radius:4px">${thumbOf(r.p)}</span></a>`).join('') : '<p class="sub">Nessuna attività sui tuoi post.</p>';
   if (box) FNet.loadVerifiedImages(box);
 }
+// Filtri come gli effetti della fotocamera: si vedono subito e restano nella foto pubblicata.
+const FILTERS = [['Normale', 'none'], ['Caldo', 'sepia(.35) saturate(1.4) hue-rotate(-10deg)'], ['Freddo', 'saturate(1.1) hue-rotate(20deg) brightness(1.05)'],
+  ['B/N', 'grayscale(1) contrast(1.15)'], ['Vintage', 'sepia(.6) contrast(.9) brightness(1.08)'], ['Vivace', 'saturate(1.8) contrast(1.1)'],
+  ['Sogno', 'brightness(1.15) saturate(1.3) blur(.6px)'], ['Notte', 'brightness(.85) contrast(1.3) hue-rotate(200deg) saturate(.7)']];
+let picked = [], filter = 'none';
 function viewNew(kind) {
   const story = kind === 'storia';
+  picked = []; filter = 'none';
   app.innerHTML = `<div class="panel" style="max-width:520px;margin:auto"><h2>${story ? 'Nuova storia' : 'Nuovo post'}</h2><form onsubmit="event.preventDefault();publish(this)">
-    <label class="field"><span>${story ? 'Una foto (resta 24 ore)' : `Fino a ${MAX_IMAGES} foto oppure un video`}</span><input type="file" name="files" accept="${story ? 'image/*' : 'image/*,video/*'}" ${story ? '' : 'multiple'} required onchange="showPicked(this)"></label>
+    <p class="sub">${story ? 'Una foto, resta 24 ore' : `Fino a ${MAX_IMAGES} foto e un video nello stesso post`}</p>
+    <div class="sources">
+      <label><b>📷</b>Scatta foto<input type="file" accept="image/*" capture="environment" hidden onchange="addPicked(this,${story})"></label>
+      ${story ? '' : '<label><b>🎥</b>Registra video<input type="file" accept="video/*" capture="environment" hidden onchange="addPicked(this,false)"></label>'}
+      <label><b>🖼️</b>Galleria<input type="file" accept="${story ? 'image/*' : 'image/*,video/*'}" ${story ? '' : 'multiple'} hidden onchange="addPicked(this,${story})"></label>
+    </div>
     <div class="picked" id="picked"></div>
+    <div class="filters" id="filters" hidden></div>
     ${story ? '' : '<label class="field"><span>Didascalia</span><textarea name="caption" maxlength="2200"></textarea></label>'}
     <input type="hidden" name="story" value="${story ? 1 : ''}">
     <button class="btn main" style="width:100%">Condividi sulla rete Freenet</button></form><div class="sub" id="state" style="margin-top:10px"></div></div>`;
 }
-function showPicked(input) {
-  document.getElementById('picked').innerHTML = [...input.files].map(f => f.type.startsWith('image/') ? `<img src="${URL.createObjectURL(f)}" alt="">` : `<span class="chip">🎬 ${esc(f.name)}</span>`).join('');
+function addPicked(input, single) {
+  for (const f of input.files) {
+    if (f.type.startsWith('video/')) { picked = picked.filter(x => !x.type.startsWith('video/')); picked.push(f); }
+    else if (f.type.startsWith('image/')) picked.push(f);
+  }
+  if (single) picked = picked.slice(-1);
+  const photos = picked.filter(f => f.type.startsWith('image/'));
+  if (photos.length > MAX_IMAGES) { toast(`Al massimo ${MAX_IMAGES} foto`); picked = picked.filter(f => !photos.slice(MAX_IMAGES).includes(f)); }
+  input.value = '';
+  drawPicked();
+}
+function drawPicked() {
+  document.getElementById('picked').innerHTML = picked.map((f, i) => `<div class="one">${f.type.startsWith('image/') ? `<img src="${URL.createObjectURL(f)}" style="filter:${filter}" alt="">` : `<video src="${URL.createObjectURL(f)}" muted playsinline></video>`}<button type="button" onclick="picked.splice(${i},1);drawPicked()" aria-label="Togli">✕</button></div>`).join('');
+  const first = picked.find(f => f.type.startsWith('image/'));
+  const box = document.getElementById('filters');
+  box.hidden = !first;
+  if (first) {
+    const url = URL.createObjectURL(first);
+    box.innerHTML = FILTERS.map(([name, css], n) => `<button type="button" class="${css === filter ? 'on' : ''}" onclick="filter=FILTERS[${n}][1];drawPicked()"><img src="${url}" style="filter:${css}" alt="">${name}</button>`).join('');
+  }
+}
+// Applica il filtro scelto ai pixel, così chi guarda vede la foto come l'hai vista tu.
+function withFilter(file) {
+  if (filter === 'none' || !file.type.startsWith('image/')) return Promise.resolve(file);
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      const g = c.getContext('2d');
+      g.filter = filter;
+      g.drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob(b => b ? res(new File([b], 'foto.jpg', { type: 'image/jpeg' })) : rej(new Error('Immagine non valida')), 'image/jpeg', 0.9);
+    };
+    img.onerror = () => rej(new Error('Immagine non valida'));
+    img.src = URL.createObjectURL(file);
+  });
 }
 async function publish(form) {
   const state = document.getElementById('state');
-  const button = form.querySelector('button');
+  const button = form.querySelector('button.main');
   button.disabled = true;
   try {
+    if (!picked.length) throw new Error('Scegli una foto o un video');
     const id = FNet.newId('p');
-    const media = await Social.uploadMedia([...form.files.files], id, SITE, t => { state.textContent = t; }, MAX_IMAGES);
+    const files = await Promise.all(picked.map(withFilter));
+    const media = await Social.uploadMedia(files, id, SITE, t => { state.textContent = t; }, MAX_IMAGES);
     if (!media.length) throw new Error('Scegli una foto o un video');
     const caption = form.caption ? form.caption.value.trim() : '';
     state.textContent = 'Pubblico il post';

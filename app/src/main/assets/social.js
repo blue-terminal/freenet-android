@@ -64,15 +64,17 @@
 
   // Foto nel sito indicato, con impronta; un video in contratti suoi come su FreenetTV.
   async function uploadMedia(files, id, site, say, maxImages) {
+    // Foto e un video possono stare nello stesso post.
     const video = files.find(f => f.type.startsWith('video/'));
+    let clip = null;
     if (video) {
       say('Analizzo il video');
       const facts = await FNet.videoFacts(video);
       const parts = await FNet.uploadVideoParts(video, id, text => say(text));
-      return [{ type: 'video', parts, mime: video.type, size: video.size, thumb: facts.thumb, dur: facts.dur }];
+      clip = { type: 'video', parts, mime: video.type, size: video.size, thumb: facts.thumb, dur: facts.dur };
     }
     const images = files.filter(f => f.type.startsWith('image/')).slice(0, maxImages || 4);
-    if (!images.length) return [];
+    if (!images.length) return clip ? [clip] : [];
     const existing = await FNet.call('siteRead', { site, file: 'index.html' });
     if (!existing.text) await FNet.writeText(site, 'index.html', '<!doctype html><meta charset="utf-8"><title>Web 7.0</title><p>Immagini di Web 7.0.</p>');
     const written = [];
@@ -85,7 +87,8 @@
     }
     say('Pubblico in rete');
     const ch = await FNet.publishSite(site);
-    return written.map(w => ({ type: 'image', ch, ...w }));
+    const photos = written.map(w => ({ type: 'image', ch, ...w }));
+    return clip ? [...photos, clip] : photos;
   }
 
   const imageUrl = m => (m && FNet.SAFE_KEY.test(m.ch || '') && /^[A-Za-z0-9_-]+\.jpg$/.test(m.file || '') ? FNet.siteUrl(m.ch, m.file) : '');

@@ -169,17 +169,33 @@ public class BootstrapActivity extends AppCompatActivity {
                 // A window that only reports where it wants to go: its address then opens here.
                 WebView target = new WebView(BootstrapActivity.this);
                 target.setWebViewClient(new WebViewClient() {
-                    @Override
-                    public boolean shouldOverrideUrlLoading(WebView popup, WebResourceRequest request) {
-                        Uri url = request.getUrl();
+                    private boolean done;
+
+                    private void go(WebView popup, Uri url) {
+                        if (done || url == null || "about".equals(url.getScheme())) {
+                            return;
+                        }
+                        done = true;
                         String internal = internalPage(url);
                         if (internal != null) {
                             web.loadUrl(internal);
                         } else if (!openOutside(url)) {
                             web.loadUrl(url.toString());
                         }
-                        popup.destroy();
+                        popup.stopLoading();
+                        popup.post(popup::destroy);
+                    }
+
+                    @Override
+                    public boolean shouldOverrideUrlLoading(WebView popup, WebResourceRequest request) {
+                        go(popup, request.getUrl());
                         return true;
+                    }
+
+                    // Some WebView versions load a window.open address without asking first.
+                    @Override
+                    public void onPageStarted(WebView popup, String url, android.graphics.Bitmap favicon) {
+                        go(popup, url == null ? null : Uri.parse(url));
                     }
                 });
                 ((WebView.WebViewTransport) resultMsg.obj).setWebView(target);

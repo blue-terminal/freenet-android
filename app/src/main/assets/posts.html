@@ -55,7 +55,7 @@ const { toast, avatar, offlineNotice, drawComments, toggleVote } = Social;
 const FEED = 'feed:post';
 const SITE = 'w70-posts';
 const MAX_IMAGES = 4;
-const NAV = [['#/all', '🏠', 'Tutti'], ['#/following', '👥', 'Seguiti'], ['#/saved', '🔖', 'Salvati'], ['#/me', '👤', 'Profilo']];
+const NAV = [['#/all', '🏠', 'Tutti'], ['#/following', '👥', 'Seguiti'], ['#/new', '✏️', 'Scrivi'], ['#/saved', '🔖', 'Salvati'], ['#/me', '👤', 'Profilo']];
 const app = document.getElementById('app');
 let items = [];
 let channels = new Map();
@@ -73,13 +73,11 @@ const { imageUrl } = Social;
 function mediaHtml(n) {
   const media = Array.isArray(n.media) ? n.media : [];
   const video = media.find(m => m && m.type === 'video');
-  if (video) {
-    const thumb = FNet.safeImage(video.thumb);
-    return `<div class="media n1" data-media="${esc(n.id)}"><div class="play" onclick="playVideo('${esc(n.id)}',this)">${thumb ? `<img src="${thumb}" alt="">` : ''}<span>▶</span></div></div>`;
-  }
+  const thumb = video && FNet.safeImage(video.thumb);
+  const clip = video ? `<div class="media n1" data-media="${esc(n.id)}"><div class="play" onclick="playVideo('${esc(n.id)}',this)">${thumb ? `<img src="${thumb}" alt="">` : ''}<span>▶</span></div></div>` : '';
   const images = media.filter(m => m && m.type === 'image' && imageUrl(m)).slice(0, MAX_IMAGES);
-  if (!images.length) return '';
-  return `<div class="media n${images.length}" data-media="${esc(n.id)}">${images.map(m => `<img data-src="${esc(imageUrl(m))}" data-sha="${esc(m.sha || '')}" alt="">`).join('')}</div>`;
+  // Foto e video nello stesso post: prima le foto, poi il video.
+  return (images.length ? `<div class="media n${images.length}" data-media="${esc(n.id)}">${images.map(m => `<img data-src="${esc(imageUrl(m))}" data-sha="${esc(m.sha || '')}" alt="">`).join('')}</div>` : '') + clip;
 }
 
 function noteHtml(n) {
@@ -177,11 +175,21 @@ async function noteMenu(id) {
   const n = items.find(x => x.id === id);
   const me = await FNet.identity();
   if (n.author === me.pub) {
-    if (!confirm('Eliminare questo post?')) return;
+    const choice = prompt('Scrivi 1 per modificare il testo, 2 per eliminare il post');
+    if (choice === '1') {
+      const text = prompt('Nuovo testo', n.text || '');
+      if (text === null) return;
+      await FNet.saveItem(FEED, id, { text: text.trim().slice(0, 2000), media: n.media || [], repost: n.repost, vis: n.vis || 'public' });
+      toast('Post modificato');
+      render();
+    }
+    if (choice !== '2' || !confirm('Eliminare questo post?')) return;
     await FNet.deleteItem(FEED, id);
     try {
-      const video = (n.media || []).find(m => m.type === 'video');
-      if (video) await FNet.wipeVideoParts(video.parts || []);
+      for (const m of n.media || []) if (m.type === 'video') await FNet.wipeVideoParts(m.parts || []);
+      const photos = (n.media || []).filter(m => m.type === 'image');
+      for (const m of photos) await FNet.call('siteDeleteFile', { site: SITE, file: m.file });
+      if (photos.length) await FNet.publishSite(SITE);
       await FNet.removeFromChannel(id);
     } catch {}
     toast('Post eliminato');
@@ -221,7 +229,7 @@ async function sendNote(form) {
 const composeBox = `<form class="panel compose" onsubmit="event.preventDefault();sendNote(this)">
   <textarea name="text" maxlength="2000" placeholder="Che cosa hai imparato oggi?" aria-label="Nuovo post"></textarea>
   <div class="preview" id="picked"></div>
-  <div class="row"><label class="btn attach">📷 Foto o video<input type="file" name="media" accept="image/*,video/*" multiple hidden onchange="showPicked(this)"></label>
+  <div class="row"><label class="btn attach">📷 Foto o video<input type="file" name="media" accept="image/*,video/*" multiple hidden onclick="if(FNet.IN_APP){event.preventDefault();location.hash='#/new'}" onchange="showPicked(this)"></label>
   <span class="grow sub" id="compose-state"></span><button class="btn main" type="submit">Pubblica</button></div></form>`;
 
 function listHtml(list, empty) {
@@ -293,6 +301,7 @@ async function render() {
     else if (page === 'me') await viewUser('');
     else if (page === 'user') await viewUser(param);
     else if (page === 'p') await viewNote(param);
+    else if (page === 'new') app.innerHTML = `<div class="column"><h2 style="margin-bottom:12px">Nuovo post</h2>${composeBox}</div>`;
     else await viewAll();
     FNet.loadVerifiedImages(app);
   } catch (e) {

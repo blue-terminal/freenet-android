@@ -114,5 +114,12 @@
     }
   }
 
-  root.FreenetWS = { hubGet, hubPost, topicId };
+  // Quanti peer ha il nodo, chiesto a lui stesso (solo il numero, mai gli indirizzi).
+  async function peerCount() {
+    await loadWasm();
+    const reply = await request(invoke('encode_peers'));
+    return reply.type === 'peers' ? reply.count : null;
+  }
+
+  root.FreenetWS = { hubGet, hubPost, topicId, peerCount };
 })(window);
