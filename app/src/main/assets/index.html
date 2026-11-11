@@ -22,6 +22,11 @@
   --border: #1e3a5f;
   --r:      10px;
 }
+
+:root[data-theme="light"] {
+  --bg: #f4f6fa; --bg2: #ffffff; --bg3: #e6ebf3; --accent: #0066d6; --red: #c62828; --green: #00876a;
+  --warn: #b86e00; --danger: #c62828; --text: #14202e; --text2: #4d617a; --border: #cfd8e5;
+}
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }
 body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; display: flex; flex-direction: column; }
@@ -191,6 +196,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
   <div class="topbar-right">
     <a class="nav-btn" href="search.html" title="Cerca" aria-label="Cerca">🔍</a>
     <button class="nav-btn" onclick="openPanel('profile')" title="Profilo" aria-label="Profilo">👤</button>
+    <button class="nav-btn" id="theme-btn" onclick="FNet.setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');themeIcon()" title="Chiaro / scuro" aria-label="Chiaro / scuro">🌙</button>
     <button class="nav-btn" onclick="openPanel('settings')" title="Impostazioni" aria-label="Impostazioni">⚙️</button>
   </div>
 </div>
@@ -337,6 +343,7 @@ const T = {
   'Versione': ['Version', '版本'],
   'Peer connessi': ['Connected peers', '已连接节点'],
   '📡 Grafico rete — Nodi connessi': ['📡 Network graph — Connected nodes', '📡 网络图 — 已连接节点'],
+  'Tema': ['Theme', '主题'], 'Scuro': ['Dark', '深色'], 'Chiaro': ['Light', '浅色'], 'Automatico': ['Automatic', '自动'],
   'Impostazioni': ['Settings', '设置'], 'Lingua': ['Language', '语言'], 'Chiudi': ['Close', '关闭'],
   'Altre impostazioni (nome, foto, account)': ['More settings (name, photo, account)', '更多设置（名字、照片、账户）'],
   'Profilo': ['Profile', '个人资料'], 'Modifica profilo': ['Edit profile', '编辑资料'],
@@ -374,6 +381,8 @@ async function openPanel(kind) {
     bg.innerHTML = `<div class="panel-box"><h3>⚙️ ${tr('Impostazioni')}</h3>
       <div>${tr('Lingua')}</div>
       <div class="row">${Object.entries(LANGS).map(([k, name]) => `<button class="opt ${k === curLang() ? 'on' : ''}" onclick="setLang('${k}')">${name}</button>`).join('')}</div>
+      <div>${tr('Tema')}</div>
+      <div class="row">${[['dark', '🌙 ' + tr('Scuro')], ['light', '☀️ ' + tr('Chiaro')], ['auto', '📱 ' + tr('Automatico')]].map(([k, l]) => `<button class="opt ${FNet.store.get('theme', 'auto') === k ? 'on' : ''}" onclick="FNet.setTheme('${k}');themeIcon();openPanel('settings')">${l}</button>`).join('')}</div>
       <div class="row"><a class="opt" href="video.html#/settings">${tr('Altre impostazioni (nome, foto, account)')}</a></div>
       <div class="row"><button class="opt" onclick="closePanel()">${tr('Chiudi')}</button></div></div>`;
   } else {
@@ -391,8 +400,9 @@ async function openPanel(kind) {
   }
   document.body.append(bg);
 }
-addEventListener('DOMContentLoaded', applyLang);
-if (document.readyState !== 'loading') applyLang();
+function themeIcon() { const b = document.getElementById('theme-btn'); if (b) b.textContent = document.documentElement.dataset.theme === 'dark' ? '☀️' : '🌙'; }
+addEventListener('DOMContentLoaded', () => { applyLang(); themeIcon(); });
+if (document.readyState !== "loading") { applyLang(); themeIcon(); }
 
 // Usa FN da fn-api.js (tutti i contratti e le app del progetto github.com/freenet)
 // ── node status check ─────────────────────────────────────────────────────────

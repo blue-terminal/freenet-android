@@ -649,8 +649,8 @@ function viewSettings() {
     <label class="field"><span>Nome del canale</span><input name="name" maxlength="40" value="${esc(p.name)}" placeholder="Il tuo nome"></label>
     <label class="field"><span>Descrizione</span><textarea name="bio" maxlength="500">${esc(p.bio)}</textarea></label>
     <button class="btn main">Salva il canale</button></form></div>
-  <div class="panel"><h2>Aspetto</h2><label class="field" style="margin:0"><span>Tema</span><select onchange="FNet.store.set('theme',this.value);FNet.applyTheme()">
-    <option value="dark" ${store.get('theme', 'dark') === 'dark' ? 'selected' : ''}>Scuro</option><option value="light" ${store.get('theme', 'dark') === 'light' ? 'selected' : ''}>Chiaro</option></select></label></div>
+  <div class="panel"><h2>Aspetto</h2><label class="field" style="margin:0"><span>Tema</span><select onchange="FNet.setTheme(this.value)">
+    ${[['auto', 'Automatico (come il dispositivo)'], ['dark', 'Scuro'], ['light', 'Chiaro']].map(([k, l]) => `<option value="${k}" ${store.get('theme', 'auto') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
   <div class="panel"><h2>Riproduzione</h2>${toggle('tv_autoplay', 'Avvia i video da soli', true)}${toggle('tv_next', 'Alla fine riproduci il video successivo', true)}</div>
   <div class="panel"><h2>Sicurezza e protezione dallo spam</h2>
     <p class="sub" style="margin-bottom:10px">Sempre attive: ogni messaggio è firmato e richiede un piccolo calcolo, ogni autore ha un limite di messaggi per bacheca, e su questo telefono un autore non può mostrare più di 20 messaggi al minuto. Non fermano un attacco di rete contro il nodo.</p>
