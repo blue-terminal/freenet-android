@@ -426,7 +426,7 @@ async function viewUser(param) {
       <div class="counts"><div><b>${list.length}</b><span>post</span></div><div><b id="followers">…</b><span>follower</span></div>${own ? `<div><b>${Object.keys(follows()).length}</b><span>seguiti</span></div>` : ''}</div></div>
     <b style="overflow-wrap:anywhere">${esc(name)}</b>
     <p style="white-space:pre-wrap;overflow-wrap:anywhere;margin:4px 0 12px">${esc(own ? FNet.profile().bio : info.bio || '')}</p>
-    <div class="row">${own ? '<a class="btn grow" href="video.html#/settings">Modifica profilo</a><a class="btn grow" href="#/new/storia">Aggiungi storia</a>' : `<button class="btn grow ${followed ? '' : 'main'}" onclick="toggleFollow('${esc(tag)}')">${followed ? 'Segui già' : 'Segui'}</button>`}</div>
+    <div class="row">${own ? '<a class="btn grow" href="video.html#/settings">Modifica profilo</a><a class="btn grow" href="#/new/storia">Aggiungi storia</a>' : `<button class="btn grow ${followed ? '' : 'main'}" onclick="toggleFollow('${esc(tag)}')">${followed ? 'Segui già' : 'Segui'}</button>${list[0] ? `<a class="btn grow" href="posts.html#/dm/${esc(list[0].author)}">✉️ Messaggio</a>` : ''}`}</div>
     <div class="tabs"><button class="tab ${profileTab === 'grid' ? 'on' : ''}" onclick="profileTab='grid';render()" aria-label="Post">▦</button>${own ? `<button class="tab ${profileTab === 'saved' ? 'on' : ''}" onclick="profileTab='saved';render()" aria-label="Salvati">🔖</button>` : ''}</div>
     ${shown.length ? squares(shown) : '<p class="sub" style="padding:20px 0;text-align:center">Nessun post.</p>'}</div>`;
   const msgs = await FNet.read('gram:f:' + tag);

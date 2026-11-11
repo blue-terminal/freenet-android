@@ -51,6 +51,7 @@
   const esc = s => String(s === undefined || s === null ? '' : s).replace(/[&<>"'`]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;' }[c]));
   const safeImage = s => (typeof s === 'string' && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(s) ? s : '');
   const enc = new TextEncoder();
+  const dec = new TextDecoder();
   const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
   const newId = (prefix) => prefix + b64u(crypto.getRandomValues(new Uint8Array(12)));
@@ -217,6 +218,66 @@
       store.set('outbox', queued);
       return { queued: true, id: message.i };
     }
+  }
+
+  // ── messaggi privati: cifrati da un capo all'altro ───────────────────────────
+  // La chiave nasce dalle due identità (ECDH P-256 + HKDF): la conoscono solo i due utenti.
+  // Sulla rete passa solo testo cifrato AES-256-GCM: senza la chiave è impossibile leggerlo.
+  const dmKeys = new Map();
+  async function dmKey(theirPub) {
+    if (dmKeys.has(theirPub)) return dmKeys.get(theirPub);
+    const { d, x, y } = store.get('identity').jwk;
+    const mine = await crypto.subtle.importKey('jwk', { kty: 'EC', crv: 'P-256', d, x, y, ext: true }, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits']);
+    const [tx, ty] = String(theirPub).split('.');
+    const theirs = await crypto.subtle.importKey('jwk', { kty: 'EC', crv: 'P-256', x: tx, y: ty, ext: true }, { name: 'ECDH', namedCurve: 'P-256' }, false, []);
+    const secret = await crypto.subtle.deriveBits({ name: 'ECDH', public: theirs }, mine, 256);
+    const base = await crypto.subtle.importKey('raw', secret, 'HKDF', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt: enc.encode('web70-dm-v1'), info: enc.encode([x + '.' + y, theirPub].sort().join('|')) },
+      base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    dmKeys.set(theirPub, key);
+    return key;
+  }
+  const PUB = /^[A-Za-z0-9_-]{43}\.[A-Za-z0-9_-]{43}$/;
+  async function dmTopic(theirPub) {
+    const id = await identity();
+    return 'dm:' + (await sha([id.pub, theirPub].sort().join('|'))).slice(0, 40);
+  }
+  async function sendDM(theirPub, text) {
+    if (!PUB.test(theirPub)) throw new Error('Utente non valido');
+    const id = await identity();
+    if (theirPub === id.pub) throw new Error('Non puoi scrivere a te stesso');
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const c = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await dmKey(theirPub), enc.encode(JSON.stringify({ text: String(text).slice(0, 4000) })));
+    const r = await post(await dmTopic(theirPub), 'dm', { iv: b64u(iv), c: b64u(c) });
+    // Nella casella del destinatario resta solo "ti ha scritto": nessun contenuto.
+    await post('dmi:' + theirPub.slice(0, 40), 'dm-hi', {}).catch(() => {});
+    return r;
+  }
+  async function readDM(theirPub) {
+    if (!PUB.test(theirPub)) return [];
+    const id = await identity();
+    const key = await dmKey(theirPub);
+    const out = [];
+    for (const m of await read(await dmTopic(theirPub))) {
+      if (m.k !== 'dm' || (m.author !== id.pub && m.author !== theirPub)) continue;
+      try {
+        const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64u(m.iv) }, key, unb64u(m.c));
+        out.push({ text: String(JSON.parse(dec.decode(plain)).text || ''), mine: m.author === id.pub, time: m.time, name: m.name });
+      } catch {}
+    }
+    return out.sort((a, b) => a.time - b.time);
+  }
+  async function dmInbox() {
+    const id = await identity();
+    const people = new Map();
+    for (const m of await read('dmi:' + id.tag)) if (m.k === 'dm-hi' && PUB.test(m.author)) people.set(m.author, { pub: m.author, name: m.name, time: m.time });
+    for (const p of store.get('dm_people', [])) if (!people.has(p.pub)) people.set(p.pub, p);
+    return [...people.values()].sort((a, b) => b.time - a.time);
+  }
+  function rememberDM(pub, name) {
+    const list = store.get('dm_people', []).filter(p => p.pub !== pub);
+    list.unshift({ pub, name, time: Date.now() });
+    store.set('dm_people', list.slice(0, 100));
   }
 
   // Protezione sul telefono: utenti bloccati fuori, e un autore non può riempire lo schermo.
@@ -553,6 +614,7 @@ var l=document.getElementById('l');(f.items||[]).forEach(function(i){var a=docum
     INSIDE_FREENET, IN_APP, logout, lastReadError: () => lastReadError,
     NODE, PART_BYTES, MAX_PARTS, CATEGORIES, SAFE_ID, SAFE_KEY,
     store, esc, safeImage, timeAgo, newId, hasBridge, applyTheme,
+    sendDM, readDM, dmInbox, rememberDM,
     identity, exportIdentity, importIdentity, profile, displayName, saveProfile,
     blocked, blockUser, unblockUser, filteredTotal: () => filteredCount,
     post, read, foldItems, foldActivity, readItems, isVisible, saveItem, deleteItem, reportItem, flushOutbox,
