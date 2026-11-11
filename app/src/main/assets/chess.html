@@ -305,6 +305,7 @@ async function heartbeat() {
   me = me || await FNet.identity();
   try { await FNet.saveItem(PRESENCE, me.tag.replace(/[^A-Za-z0-9_-]/g, ''), { busy: playing(), vis: 'public' }); } catch {}
 }
+let playersSeen = null;
 async function loadPlayers() {
   const box = document.getElementById('players');
   me = me || await FNet.identity();
@@ -315,6 +316,11 @@ async function loadPlayers() {
     if (!known || p.updated > known.updated) byName.set(p.name, p);
   }
   const people = [...byName.values()];
+  // Avviso quando qualcuno si collega (non al primo caricamento della pagina).
+  for (const p of people) {
+    if (playersSeen && !playersSeen.has(p.name) && !p.busy) toast(`${p.name} è connesso: puoi sfidarlo`);
+  }
+  playersSeen = new Set(people.map(p => p.name));
   box.innerHTML = people.length ? people.map(p => `<div class="game"><span class="grow"><b style="overflow-wrap:anywhere">${esc(p.name)}</b>
       <div class="sub">${p.busy ? '🔴 in partita' : '🟢 libero'} · visto ${esc(timeAgo(p.updated))}</div></span>
       ${p.busy ? '' : `<button class="btn" data-tag="${esc(p.tag)}" data-name="${esc(p.name)}" onclick="createOnline(this.dataset.tag,this.dataset.name)">Sfida</button>`}</div>`).join('')
