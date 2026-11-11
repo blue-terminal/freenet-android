@@ -19,8 +19,9 @@
   }
   const NODE = INSIDE_FREENET ? location.protocol + '//' + location.host : 'http://127.0.0.1:7509';
   const PREFIX = 'fn7_';
-  const PART_BYTES = 45 * 1024 * 1024;
-  const MAX_PARTS = 6;
+  // Pezzi piccoli: dal telefono ognuno parte presto e si vede l'avanzamento.
+  const PART_BYTES = 8 * 1024 * 1024;
+  const MAX_PARTS = 40;
   const CHUNK_BYTES = 768 * 1024;
   const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
   const SAFE_KEY = /^[1-9A-HJ-NP-Za-km-z]{32,50}$/;
@@ -398,8 +399,15 @@ var l=document.getElementById('l');(f.items||[]).forEach(function(i){var a=docum
       const piece = file.slice(n * PART_BYTES, (n + 1) * PART_BYTES);
       await writeText(site, 'index.html', STUB_PAGE);
       await writeBlob(site, 'data.bin', piece, bytes => onProgress && onProgress('Preparo', (n + bytes / piece.size) / count));
-      if (onProgress) onProgress(`Pubblico in rete (parte ${n + 1} di ${count})`, n / count);
-      parts.push({ key: await publishSite(site), site, sha: await hashBlob(piece) });
+      const started = Date.now();
+      const say = () => onProgress && onProgress(`Pubblico in rete: parte ${n + 1} di ${count} (${Math.round((Date.now() - started) / 1000)} s)`, n / count);
+      say();
+      const ticker = setInterval(say, 1000);
+      try {
+        parts.push({ key: await publishSite(site), site, sha: await hashBlob(piece) });
+      } finally {
+        clearInterval(ticker);
+      }
       await call('siteDelete', { site });
     }
     return parts;
