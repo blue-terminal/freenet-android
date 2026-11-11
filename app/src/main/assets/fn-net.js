@@ -296,14 +296,22 @@
 
   // Commenti, voti e visualizzazioni: un voto e una visualizzazione per persona.
   function foldActivity(messages) {
-    const comments = new Map(), votes = new Map(), views = new Set();
+    const comments = new Map(), votes = new Map(), views = new Set(), commentLikes = new Map();
     for (const m of messages) {
-      if (m.k === 'comment' && typeof m.text === 'string') comments.set(m.id, { id: m.id, text: m.text.slice(0, 2000), name: m.name, tag: m.tag, author: m.author, time: m.time, reply: m.reply });
+      if (m.k === 'comment' && typeof m.text === 'string') comments.set(m.id, { id: m.id, text: m.text.slice(0, 2000), name: m.name, tag: m.tag, author: m.author, time: m.time, reply: typeof m.reply === 'string' ? m.reply : null });
+      else if (m.k === 'clike' && typeof m.ref === 'string') {
+        if (!commentLikes.has(m.ref)) commentLikes.set(m.ref, new Map());
+        commentLikes.get(m.ref).set(m.author, m.on === true);
+      }
       else if (m.k === 'comment-del' && comments.has(m.ref) && comments.get(m.ref).author === m.author) comments.delete(m.ref);
       else if (m.k === 'vote') votes.set(m.author, m.value);
       else if (m.k === 'view') views.add(m.author);
     }
     const values = [...votes.values()];
+    for (const c of comments.values()) {
+      const likes = commentLikes.get(c.id) || new Map();
+      c.likedBy = new Set([...likes].filter(([, on]) => on).map(([who]) => who));
+    }
     return {
       comments: [...comments.values()].sort((a, b) => b.time - a.time),
       likes: values.filter(v => v === 1).length,
