@@ -255,16 +255,28 @@ async function findOpponent(button) {
   button.textContent = 'Cerco un avversario…';
   try {
     me = me || await FNet.identity();
-    const open = (await FNet.readItems(LOBBY))
-      .filter(g => g.author !== me.pub && Date.now() - g.created < OPEN_MS && (!g.to || g.to === me.tag))
-      .sort((a, b) => a.created - b.created);
-    for (const g of open) {
-      const taken = (await FNet.read(gameTopic(g.id))).some(m => m.k === 'join');
-      if (!taken) {
+    const lobby = (await FNet.readItems(LOBBY)).filter(g => Date.now() - g.created < OPEN_MS);
+    const free = async g => !(await FNet.read(gameTopic(g.id))).some(m => m.k === 'join');
+    // Chi aspetta resta sulla sua partita più recente: si entra in quella, una per giocatore.
+    const newestByHost = new Map();
+    for (const g of lobby) {
+      if (g.author === me.pub || (g.to && g.to !== me.tag)) continue;
+      const known = newestByHost.get(g.author);
+      if (!known || g.created > known.created) newestByHost.set(g.author, g);
+    }
+    for (const g of [...newestByHost.values()].sort((a, b) => b.created - a.created)) {
+      if (await free(g)) {
         await joinOnline(g.id, g.color === 'w' ? 'w' : 'b', g.author);
         toast('Avversario trovato: ' + g.name);
         return;
       }
+    }
+    // Nessuno da sfidare: se ho già una partita aperta in attesa rientro in quella.
+    const mine = lobby.filter(g => g.author === me.pub && !g.to).sort((a, b) => b.created - a.created)[0];
+    if (mine && await free(mine)) {
+      enterOnline(mine.id, mine.color === 'w' ? 'w' : 'b', me.pub);
+      toast('Aspetto un avversario sulla tua partita aperta');
+      return;
     }
     await createOnline();
   } finally {
@@ -302,7 +314,28 @@ async function loadPlayers() {
       ${p.busy ? '' : `<button class="btn" data-tag="${esc(p.tag)}" data-name="${esc(p.name)}" onclick="createOnline(this.dataset.tag,this.dataset.name)">Sfida</button>`}</div>`).join('')
     : `<p class="sub">${FNet.hasBridge() ? 'Nessun altro giocatore collegato in questo momento.' : "Si vede chi è collegato solo nell'app Freenet."}</p>`;
 }
+let joining = false;
+// Dal pulsante della lista: mostra che sta lavorando e ignora i clic ripetuti.
+async function joinFromButton(button) {
+  if (joining) return;
+  const label = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Entro nella partita…';
+  try {
+    await joinOnline(button.dataset.id, button.dataset.color, button.dataset.host);
+  } catch (e) {
+    toast('Non riesco a entrare: ' + e.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = label;
+  }
+}
 async function joinOnline(id, color, host) {
+  if (joining) return;
+  joining = true;
+  try { await joinOnlineNow(id, color, host); } finally { joining = false; }
+}
+async function joinOnlineNow(id, color, host) {
   me = me || await FNet.identity();
   if (host !== me.pub) {
     const msgs = await FNet.read(gameTopic(id));
@@ -327,6 +360,7 @@ function leaveOnline() {
   stopPolling();
   store.del('chess_online');
   resumeBot();
+  heartbeat();
 }
 // Vale la prima mossa legale del giocatore giusto per ogni turno: tutti ricostruiscono la stessa partita.
 function rebuild(g, messages) {
@@ -390,7 +424,7 @@ async function loadLobby() {
     const label = g.author === me.pub ? 'Riprendi' : invite ? 'Accetta' : 'Gioca';
     return `<div class="game">
       <span class="grow"><b style="overflow-wrap:anywhere">${esc(g.name)}</b><div class="sub">${invite ? '⚔️ ti ha sfidato · ' : g.to ? 'sfida privata · ' : ''}gioca col ${g.color === 'w' ? 'bianco' : 'nero'} · ${esc(timeAgo(g.created))}</div></span>
-      <button class="btn ${invite ? 'main' : ''}" data-id="${esc(g.id)}" data-color="${g.color === 'w' ? 'w' : 'b'}" data-host="${esc(g.author)}" onclick="joinOnline(this.dataset.id,this.dataset.color,this.dataset.host)">${label}</button></div>`;
+      <button class="btn ${invite ? 'main' : ''}" data-id="${esc(g.id)}" data-color="${g.color === 'w' ? 'w' : 'b'}" data-host="${esc(g.author)}" onclick="joinFromButton(this)">${label}</button></div>`;
   }).join('') : '<p class="sub">Nessuna partita aperta: sfida un giocatore connesso o creane una.</p>');
 }
 
