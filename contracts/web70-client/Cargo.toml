@@ -1,0 +1,22 @@
+[package]
+name = "web70-client"
+version = "0.1.0"
+edition = "2021"
+description = "Requests and replies of the Freenet node API, for Web 7.0 pages running inside Freenet"
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+freenet-stdlib = { version = "=0.12.1", default-features = false }
+bincode = "1"
+serde_json = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

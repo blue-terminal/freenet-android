@@ -1,6 +1,9 @@
 // Rete Web 7.0: identità firmata, bacheche condivise (contratto hub) e siti su Freenet.
 (function (root) {
-  const NODE = 'http://127.0.0.1:7509';
+  const ANDROID = typeof Android !== 'undefined' && !!Android.net;
+  // Pagina aperta come sito Freenet: niente app intorno, si parla col nodo che la serve.
+  const INSIDE_FREENET = !ANDROID && location.pathname.startsWith('/v1/contract/web/');
+  const NODE = INSIDE_FREENET ? location.protocol + '//' + location.host : 'http://127.0.0.1:7509';
   const PREFIX = 'fn7_';
   const PART_BYTES = 45 * 1024 * 1024;
   const MAX_PARTS = 6;
@@ -12,10 +15,22 @@
   const MAX_PER_MINUTE = 20;
   const CATEGORIES = ['Scienza', 'Tecnologia', 'Matematica', 'Storia', 'Lingue', 'Salute', 'Filosofia', 'Arte', 'Documentari', 'Tutorial'];
 
-  const store = {
+  // Nella sandbox di Freenet localStorage non esiste: i dati della sessione passano da una
+  // pagina all'altra in window.name, che resta finché la scheda è aperta.
+  const NAME_PREFIX = 'web70:';
+  const hasLocalStorage = (() => { try { localStorage.setItem(PREFIX + 't', '1'); localStorage.removeItem(PREFIX + 't'); return true; } catch { return false; } })();
+  const session = (() => {
+    try { return root.name.startsWith(NAME_PREFIX) ? JSON.parse(root.name.slice(NAME_PREFIX.length)) : {}; } catch { return {}; }
+  })();
+  const saveSession = () => { try { root.name = NAME_PREFIX + JSON.stringify(session); } catch {} };
+  const store = hasLocalStorage ? {
     get(k, d) { try { const v = localStorage.getItem(PREFIX + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
     set(k, v) { try { localStorage.setItem(PREFIX + k, JSON.stringify(v)); return true; } catch { return false; } },
     del(k) { try { localStorage.removeItem(PREFIX + k); } catch {} },
+  } : {
+    get(k, d) { return k in session ? JSON.parse(JSON.stringify(session[k])) : d; },
+    set(k, v) { session[k] = v; saveSession(); return true; },
+    del(k) { delete session[k]; saveSession(); },
   };
 
   const esc = s => String(s === undefined || s === null ? '' : s).replace(/[&<>"'`]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;' }[c]));
@@ -42,10 +57,69 @@
   const SIGN = { name: 'ECDSA', hash: 'SHA-256' };
   let identityPromise = null;
 
+  // Identità da frase segreta: stessa frase, stessa chiave, su qualsiasi dispositivo.
+  const P256_N = BigInt('0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551');
+  const PKCS8_HEAD = '308141020100301306072a8648ce3d020106082a8648ce3d030107042730250201010420';
+  async function identityFromPhrase(phrase) {
+    const material = await crypto.subtle.importKey('raw', enc.encode(phrase.normalize('NFKC')), 'PBKDF2', false, ['deriveBits']);
+    for (let round = 0; ; round++) {
+      const bits = new Uint8Array(await crypto.subtle.deriveBits(
+        { name: 'PBKDF2', hash: 'SHA-256', salt: enc.encode('web70-identita-v1:' + round), iterations: 310000 }, material, 256));
+      const d = BigInt('0x' + [...bits].map(b => b.toString(16).padStart(2, '0')).join(''));
+      if (d === 0n || d >= P256_N) continue;
+      const head = Uint8Array.from(PKCS8_HEAD.match(/../g).map(h => parseInt(h, 16)));
+      const der = new Uint8Array(head.length + 32);
+      der.set(head);
+      der.set(bits, head.length);
+      const key = await crypto.subtle.importKey('pkcs8', der, ECDSA, true, ['sign']);
+      const jwk = await crypto.subtle.exportKey('jwk', key);
+      return { jwk, pub: jwk.x + '.' + jwk.y };
+    }
+  }
+
+  function askPhrase() {
+    return new Promise(resolve => {
+      const box = document.createElement('div');
+      box.style.cssText = 'position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:16px';
+      box.innerHTML = `<form class="panel" style="max-width:420px;width:100%">
+        <h2>Entra in Web 7.0</h2>
+        <p class="sub" style="margin-bottom:12px">La tua identità nasce dalla tua frase segreta: con la stessa frase sei tu su ogni dispositivo. Chi la conosce può scrivere a nome tuo, quindi usa almeno 4 parole che sai solo tu. Non viene salvata né inviata.</p>
+        <label class="field"><span>Nome da mostrare</span><input name="name" maxlength="40" required></label>
+        <label class="field"><span>Frase segreta</span><input name="phrase" type="password" minlength="16" required autocomplete="current-password"></label>
+        <div class="sub" data-msg style="margin-bottom:8px"></div>
+        <button class="btn main" style="width:100%">Entra</button></form>`;
+      box.querySelector('form').onsubmit = async e => {
+        e.preventDefault();
+        const f = e.target;
+        if (f.phrase.value.trim().split(/\s+/).length < 4) { f.querySelector('[data-msg]').textContent = 'Usa almeno 4 parole.'; return; }
+        f.querySelector('button').disabled = true;
+        f.querySelector('[data-msg]').textContent = 'Calcolo la tua chiave…';
+        const saved = await identityFromPhrase(f.phrase.value);
+        const p = store.get('profile', { name: '', bio: '', avatar: '' });
+        p.name = f.name.value.trim();
+        store.set('profile', p);
+        box.remove();
+        resolve(saved);
+      };
+      document.body.append(box);
+    });
+  }
+
+  function logout() {
+    for (const k of Object.keys(session)) delete session[k];
+    saveSession();
+    store.del('identity');
+    identityPromise = null;
+  }
+
   function identity() {
     if (identityPromise) return identityPromise;
     identityPromise = (async () => {
       let saved = store.get('identity');
+      if (!saved && INSIDE_FREENET) {
+        saved = await askPhrase();
+        store.set('identity', saved);
+      }
       if (!saved) {
         const pair = await crypto.subtle.generateKey(ECDSA, true, ['sign', 'verify']);
         const jwk = await crypto.subtle.exportKey('jwk', pair.privateKey);
@@ -77,7 +151,7 @@
   const pending = {};
   let callSeq = 0;
   root.__fnReply = (id, json) => { const done = pending[id]; delete pending[id]; if (done) done(JSON.parse(json)); };
-  const hasBridge = () => typeof Android !== 'undefined' && !!Android.net;
+  const hasBridge = () => ANDROID || INSIDE_FREENET;
 
   function waitToken() {
     return new Promise(res => {
@@ -87,6 +161,11 @@
   }
 
   async function call(method, args) {
+    if (INSIDE_FREENET) {
+      if (method === 'hubGet') return { ok: true, state: await FreenetWS.hubGet(args.topic) };
+      if (method === 'hubPost') { await FreenetWS.hubPost(args.topic, args.message); return { ok: true }; }
+      throw new Error("Per caricare video e foto usa l'app Freenet o Web 7.0 per PC");
+    }
     if (!hasBridge()) throw new Error("Questa funzione è disponibile nell'app Freenet");
     await waitToken();
     const reply = await new Promise(res => {
@@ -486,6 +565,7 @@ var l=document.getElementById('l');(f.items||[]).forEach(function(i){var a=docum
   if (hasBridge()) setTimeout(flushOutbox, 1500);
 
   root.FNet = {
+    INSIDE_FREENET, logout,
     NODE, PART_BYTES, MAX_PARTS, CATEGORIES, SAFE_ID, SAFE_KEY,
     store, esc, safeImage, timeAgo, newId, hasBridge, applyTheme,
     identity, exportIdentity, importIdentity, profile, displayName, saveProfile,
