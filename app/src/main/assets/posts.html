@@ -55,7 +55,7 @@ const { toast, avatar, offlineNotice, drawComments, toggleVote } = Social;
 const FEED = 'feed:post';
 const SITE = 'w70-posts';
 const MAX_IMAGES = 4;
-const NAV = [['#/all', '🏠', 'Tutti'], ['#/following', '👥', 'Seguiti'], ['#/new', '✏️', 'Scrivi'], ['#/saved', '🔖', 'Salvati'], ['#/me', '👤', 'Profilo']];
+const NAV = [['#/all', '🏠', 'Tutti'], ['#/following', '👥', 'Seguiti'], ['#/new', '✏️', 'Scrivi'], ['#/dm', '✉️', 'Messaggi'], ['#/saved', '🔖', 'Salvati'], ['#/me', '👤', 'Profilo']];
 const app = document.getElementById('app');
 let items = [];
 let channels = new Map();
@@ -266,7 +266,7 @@ async function viewUser(param) {
   const followed = !!follows()[tag];
   app.innerHTML = `<div class="column"><div class="row" style="margin-bottom:12px">${avatar(name, own ? FNet.profile().avatar : info.avatar, true)}<div class="grow"><h1 style="font-size:20px;overflow-wrap:anywhere">${esc(name)}</h1><div class="sub">${list.length} post</div></div></div>
     <p style="white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:12px">${esc(own ? FNet.profile().bio : info.bio || '')}</p>
-    <div class="row wrap" style="margin-bottom:14px">${own ? '<a class="btn" href="video.html#/settings">Modifica profilo</a>' : `<button class="btn ${followed ? '' : 'main'}" onclick="toggleFollow('${esc(tag)}')">${followed ? 'Segui già' : 'Segui'}</button>`}</div>
+    <div class="row wrap" style="margin-bottom:14px">${own ? '<a class="btn" href="video.html#/settings">Modifica profilo</a>' : `<button class="btn ${followed ? '' : 'main'}" onclick="toggleFollow('${esc(tag)}')">${followed ? 'Segui già' : 'Segui'}</button>${list[0] ? `<a class="btn" href="#/dm/${esc(list[0].author)}">✉️ Messaggio</a>` : ''}`}</div>
     ${list.map(noteHtml).join('')}</div>`;
   fillCounts();
 }
@@ -283,6 +283,48 @@ async function viewNote(id) {
   app.innerHTML = `<div class="column">${noteHtml(n)}<div class="panel" data-comments id="comments"></div></div>`;
   fillCounts();
   drawComments(document.getElementById('comments'), id);
+}
+// ── messaggi privati ─────────────────────────────────────────────────────────
+async function viewInbox() {
+  app.innerHTML = '<div class="column"><h2>✉️ Messaggi</h2><p class="sub" style="margin:6px 0 12px">🔒 Cifrati da un capo all\'altro: solo tu e l\'altra persona potete leggerli. Sulla rete passano solo lettere e numeri illeggibili.</p><div id="inbox"><p class="sub">Leggo dalla rete…</p></div></div>';
+  const people = await FNet.dmInbox();
+  const box = document.getElementById('inbox');
+  if (box) box.innerHTML = people.length ? people.map(p => `<a class="row panel" style="margin-bottom:8px" href="#/dm/${esc(p.pub)}">${avatar(p.name, channels.get(p.pub.slice(0, 40))?.avatar)}<span class="grow"><b style="overflow-wrap:anywhere">${esc(p.name)}</b><div class="sub">${esc(timeAgo(p.time))}</div></span>›</a>`).join('')
+    : '<div class="empty"><div>✉️</div><h2>Nessun messaggio</h2><p>Apri il profilo di qualcuno e premi ✉️ Messaggio.</p></div>';
+}
+async function viewChat(pub) {
+  await refresh();
+  const who = items.find(n => n.author === pub) || {};
+  const name = who.name || channels.get(pub.slice(0, 40))?.name || 'Utente';
+  app.innerHTML = `<div class="column"><div class="row" style="margin-bottom:8px"><a class="round" href="#/dm">‹</a>${avatar(name, channels.get(pub.slice(0, 40))?.avatar)}<b class="grow" style="overflow-wrap:anywhere">${esc(name)}</b><span class="sub">🔒</span></div>
+    <div id="chat" class="panel" style="min-height:200px"><p class="sub">Decifro i messaggi…</p></div>
+    <form class="row" style="margin-top:10px" onsubmit="event.preventDefault();sendChat(this,'${esc(pub)}','${esc(name)}')">
+      <input class="grow" name="text" maxlength="4000" required placeholder="Messaggio cifrato" style="padding:10px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);min-width:0">
+      <button class="btn main">Invia</button></form><div class="sub" id="chat-state"></div></div>`;
+  drawChat(pub);
+}
+async function drawChat(pub) {
+  const list = await FNet.readDM(pub);
+  const box = document.getElementById('chat');
+  if (!box) return;
+  box.innerHTML = list.length ? list.map(m => `<div style="display:flex;justify-content:${m.mine ? 'flex-end' : 'flex-start'};margin:6px 0"><div style="max-width:80%;padding:8px 12px;border-radius:14px;background:${m.mine ? 'var(--accent)' : 'var(--panel2)'};color:${m.mine ? '#fff' : 'inherit'};white-space:pre-wrap;overflow-wrap:anywhere">${esc(m.text)}<div style="font-size:10px;opacity:.7;margin-top:2px">${esc(timeAgo(m.time))}</div></div></div>`).join('')
+    : '<p class="sub">Ancora nessun messaggio. Scrivi tu il primo.</p>';
+  box.scrollTop = box.scrollHeight;
+}
+async function sendChat(form, pub, name) {
+  const text = form.text.value.trim();
+  if (!text) return;
+  const state = document.getElementById('chat-state');
+  form.querySelector('button').disabled = true;
+  try {
+    state.textContent = 'Cifro e invio…';
+    const r = await FNet.sendDM(pub, text);
+    FNet.rememberDM(pub, name);
+    form.text.value = '';
+    state.textContent = r.queued ? 'Salvato: partirà quando il nodo risponde' : '';
+    drawChat(pub);
+  } catch (e) { state.textContent = 'Non inviato: ' + e.message; }
+  form.querySelector('button').disabled = false;
 }
 async function drawChrome() {
   document.getElementById('me-avatar').innerHTML = avatar(await FNet.displayName(), FNet.profile().avatar);
@@ -301,6 +343,8 @@ async function render() {
     else if (page === 'me') await viewUser('');
     else if (page === 'user') await viewUser(param);
     else if (page === 'p') await viewNote(param);
+    else if (page === 'dm' && param) await viewChat(param);
+    else if (page === 'dm') await viewInbox();
     else if (page === 'new') app.innerHTML = `<div class="column"><h2 style="margin-bottom:12px">Nuovo post</h2>${composeBox}</div>`;
     else await viewAll();
     FNet.loadVerifiedImages(app);
