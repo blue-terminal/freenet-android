@@ -4,6 +4,19 @@
   // (lì il bridge esiste ma risponde solo alle pagine interne dell'app).
   const INSIDE_FREENET = location.pathname.startsWith('/v1/contract/web/');
   const ANDROID = !INSIDE_FREENET && typeof Android !== 'undefined' && !!Android.net;
+  // Dentro l'app Android anche le pagine del sito Freenet: per pubblicare si passa alla pagina interna.
+  const IN_APP = INSIDE_FREENET && (typeof Android !== 'undefined' || /; wv\)/.test(navigator.userAgent));
+  const UPLOAD_ROUTE = /^#\/(upload|live|new|new\/storia)$/;
+  function openInApp() {
+    const page = location.pathname.split('/').pop() || 'index.html';
+    const route = UPLOAD_ROUTE.test(location.hash) ? location.hash : '';
+    window.open('https://web70.invalid/open?page=' + encodeURIComponent(page) + '&route=' + encodeURIComponent(route), '_blank');
+  }
+  if (IN_APP) {
+    const check = () => { if (UPLOAD_ROUTE.test(location.hash)) openInApp(); };
+    addEventListener('hashchange', check);
+    setTimeout(check, 0);
+  }
   const NODE = INSIDE_FREENET ? location.protocol + '//' + location.host : 'http://127.0.0.1:7509';
   const PREFIX = 'fn7_';
   const PART_BYTES = 45 * 1024 * 1024;
@@ -114,6 +127,10 @@
     if (INSIDE_FREENET) {
       if (method === 'hubGet') return { ok: true, state: await FreenetWS.hubGet(args.topic) };
       if (method === 'hubPost') { await FreenetWS.hubPost(args.topic, args.message); return { ok: true }; }
+      if (IN_APP) {
+        openInApp();
+        throw new Error("Apro il caricamento nell'app…");
+      }
       throw new Error("Per caricare video e foto usa l'app Freenet o Web 7.0 per PC");
     }
     if (!hasBridge()) throw new Error("Questa funzione è disponibile nell'app Freenet");

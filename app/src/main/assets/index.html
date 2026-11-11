@@ -466,7 +466,9 @@ async function loadUrl(url) {
     return;
   }
   // Le app Freenet si aprono a tutta pagina: dentro un riquadro alcune funzioni restano bloccate.
-  window.location.href = target;
+  // Dentro un sito Freenet non si può cambiare sito nello stesso riquadro: si apre a parte.
+  if (location.pathname.startsWith('/v1/contract/web/')) window.open(target, '_blank');
+  else window.location.href = target;
 }
 
 function doSearch() {
