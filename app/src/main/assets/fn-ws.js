@@ -95,7 +95,8 @@
     await loadWasm();
     const id = await topicId(topic);
     const reply = await request(invoke('encode_get', id, 0)).catch(e => {
-      if (/missing contract|not found/i.test(e.message)) return { type: 'notfound' };
+      // Bacheca mai creata: per chi legge è vuota, non un guasto.
+      if (/missing contract|not found|no contract|GET exhausted/i.test(e.message)) return { type: 'notfound' };
       throw e;
     });
     return reply.type === 'get' ? reply.state : '{"m":[]}';

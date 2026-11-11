@@ -19,7 +19,7 @@
   function offlineNotice(online) {
     if (online) return '';
     return FNet.hasBridge()
-      ? '<div class="notice">Il nodo non risponde: stai vedendo gli ultimi dati salvati.</div>'
+      ? `<div class="notice">Il nodo non risponde: stai vedendo gli ultimi dati salvati.${FNet.lastReadError() ? ' Motivo: ' + esc(FNet.lastReadError()) : ''}</div>`
       : '<div class="notice">Da questo browser non si può accedere alla rete condivisa: apri la pagina nell\'app Freenet.</div>';
   }
 
