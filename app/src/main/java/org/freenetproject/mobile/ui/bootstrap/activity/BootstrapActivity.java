@@ -172,7 +172,10 @@ public class BootstrapActivity extends AppCompatActivity {
                     @Override
                     public boolean shouldOverrideUrlLoading(WebView popup, WebResourceRequest request) {
                         Uri url = request.getUrl();
-                        if (!openOutside(url)) {
+                        String internal = internalPage(url);
+                        if (internal != null) {
+                            web.loadUrl(internal);
+                        } else if (!openOutside(url)) {
                             web.loadUrl(url.toString());
                         }
                         popup.destroy();
@@ -271,6 +274,27 @@ public class BootstrapActivity extends AppCompatActivity {
             webView.getSettings().setTextZoom(
                     Integer.parseInt(preferences.getString("web_text_size", "100")));
         }
+    }
+
+    // Pages opened from the Freenet site cannot publish: they ask for the app's own page by
+    // opening https://web70.invalid/open?page=...&route=... (a reserved name that never resolves).
+    private static final java.util.Set<String> INTERNAL_PAGES = new java.util.HashSet<>(
+            java.util.Arrays.asList("video.html", "photos.html", "posts.html"));
+
+    private static String internalPage(Uri url) {
+        if (!"https".equals(url.getScheme()) || !"web70.invalid".equals(url.getHost())
+                || !"/open".equals(url.getPath())) {
+            return null;
+        }
+        String page = url.getQueryParameter("page");
+        String route = url.getQueryParameter("route");
+        if (page == null || !INTERNAL_PAGES.contains(page)) {
+            return null;
+        }
+        if (route == null || !route.matches("#/[a-z/]{0,30}")) {
+            route = "";
+        }
+        return ASSET_PREFIX + page + route;
     }
 
     private void leaveFullscreen() {
