@@ -345,7 +345,7 @@ public class BootstrapActivity extends AppCompatActivity {
             if (!netToken.equals(token)) {
                 return;
             }
-            ExecutorService worker = "sitePublish".equals(method) ? publishThread : requestThreads;
+            ExecutorService worker = "sitePublish".equals(method) || "pagesPublish".equals(method) ? publishThread : requestThreads;
             worker.execute(() -> {
                 String reply;
                 try {
