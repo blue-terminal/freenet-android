@@ -31,6 +31,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -58,6 +59,12 @@ public final class Updater {
     // Second road, when the first one is filtered by the network or the phone.
     private static final String RELEASES_API =
             "https://api.github.com/repos/blue-terminal/freenet-android/releases?per_page=5";
+    // First road: inside Freenet, through the phone's own node. Only the owner of this site's key
+    // can change it, and the whole APK is checked against its SHA-256 before installing.
+    private static final String FREENET_NODE = "http://127.0.0.1:7509/v1/contract/web/";
+    private static final String FREENET_MANIFEST = FREENET_NODE + "D6ufPZEtQcUekmSE8kFAYNk2onPiDzHu82VwbxKnV3ns/update.json";
+    private static final Pattern SITE_KEY = Pattern.compile("[1-9A-HJ-NP-Za-km-z]{32,50}");
+    private static final int FREENET_TIMEOUT_MILLIS = 120000;
     private static final Pattern VERSION = Pattern.compile("^v?(\\d+)\\.(\\d+)\\.(\\d+)");
     private static final int TIMEOUT_MILLIS = 20000;
     private static final int MAX_LIST_BYTES = 2 * 1024 * 1024;
@@ -79,6 +86,8 @@ public final class Updater {
         public String url;
         public String sha256;
         public String notes = "";
+        /** Set when the update comes from Freenet: the APK split in pieces, one site each. */
+        public java.util.List<String> parts;
     }
 
     /**
@@ -203,6 +212,70 @@ public final class Updater {
 
     // Both sources are asked: the update file can lag a few minutes behind a new release.
     private static Release newestRelease(Context context) throws IOException, JSONException {
+        try {
+            Release inside = fromFreenet();
+            if (inside != null) return inside;
+        } catch (IOException | JSONException e) {
+            Log.w(TAG, "Update not found inside Freenet, trying GitHub", e);
+        }
+        return newestFromGitHub(context);
+    }
+
+    /** The update list published inside Freenet, read from the phone's own node. */
+    private static Release fromFreenet() throws IOException, JSONException {
+        JSONObject manifest = new JSONObject(fetchLocal(FREENET_MANIFEST));
+        int[] version = parseVersion(manifest.getString("version"));
+        int[] current = parseVersion(BuildConfig.VERSION_NAME);
+        if (version == null || current == null || compare(version, current) <= 0) return null;
+        JSONObject asset = manifest.getJSONObject("assets").optJSONObject(Build.SUPPORTED_ABIS[0]);
+        if (asset == null) return null;
+        Release release = new Release();
+        release.version = manifest.getString("version");
+        release.notes = manifest.optString("notes", "");
+        release.sha256 = asset.getString("sha256").toLowerCase(Locale.ROOT);
+        if (!release.sha256.matches("[0-9a-f]{64}")) throw new IOException("Bad checksum in update list");
+        release.parts = new java.util.ArrayList<>();
+        JSONArray parts = asset.getJSONArray("parts");
+        for (int i = 0; i < parts.length(); i++) {
+            String key = parts.getString(i);
+            if (!SITE_KEY.matcher(key).matches()) throw new IOException("Bad part address");
+            release.parts.add(FREENET_NODE + key + "/part.bin");
+        }
+        if (release.parts.isEmpty()) return null;
+        release.url = release.parts.get(0);
+        return release;
+    }
+
+    private static HttpURLConnection openLocal(String url) throws IOException {
+        if (!url.startsWith(FREENET_NODE)) throw new IOException("Unexpected address");
+        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+        connection.setConnectTimeout(TIMEOUT_MILLIS);
+        connection.setReadTimeout(FREENET_TIMEOUT_MILLIS);
+        return connection;
+    }
+
+    private static String fetchLocal(String url) throws IOException {
+        HttpURLConnection connection = openLocal(url);
+        try {
+            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                throw new IOException("HTTP " + connection.getResponseCode() + " from the node");
+            }
+            try (InputStream in = connection.getInputStream()) {
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = in.read(buffer)) != -1) {
+                    bytes.write(buffer, 0, read);
+                    if (bytes.size() > MAX_LIST_BYTES) throw new IOException("Answer too long");
+                }
+                return new String(bytes.toByteArray(), StandardCharsets.UTF_8);
+            }
+        } finally {
+            connection.disconnect();
+        }
+    }
+
+    private static Release newestFromGitHub(Context context) throws IOException, JSONException {
         Release manifest = null;
         Exception manifestError = null;
         try {
@@ -397,6 +470,10 @@ public final class Updater {
     private static void saveVerified(Release release, File apk, ProgressCallback progress)
             throws IOException, NoSuchAlgorithmException {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        if (release.parts != null) {
+            savePieces(release, apk, digest, progress);
+            return;
+        }
         HttpsURLConnection connection = open(release.url);
         connection.connect();
         int httpCode = connection.getResponseCode();
@@ -429,6 +506,40 @@ public final class Updater {
         } finally {
             connection.disconnect();
         }
+        checkDigest(release, apk, digest);
+    }
+
+    /** Joins the pieces read from the node, then checks the whole file. */
+    private static void savePieces(Release release, File apk, MessageDigest digest, ProgressCallback progress)
+            throws IOException {
+        long total = 0;
+        try (OutputStream out = new FileOutputStream(apk)) {
+            for (int i = 0; i < release.parts.size(); i++) {
+                HttpURLConnection connection = openLocal(release.parts.get(i));
+                try {
+                    if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                        throw new IOException("HTTP " + connection.getResponseCode() + " for piece " + (i + 1));
+                    }
+                    try (InputStream in = connection.getInputStream()) {
+                        byte[] buffer = new byte[64 * 1024];
+                        int read;
+                        while ((read = in.read(buffer)) != -1) {
+                            total += read;
+                            if (total > MAX_APK_BYTES) throw new IOException("File too large");
+                            digest.update(buffer, 0, read);
+                            out.write(buffer, 0, read);
+                        }
+                    }
+                } finally {
+                    connection.disconnect();
+                }
+                if (progress != null) progress.onProgress((i + 1) * 100 / release.parts.size());
+            }
+        }
+        checkDigest(release, apk, digest);
+    }
+
+    private static void checkDigest(Release release, File apk, MessageDigest digest) throws IOException {
         StringBuilder hex = new StringBuilder();
         for (byte b : digest.digest()) {
             hex.append(String.format(Locale.ROOT, "%02x", b));
