@@ -711,6 +711,39 @@ async function restoreIdentity(input) {
 const SEGMENT_MS = 10000;
 const LIVE_SITE = 'w70-diretta';
 let liveState = null;
+// Sorgente della diretta: fotocamera, schermo, o schermo con la fotocamera in un angolo.
+async function liveSource(kind) {
+  const md = navigator.mediaDevices;
+  if (kind === 'camera') return md.getUserMedia({ video: { width: 640, height: 360 }, audio: true });
+  const screen = await md.getDisplayMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 15 } }, audio: true });
+  // La voce dal microfono: lo schermo da solo spesso non ha audio.
+  let mic = null;
+  try { mic = await md.getUserMedia({ audio: true, video: kind === 'both' ? { width: 320, height: 180 } : false }); } catch {}
+  let video = screen.getVideoTracks()[0];
+  const stops = [() => screen.getTracks().forEach(t => t.stop()), () => mic && mic.getTracks().forEach(t => t.stop())];
+  if (kind === 'both' && mic && mic.getVideoTracks().length) {
+    const sv = Object.assign(document.createElement('video'), { muted: true, playsInline: true, srcObject: new MediaStream([video]) });
+    const cv = Object.assign(document.createElement('video'), { muted: true, playsInline: true, srcObject: new MediaStream(mic.getVideoTracks()) });
+    await Promise.all([sv.play(), cv.play()]);
+    const c = Object.assign(document.createElement('canvas'), { width: 1280, height: 720 });
+    const g = c.getContext('2d');
+    const timer = setInterval(() => {
+      g.drawImage(sv, 0, 0, c.width, c.height);
+      const w = 320, h = 180;
+      g.fillStyle = '#000'; g.fillRect(c.width - w - 22, c.height - h - 22, w + 4, h + 4);
+      g.drawImage(cv, c.width - w - 20, c.height - h - 20, w, h);
+    }, 1000 / 15);
+    stops.push(() => clearInterval(timer));
+    video = c.captureStream(15).getVideoTracks()[0];
+  }
+  const audio = [...(mic ? mic.getAudioTracks() : []), ...screen.getAudioTracks()].slice(0, 1);
+  const out = new MediaStream([video, ...audio]);
+  // Se chi trasmette preme "Interrompi condivisione" del browser, la diretta si chiude.
+  screen.getVideoTracks()[0].addEventListener('ended', () => { if (typeof stopLive === 'function') stopLive(); });
+  const stopAll = out.getTracks.bind(out);
+  out.getTracks = () => { stops.forEach(f => f()); return stopAll(); };
+  return out;
+}
 function viewLive() {
   const lives = items.filter(v => v.live && FNet.isVisible(v));
   app.innerHTML = `<div class="livebox" style="max-width:720px;margin:auto"><h1 style="font-size:21px;margin-bottom:6px">Diretta</h1>
@@ -719,6 +752,11 @@ function viewLive() {
     <form id="live-form" onsubmit="event.preventDefault();startLive(this)">
       <label class="field"><span>Titolo</span><input name="title" maxlength="120" required></label>
       <label class="field"><span>Categoria educativa</span>${categorySelect('')}</label>
+      <label class="field"><span>Cosa mostri</span><select name="source">
+        <option value="camera">📷 Fotocamera</option>
+        ${navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia ? '<option value="screen">🖥️ Schermo condiviso</option><option value="both">🖥️ Schermo + 📷 fotocamera nel riquadro</option>' : ''}
+      </select></label>
+      ${navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia ? '' : '<p class="sub" style="margin:-4px 0 10px">Su questo dispositivo si può trasmettere solo la fotocamera: lo schermo si condivide da Web 7.0 per PC.</p>'}
       <button class="btn main" id="live-btn" style="width:100%">🔴 Vai in diretta</button></form>
     <div class="sub" id="live-status" style="margin-top:10px"></div></div>
     <h2 style="margin:20px 0 10px">In onda ora</h2><div class="grid">${lives.map(card).join('')}</div>${lives.length ? '' : '<p class="sub">Nessuna diretta in corso.</p>'}`;
@@ -734,7 +772,7 @@ async function startLive(form) {
   const status = document.getElementById('live-status');
   try {
     if (!navigator.mediaDevices || !window.MediaRecorder) throw new Error('Fotocamera non disponibile qui');
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 360 }, audio: true });
+    const stream = await liveSource(form.source ? form.source.value : 'camera');
     const id = FNet.newId('v');
     liveState = { stream, id, n: 0, title: form.title.value.trim(), cat: form.cat.value, busy: false, key: null };
     drawLiveRunning();
@@ -783,6 +821,7 @@ async function publishSegment(state, blob) {
 }
 async function stopLive() {
   const state = liveState;
+  if (!state) return;
   liveState = null;
   state.stream.getTracks().forEach(t => t.stop());
   if (state.key) {

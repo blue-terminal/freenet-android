@@ -527,12 +527,20 @@ var l=document.getElementById('l');(f.items||[]).forEach(function(i){var a=docum
   async function downloadVideo(item, onProgress) {
     const parts = (item.parts || []).filter(p => p && SAFE_KEY.test(p.key) && typeof p.sha === 'string');
     if (!parts.length || parts.length !== (item.parts || []).length) throw new Error('Video senza impronta: non verificabile');
-    const blobs = [];
-    let done = 0;
-    for (const part of parts) {
-      blobs.push(await fetchPart(siteUrl(part.key, 'data.bin'), b => onProgress && onProgress(done + b, item.size), part.sha));
-      done += blobs[blobs.length - 1].size;
-    }
+    // Tre parti alla volta da peer diversi: molto più veloce che una dopo l'altra.
+    const blobs = new Array(parts.length);
+    const got = new Array(parts.length).fill(0);
+    const report = () => onProgress && onProgress(got.reduce((a, b) => a + b, 0), item.size);
+    let next = 0;
+    const worker = async () => {
+      while (next < parts.length) {
+        const n = next++;
+        blobs[n] = await fetchPart(siteUrl(parts[n].key, 'data.bin'), b => { got[n] = b; report(); }, parts[n].sha);
+        got[n] = blobs[n].size;
+        report();
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(3, parts.length) }, worker));
     return new Blob(blobs, { type: /^video\/[a-z0-9.+-]+$/i.test(item.mime || '') ? item.mime : 'video/mp4' });
   }
 
