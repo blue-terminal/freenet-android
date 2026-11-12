@@ -1,27 +1,27 @@
 {
-  "version": "v1.7.3",
-  "notes": "• FreenetPosts: cerca persone per nome in Seguiti\n• Pulsante 🗑 Elimina sui tuoi post\n• Messaggi privati cifrati",
+  "version": "v1.7.4",
+  "notes": "• Tema chiaro, scuro o automatico (pulsante 🌙/☀️ nella home)\n• FreenetPosts: cerca persone per nome, pulsante 🗑 Elimina\n• Messaggi privati cifrati",
   "assets": {
     "arm64-v8a": {
-      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.7.3/freenet-mobile-v1.7.3-freenet-0.2.154-arm64-v8a-release.apk",
-      "sha256": "c33318cbcc6be6eee765a733a8a9f4a0f6272d4a996bbb7193a5aed14182e89d"
+      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.7.4/freenet-mobile-v1.7.4-freenet-0.2.154-arm64-v8a-release.apk",
+      "sha256": "a77ec73734f1e47bae864f693aff7d583d6d068288817098a431d54de0cda133"
     },
     "x86_64": {
-      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.7.3/freenet-mobile-v1.7.3-freenet-0.2.154-x86_64-release.apk",
-      "sha256": "b5d54c6dda868cb085118e7e48d45eec6a156aec94f03cfee979dfd925bc166b"
+      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.7.4/freenet-mobile-v1.7.4-freenet-0.2.154-x86_64-release.apk",
+      "sha256": "b85a1eeb3cda49016bd1dd553e430d2cba71ff3142600fd419fdb1bcd51ec56b"
     }
   },
   "beta": {
-    "version": "v1.7.3",
-    "notes": "• FreenetPosts: cerca persone per nome in Seguiti\n• Pulsante 🗑 Elimina sui tuoi post\n• Messaggi privati cifrati",
+    "version": "v1.7.4",
+    "notes": "• Tema chiaro, scuro o automatico (pulsante 🌙/☀️ nella home)\n• FreenetPosts: cerca persone per nome, pulsante 🗑 Elimina\n• Messaggi privati cifrati",
     "assets": {
       "arm64-v8a": {
-        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.7.3/freenet-mobile-v1.7.3-freenet-0.2.154-arm64-v8a-release.apk",
-        "sha256": "c33318cbcc6be6eee765a733a8a9f4a0f6272d4a996bbb7193a5aed14182e89d"
+        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.7.4/freenet-mobile-v1.7.4-freenet-0.2.154-arm64-v8a-release.apk",
+        "sha256": "a77ec73734f1e47bae864f693aff7d583d6d068288817098a431d54de0cda133"
       },
       "x86_64": {
-        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.7.3/freenet-mobile-v1.7.3-freenet-0.2.154-x86_64-release.apk",
-        "sha256": "b5d54c6dda868cb085118e7e48d45eec6a156aec94f03cfee979dfd925bc166b"
+        "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.7.4/freenet-mobile-v1.7.4-freenet-0.2.154-x86_64-release.apk",
+        "sha256": "b85a1eeb3cda49016bd1dd553e430d2cba71ff3142600fd419fdb1bcd51ec56b"
       }
     }
   }
