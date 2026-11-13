@@ -97,7 +97,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
   display: flex; flex-direction: column; align-items: center;
   padding: 50px 20px 30px; overflow-y: auto;
 }
-.fn-logo { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg,#0a84ff,#00c896); display: flex; align-items: center; justify-content: center; font-size: 32px; margin-bottom: 14px; }
+.fn-logo { width: 96px; height: 96px; margin-bottom: 14px; filter: drop-shadow(0 4px 14px rgba(10,132,255,.35)); }
 .fn-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
 .fn-sub   { font-size: 13px; color: var(--text2); margin-bottom: 30px; text-align: center; }
 .search-box { display: flex; width: 100%; max-width: 520px; margin-bottom: 36px; }
@@ -150,7 +150,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
   .node-bar-right { flex-shrink: 0; }
   .btn-accedi { padding: 5px 10px; font-size: 11px; }
   .home-overlay { padding: 24px 12px 20px; }
-  .fn-logo { width: 56px; height: 56px; font-size: 26px; }
+  .fn-logo { width: 76px; height: 76px; }
   .fn-title { font-size: 17px; }
   .fn-sub { font-size: 12px; margin-bottom: 20px; }
   .search-box { margin-bottom: 24px; }
@@ -197,7 +197,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
   </div>
 
   <div class="topbar-right">
-    <a class="nav-btn" href="search.html" title="Cerca" aria-label="Cerca">🔍</a>
+    <a class="nav-btn" href="search.html" title="Cerca" aria-label="Cerca"><svg viewBox="0 0 120 120" width="20" height="20" aria-hidden="true"><circle cx="60" cy="60" r="56" fill="#0a84ff"/><g fill="none" stroke="#fff" stroke-width="7"><circle cx="60" cy="60" r="40"/><ellipse cx="60" cy="60" rx="17" ry="40"/><path d="M20 60h80"/></g></svg></a>
     <button class="nav-btn" onclick="openPanel('profile')" title="Profilo" aria-label="Profilo">👤</button>
     <button class="nav-btn" id="theme-btn" onclick="FNet.setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');themeIcon()" title="Chiaro / scuro" aria-label="Chiaro / scuro">🌙</button>
     <button class="nav-btn" onclick="openPanel('settings')" title="Impostazioni" aria-label="Impostazioni">⚙️</button>
@@ -218,7 +218,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 <div class="browser-area" id="browser-area">
   <!-- home overlay (shown when addr=freenet://home) -->
   <div class="home-overlay" id="home-overlay">
-    <div class="fn-logo">🌐</div>
+    <svg class="fn-logo" viewBox="0 0 120 120" role="img" aria-label="Web Open Source⁠"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a84ff"/><stop offset="1" stop-color="#00c896"/></linearGradient></defs><circle cx="60" cy="60" r="56" fill="url(#lg)"/><g fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2.5"><circle cx="60" cy="60" r="44"/><ellipse cx="60" cy="60" rx="20" ry="44"/><path d="M16 60h88M22 38h76M22 82h76"/></g><rect x="14" y="47" width="92" height="26" rx="13" fill="#0d1b2a" fill-opacity=".82"/><text x="60" y="66" text-anchor="middle" font-family="system-ui,Segoe UI,sans-serif" font-size="17" font-weight="800" fill="#fff" letter-spacing=".5">WEB OPEN SOURCE⁠</text></svg>
     <div class="fn-title">Web Open Source⁠ — Browser Decentralizzato</div>
     <div class="fn-sub">Nessun server centrale · Nessuna raccolta dati · Solo rete Freenet</div>
 
@@ -268,6 +268,11 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
         <span class="ql-icon">♞</span>
         <span class="ql-name">Scacchi</span>
         <span class="ql-desc">Contro il computer o persone della rete</span>
+      </a>
+      <a class="ql" href="sito.html">
+        <span class="ql-icon">🧱</span>
+        <span class="ql-name">Crea sito</span>
+        <span class="ql-desc">Editor di siti open source, tutto locale</span>
       </a>
       <a class="ql" onclick="navigate('freenet://search')">
         <span class="ql-icon">🔍</span>
@@ -342,6 +347,7 @@ const T = {
   'Contro il computer o persone della rete': ['Against the computer or people on the network', '对战电脑或网络上的玩家'],
   'Cerca': ['Search', '搜索'],
   'Motore di ricerca di Web Open Source⁠': ['Web Open Source⁠ search engine', 'Web Open Source⁠ 搜索引擎'],
+  'Crea sito': ['Site builder', '建站'], 'Editor di siti open source, tutto locale': ['Open source site builder, fully local', '开源建站工具，完全本地'],
   'Identità crittografica': ['Cryptographic identity', '加密身份'],
   '🌐 App Freenet ufficiali': ['🌐 Official Freenet apps', '🌐 Freenet 官方应用'],
   'Discovery decentralizzato': ['Decentralized discovery', '去中心化发现'],

@@ -76,7 +76,7 @@ function mediaHtml(n) {
   const media = Array.isArray(n.media) ? n.media : [];
   const video = media.find(m => m && m.type === 'video');
   const thumb = video && FNet.safeImage(video.thumb);
-  const clip = video ? `<div class="media n1" data-media="${esc(n.id)}"><div class="play" onclick="playVideo('${esc(n.id)}',this)">${thumb ? `<img src="${thumb}" alt="">` : ''}<span>▶</span></div></div>` : '';
+  const clip = video ? `<div class="media n1" data-media="${esc(n.id)}"><div class="play" onclick="playVideo(${esc(JSON.stringify(n.id))},this)">${thumb ? `<img src="${thumb}" alt="">` : ''}<span>▶</span></div></div>` : '';
   const images = media.filter(m => m && m.type === 'image' && imageUrl(m)).slice(0, MAX_IMAGES);
   // Foto e video nello stesso post: prima le foto, poi il video.
   return (images.length ? `<div class="media n${images.length}" data-media="${esc(n.id)}">${images.map(m => `<img data-src="${esc(imageUrl(m))}" data-sha="${esc(m.sha || '')}" alt="">`).join('')}</div>` : '') + clip;
@@ -87,17 +87,17 @@ function noteHtml(n) {
   const isSaved = saved().includes(n.id);
   return `<article class="note" data-note="${esc(n.id)}">
     <div class="note-head"><a href="#/user/${esc(n.tag)}" class="row grow">${avatar(n.name, channels.get(n.tag)?.avatar)}<span class="grow"><b style="overflow-wrap:anywhere">${esc(n.name)}</b><div class="sub">${esc(timeAgo(n.created))}${quoted ? ' · ha rilanciato' : ''}</div></span></a>
-      <button class="round" onclick="noteMenu('${esc(n.id)}')" aria-label="Altro">⋯</button></div>
+      <button class="round" onclick="noteMenu(${esc(JSON.stringify(n.id))})" aria-label="Altro">⋯</button></div>
     ${n.text ? `<div class="note-text">${esc(n.text)}</div>` : ''}
     ${quoted ? `<a class="quote" href="#/p/${esc(quoted.id)}"><b>${esc(quoted.name)}</b><div style="overflow-wrap:anywhere">${esc(quoted.text || '')}</div></a>${mediaHtml(quoted)}` : mediaHtml(n)}
     <div class="note-actions">
       <button class="round" data-like="${esc(n.id)}" onclick="like(this)" aria-label="Mi piace">♡</button><span class="count" data-likes="${esc(n.id)}">0</span>
       <a class="round" href="#/p/${esc(n.id)}" aria-label="Commenti">💬</a><span class="count" data-comments-count="${esc(n.id)}">0</span>
-      <button class="round" onclick="repost('${esc(n.id)}')" aria-label="Rilancia">🔁</button>
-      <button class="round" onclick="share('${esc(n.id)}')" aria-label="Condividi">↗</button>
+      <button class="round" onclick="repost(${esc(JSON.stringify(n.id))})" aria-label="Rilancia">🔁</button>
+      <button class="round" onclick="share(${esc(JSON.stringify(n.id))})" aria-label="Condividi">↗</button>
       <span class="grow"></span>
-      ${n.author === myPub ? `<button class="round" onclick="deleteNote('${esc(n.id)}')" aria-label="Elimina" title="Elimina">🗑</button>` : ''}
-      <button class="round" onclick="toggleSave('${esc(n.id)}',this)" aria-label="Salva">${isSaved ? '🔖' : '📑'}</button>
+      ${n.author === myPub ? `<button class="round" onclick="deleteNote(${esc(JSON.stringify(n.id))})" aria-label="Elimina" title="Elimina">🗑</button>` : ''}
+      <button class="round" onclick="toggleSave(${esc(JSON.stringify(n.id))},this)" aria-label="Salva">${isSaved ? '🔖' : '📑'}</button>
     </div></article>`;
 }
 
@@ -178,9 +178,9 @@ async function noteMenu(id) {
   const n = items.find(x => x.id === id);
   const me = await FNet.identity();
   if (n.author === me.pub) {
-    const choice = prompt('Scrivi 1 per modificare il testo, 2 per eliminare il post');
+    const choice = await FNet.askText('Scrivi 1 per modificare il testo, 2 per eliminare il post');
     if (choice === '1') {
-      const text = prompt('Nuovo testo', n.text || '');
+      const text = await FNet.askText('Nuovo testo', n.text || '');
       if (text === null) return;
       await FNet.saveItem(FEED, id, { text: text.trim().slice(0, 2000), media: n.media || [], repost: n.repost, vis: n.vis || 'public' });
       toast('Post modificato');
@@ -189,13 +189,13 @@ async function noteMenu(id) {
     if (choice === '2') deleteNote(id);
     return;
   }
-  const choice = prompt('Scrivi 1 per segnalare il post, 2 per bloccare questo utente');
+  const choice = await FNet.askText('Scrivi 1 per segnalare il post, 2 per bloccare questo utente');
   if (choice === '1') { await FNet.reportItem(FEED, id); toast('Segnalazione inviata'); }
   if (choice === '2') { FNet.blockUser(n.tag, n.name); toast('Utente bloccato'); render(); }
 }
 async function deleteNote(id) {
   const n = items.find(x => x.id === id);
-  if (!n || n.author !== myPub || !confirm('Eliminare questo post?')) return;
+  if (!n || n.author !== myPub || !await FNet.ask('Eliminare questo post?')) return;
   {
     await FNet.deleteItem(FEED, id);
     try {
@@ -262,7 +262,7 @@ function people() {
 function personRow(p) {
   const on = !!follows()[p.tag];
   return `<div class="row panel" style="margin-bottom:8px"><a class="row grow" href="#/user/${esc(p.tag)}" style="min-width:0">${avatar(p.name, channels.get(p.tag)?.avatar)}<span class="grow" style="min-width:0"><b style="overflow-wrap:anywhere">${esc(p.name)}</b><div class="sub">${p.count} post · ${esc(p.tag.slice(0, 8))}</div></span></a>
-    <button class="btn ${on ? '' : 'main'}" onclick="toggleFollow('${esc(p.tag)}')">${on ? 'Segui già' : 'Segui'}</button></div>`;
+    <button class="btn ${on ? '' : 'main'}" onclick="toggleFollow(${esc(JSON.stringify(p.tag))})">${on ? 'Segui già' : 'Segui'}</button></div>`;
 }
 function searchPeople(q) {
   const t = q.trim().toLowerCase();
@@ -302,7 +302,7 @@ async function viewUser(param) {
   const followed = !!follows()[tag];
   app.innerHTML = `<div class="column"><div class="row" style="margin-bottom:12px">${avatar(name, own ? FNet.profile().avatar : info.avatar, true)}<div class="grow"><h1 style="font-size:20px;overflow-wrap:anywhere">${esc(name)}</h1><div class="sub">${list.length} post</div></div></div>
     <p style="white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:12px">${esc(own ? FNet.profile().bio : info.bio || '')}</p>
-    <div class="row wrap" style="margin-bottom:14px">${own ? '<a class="btn" href="video.html#/settings">Modifica profilo</a>' : `<button class="btn ${followed ? '' : 'main'}" onclick="toggleFollow('${esc(tag)}')">${followed ? 'Segui già' : 'Segui'}</button>${list[0] ? `<a class="btn" href="#/dm/${esc(list[0].author)}">✉️ Messaggio</a>` : ''}`}</div>
+    <div class="row wrap" style="margin-bottom:14px">${own ? '<a class="btn" href="video.html#/settings">Modifica profilo</a>' : `<button class="btn ${followed ? '' : 'main'}" onclick="toggleFollow(${esc(JSON.stringify(tag))})">${followed ? 'Segui già' : 'Segui'}</button>${list[0] ? `<a class="btn" href="#/dm/${esc(list[0].author)}">✉️ Messaggio</a>` : ''}`}</div>
     ${list.map(noteHtml).join('')}</div>`;
   fillCounts();
 }
@@ -335,7 +335,7 @@ async function viewChat(pub) {
   const name = who.name || channels.get(pub.slice(0, 40))?.name || 'Utente';
   app.innerHTML = `<div class="column"><div class="row" style="margin-bottom:8px"><a class="round" href="#/dm">‹</a>${avatar(name, channels.get(pub.slice(0, 40))?.avatar)}<b class="grow" style="overflow-wrap:anywhere">${esc(name)}</b><span class="sub">🔒</span></div>
     <div id="chat" class="panel" style="min-height:200px"><p class="sub">Decifro i messaggi…</p></div>
-    <form class="row" style="margin-top:10px" onsubmit="event.preventDefault();sendChat(this,'${esc(pub)}','${esc(name)}')">
+    <form class="row" style="margin-top:10px" onsubmit="event.preventDefault();sendChat(this,${esc(JSON.stringify(pub))},${esc(JSON.stringify(name))})">
       <input class="grow" name="text" maxlength="4000" required placeholder="Messaggio cifrato" style="padding:10px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);min-width:0">
       <button class="btn main">Invia</button></form><div class="sub" id="chat-state"></div></div>`;
   drawChat(pub);

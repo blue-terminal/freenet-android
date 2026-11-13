@@ -359,7 +359,7 @@ public class BootstrapActivity extends AppCompatActivity {
     // Pages opened from the Freenet site cannot publish: they ask for the app's own page by
     // opening https://web70.invalid/open?page=...&route=... (a reserved name that never resolves).
     private static final java.util.Set<String> INTERNAL_PAGES = new java.util.HashSet<>(
-            java.util.Arrays.asList("video.html", "photos.html", "posts.html"));
+            java.util.Arrays.asList("video.html", "photos.html", "posts.html", "sito.html"));
 
     // The page's accept list (for example "image/*,video/*") and "multiple" both reach the picker;
     // the stock intent keeps only the first type and returns a single file.

@@ -156,7 +156,7 @@ function mediaHtml(p) {
   const media = mediaOf(p);
   const video = videoOf(p);
   const slides = media.map((m, i) => m.type === 'video'
-    ? `<div class="play" onclick="playInline('${esc(p.id)}',this,${i})">${FNet.safeImage(m.thumb) ? `<img src="${FNet.safeImage(m.thumb)}" alt="">` : ''}<span>▶</span></div>`
+    ? `<div class="play" onclick="playInline(${esc(JSON.stringify(p.id))},this,${i})">${FNet.safeImage(m.thumb) ? `<img src="${FNet.safeImage(m.thumb)}" alt="">` : ''}<span>▶</span></div>`
     : imgTag(m)).join('');
   const many = media.length > 1;
   const dots = many ? `<div class="dots">${media.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : '';
@@ -183,14 +183,14 @@ function postHtml(p) {
   const isSaved = saved().includes(p.id);
   return `<article class="post" data-post="${esc(p.id)}">
     <div class="post-head"><a href="#/user/${esc(p.tag)}" class="row grow"><span class="ring ${hasStory ? '' : 'seen'}">${avatar(p.name, avatarOf(p.tag))}</span><b class="grow" style="overflow-wrap:anywhere">${esc(p.name)}</b></a>
-      <button class="round" onclick="postMenu('${esc(p.id)}')" aria-label="Altro">⋯</button></div>
+      <button class="round" onclick="postMenu(${esc(JSON.stringify(p.id))})" aria-label="Altro">⋯</button></div>
     ${mediaHtml(p)}
     <div class="bar-actions">
       <button class="round" data-like="${esc(p.id)}" onclick="like(this)" aria-label="Mi piace">♡</button>
       <a class="round" href="#/p/${esc(p.id)}" aria-label="Commenti">💬</a>
-      <button class="round" onclick="share('${esc(p.id)}')" aria-label="Condividi">↗</button>
+      <button class="round" onclick="share(${esc(JSON.stringify(p.id))})" aria-label="Condividi">↗</button>
       <span class="grow"></span>
-      <button class="round" onclick="toggleSave('${esc(p.id)}',this)" aria-label="Salva">${isSaved ? '🔖' : '📑'}</button>
+      <button class="round" onclick="toggleSave(${esc(JSON.stringify(p.id))},this)" aria-label="Salva">${isSaved ? '🔖' : '📑'}</button>
     </div>
     <div class="likes" data-likes="${esc(p.id)}"></div>
     ${p.caption ? `<div class="caption"><b>${esc(p.name)}</b> ${esc(p.caption)}</div>` : ''}
@@ -274,7 +274,7 @@ function sheet(choices) {
   });
 }
 async function deletePost(p) {
-  if (!confirm(isStory(p) ? 'Eliminare questa storia?' : 'Eliminare questo post?')) return false;
+  if (!await FNet.ask(isStory(p) ? 'Eliminare questa storia?' : 'Eliminare questo post?')) return false;
   await FNet.deleteItem(FEED, p.id);
   try {
     for (const m of mediaOf(p)) if (m.type === 'video') await FNet.wipeVideoParts(m.parts || []);
@@ -287,7 +287,7 @@ async function deletePost(p) {
   return true;
 }
 async function editCaption(p) {
-  const text = prompt('Nuova didascalia', p.caption || '');
+  const text = await FNet.askText('Nuova didascalia', p.caption || '');
   if (text === null) return;
   await FNet.saveItem(FEED, p.id, { media: p.media, caption: text.trim().slice(0, 2200), story: !!p.story, vis: p.vis || 'public' });
   toast('Didascalia aggiornata');
@@ -343,7 +343,7 @@ function storiesRow() {
   const others = [...groups.entries()].filter(([tag]) => tag !== me.tag);
   const bubble = (tag, list, label) => {
     const allSeen = list.every(p => seen[p.id]);
-    return `<div class="story" onclick="openStories('${esc(tag)}')"><div class="ring ${allSeen ? 'seen' : ''}">${avatar(list[0].name, avatarOf(tag))}</div><span class="name">${esc(label)}</span></div>`;
+    return `<div class="story" onclick="openStories(${esc(JSON.stringify(tag))})"><div class="ring ${allSeen ? 'seen' : ''}">${avatar(list[0].name, avatarOf(tag))}</div><span class="name">${esc(label)}</span></div>`;
   };
   const addMine = `<div class="story" onclick="location.hash='#/new/storia'"><div class="ring add">${avatar('Tu', FNet.profile().avatar)}</div><span class="name">La tua storia</span></div>`;
   return `<div class="stories">${mine ? bubble(me.tag, mine, 'La tua storia') : addMine}
@@ -401,22 +401,51 @@ function squares(list) {
   return `<div class="squares">${list.map(p => `<a href="#/p/${esc(p.id)}">${thumbOf(p)}${videoOf(p) ? '<span class="kind">🎬</span>' : mediaOf(p).length > 1 ? '<span class="kind">❐</span>' : ''}</a>`).join('')}</div>`;
 }
 let exploreQuery = '';
+let exploreTab = 'people';
+const TAG = /^[A-Za-z0-9_-]{1,40}$/;
+// Tutte le persone viste nella rete: chi ha pubblicato e chi ha un profilo.
+function gramPeople() {
+  const map = new Map();
+  for (const p of visible()) {
+    const x = map.get(p.tag) || { tag: p.tag, name: p.name, posts: 0 };
+    if (!p.story) x.posts++;
+    map.set(p.tag, x);
+  }
+  for (const [tag, c] of channels) if (!map.has(tag) && c.name) map.set(tag, { tag, name: c.name, posts: 0 });
+  return [...map.values()];
+}
+function personRow(x) {
+  const on = !!follows()[x.tag];
+  return `<div class="row" style="padding:8px 0;gap:12px"><a class="row grow" href="#/user/${esc(x.tag)}" style="min-width:0;gap:12px">${avatar(x.name, avatarOf(x.tag))}<span class="grow" style="min-width:0"><b style="overflow-wrap:anywhere">${esc(x.name)}</b><div class="sub">@${esc(x.tag.slice(0, 10))} · ${x.posts} post</div></span></a>
+    ${x.tag === me.tag ? '' : `<button class="btn ${on ? '' : 'main'}" onclick="toggleFollow(${esc(JSON.stringify(x.tag))})">${on ? 'Segui già' : 'Segui'}</button>`}</div>`;
+}
 async function viewExplore() {
   const online = await refresh();
   const q = exploreQuery.toLowerCase();
-  const list = posts().filter(p => !q || `${p.caption} ${p.name}`.toLowerCase().includes(q));
+  const recent = store.get('gram_recent', []);
+  let body;
+  if (exploreTab === 'people') {
+    const found = q ? gramPeople().filter(x => x.name.toLowerCase().includes(q) || x.tag.toLowerCase().startsWith(q)).sort((a, b) => b.posts - a.posts).slice(0, 40) : [];
+    body = q ? (found.length ? found.map(personRow).join('') : '<p class="sub">Nessun utente con questo nome.</p>')
+      : (recent.length ? '<div class="sub" style="margin:4px 0 6px">Recenti</div>' + recent.map(r => `<a class="row" style="padding:6px 0" href="#/user/${esc(r.tag)}">${avatar(r.name, avatarOf(r.tag))}<b>${esc(r.name)}</b></a>`).join('') : '')
+        + '<div class="sub" style="margin:12px 0 6px">Suggeriti</div>' + gramPeople().filter(x => x.tag !== me.tag && !follows()[x.tag]).sort((a, b) => b.posts - a.posts).slice(0, 8).map(personRow).join('');
+  } else {
+    const list = posts().filter(p => !q || `${p.caption} ${p.name}`.toLowerCase().includes(q));
+    body = list.length ? squares(list) : '<p class="sub">Niente da mostrare.</p>';
+  }
   app.innerHTML = `<div class="feed" style="max-width:760px">${offlineNotice(online)}
-    <form class="search" style="margin-bottom:12px" onsubmit="event.preventDefault();exploreQuery=this.q.value.trim();render()"><input name="q" type="search" placeholder="Cerca" value="${esc(exploreQuery)}" aria-label="Cerca"></form>
-    ${list.length ? squares(list) : '<p class="sub">Niente da mostrare.</p>'}</div>`;
+    <form class="search" style="margin-bottom:8px" onsubmit="event.preventDefault();exploreQuery=this.q.value.trim();render()"><input name="q" type="search" placeholder="Cerca utenti o post" value="${esc(exploreQuery)}" aria-label="Cerca" oninput="exploreQuery=this.value.trim();clearTimeout(window.__st);window.__st=setTimeout(()=>{render().then(()=>{const i=document.querySelector('.search input');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}})},300)"></form>
+    <div class="tabs" style="margin:0 0 10px;border-top:0"><button class="tab ${exploreTab === 'people' ? 'on' : ''}" onclick="exploreTab='people';render()">👤 Utenti</button><button class="tab ${exploreTab === 'posts' ? 'on' : ''}" onclick="exploreTab='posts';render()">▦ Post</button></div>
+    ${body}</div>`;
 }
 async function viewReels() {
   const online = await refresh();
   const list = posts().filter(videoOf);
   app.innerHTML = `<div class="reels">${offlineNotice(online)}${list.length ? list.map(p => `<div class="reel" data-post="${esc(p.id)}">
-      <div class="play" onclick="playReel('${esc(p.id)}',this)">${FNet.safeImage(videoOf(p).thumb) ? `<img src="${FNet.safeImage(videoOf(p).thumb)}" alt="">` : ''}<span>▶</span></div>
+      <div class="play" onclick="playReel(${esc(JSON.stringify(p.id))},this)">${FNet.safeImage(videoOf(p).thumb) ? `<img src="${FNet.safeImage(videoOf(p).thumb)}" alt="">` : ''}<span>▶</span></div>
       <div class="info"><b>${esc(p.name)}</b><div style="overflow-wrap:anywhere">${esc(p.caption || '')}</div></div>
       <div class="side-actions"><button class="round" data-like="${esc(p.id)}" onclick="like(this)" aria-label="Mi piace">♡</button><small data-likes-small="${esc(p.id)}">0</small>
-        <a class="round" href="#/p/${esc(p.id)}" aria-label="Commenti">💬</a><button class="round" onclick="share('${esc(p.id)}')" aria-label="Condividi">↗</button></div></div>`).join('')
+        <a class="round" href="#/p/${esc(p.id)}" aria-label="Commenti">💬</a><button class="round" onclick="share(${esc(JSON.stringify(p.id))})" aria-label="Condividi">↗</button></div></div>`).join('')
     : '<div class="empty"><div>🎬</div><h2>Ancora nessun reel</h2><p>Pubblica un video breve dal pulsante ＋.</p></div>'}</div>`;
   fillCounts();
 }
@@ -438,27 +467,53 @@ async function playReel(id, el) {
 let profileTab = 'grid';
 async function viewUser(param) {
   await refresh();
-  const tag = param || me.tag;
+  const tag = TAG.test(param) ? param : me.tag;
   const own = tag === me.tag;
   const list = items.filter(p => p.tag === tag && (own || FNet.isVisible(p)) && !p.story && mediaOf(p).length);
   const info = channels.get(tag) || {};
   const name = own ? await FNet.displayName() : list[0]?.name || info.name || 'Profilo';
+  if (!own) {
+    const recent = store.get('gram_recent', []).filter(r => r.tag !== tag);
+    recent.unshift({ tag, name });
+    store.set('gram_recent', recent.slice(0, 8));
+  }
   const followed = !!follows()[tag];
   const byId = new Map(items.map(p => [p.id, p]));
-  const shown = profileTab === 'saved' && own ? saved().map(id => byId.get(id)).filter(Boolean) : list;
+  const reels = list.filter(p => videoOf(p));
+  const shown = profileTab === 'saved' && own ? saved().map(id => byId.get(id)).filter(Boolean) : profileTab === 'reels' ? reels : list;
+  const tab = (key, icon, label) => `<button class="tab ${profileTab === key ? 'on' : ''}" onclick="profileTab='${key}';render()" aria-label="${label}">${icon}</button>`;
   app.innerHTML = `<div class="feed" style="max-width:760px">
-    <div class="profile-top"><span class="ring ${visible().some(p => p.tag === tag && isStory(p)) ? '' : 'seen'}" style="width:86px;height:86px">${avatar(name, own ? FNet.profile().avatar : info.avatar, true)}</span>
-      <div class="counts"><div><b>${list.length}</b><span>post</span></div><div><b id="followers">…</b><span>follower</span></div>${own ? `<div><b>${Object.keys(follows()).length}</b><span>seguiti</span></div>` : ''}</div></div>
-    <b style="overflow-wrap:anywhere">${esc(name)}</b>
+    <div class="row" style="margin-bottom:12px"><b class="grow" style="font-size:20px;overflow-wrap:anywhere">${esc(name)}</b>${own ? '<a class="round" href="#/new" aria-label="Nuovo post">＋</a><a class="round" href="video.html#/settings" aria-label="Impostazioni">☰</a>' : ''}</div>
+    <div class="profile-top"><span class="ring ${visible().some(p => p.tag === tag && isStory(p)) ? '' : 'seen'}" style="width:86px;height:86px;cursor:pointer" onclick="openStories(${esc(JSON.stringify(tag))})">${avatar(name, own ? FNet.profile().avatar : info.avatar, true)}</span>
+      <div class="counts"><div><b>${list.length}</b><span>post</span></div><a href="javascript:void 0" onclick="showFollowers(${esc(JSON.stringify(tag))})"><b id="followers">…</b><span>follower</span></a>${own ? `<div><b>${Object.keys(follows()).length}</b><span>seguiti</span></div>` : ''}</div></div>
+    <b style="overflow-wrap:anywhere">${esc(name)}</b> <span class="sub">@${esc(tag.slice(0, 10))}</span>
     <p style="white-space:pre-wrap;overflow-wrap:anywhere;margin:4px 0 12px">${esc(own ? FNet.profile().bio : info.bio || '')}</p>
-    <div class="row">${own ? '<a class="btn grow" href="video.html#/settings">Modifica profilo</a><a class="btn grow" href="#/new/storia">Aggiungi storia</a>' : `<button class="btn grow ${followed ? '' : 'main'}" onclick="toggleFollow('${esc(tag)}')">${followed ? 'Segui già' : 'Segui'}</button>${list[0] ? `<a class="btn grow" href="posts.html#/dm/${esc(list[0].author)}">✉️ Messaggio</a>` : ''}`}</div>
-    <div class="tabs"><button class="tab ${profileTab === 'grid' ? 'on' : ''}" onclick="profileTab='grid';render()" aria-label="Post">▦</button>${own ? `<button class="tab ${profileTab === 'saved' ? 'on' : ''}" onclick="profileTab='saved';render()" aria-label="Salvati">🔖</button>` : ''}</div>
-    ${shown.length ? squares(shown) : '<p class="sub" style="padding:20px 0;text-align:center">Nessun post.</p>'}</div>`;
-  const msgs = await FNet.read('gram:f:' + tag);
-  const latest = new Map();
-  for (const m of msgs) if (m.k === 'follow') latest.set(m.author, m.on === true);
+    <div class="row">${own
+      ? '<a class="btn grow" href="video.html#/settings">Modifica profilo</a><button class="btn grow" onclick="shareProfile()">Condividi profilo</button>'
+      : `<button class="btn grow ${followed ? '' : 'main'}" onclick="toggleFollow(${esc(JSON.stringify(tag))})">${followed ? 'Segui già' : 'Segui'}</button>${list[0] ? `<a class="btn grow" href="posts.html#/dm/${esc(list[0].author)}">Messaggio</a>` : ''}<button class="btn" onclick="shareProfile(${esc(JSON.stringify(tag))})" aria-label="Condividi">↗</button>`}</div>
+    <div class="tabs">${tab('grid', '▦', 'Post')}${tab('reels', '🎬', 'Reel')}${own ? tab('saved', '🔖', 'Salvati') : ''}</div>
+    ${shown.length ? squares(shown) : `<p class="sub" style="padding:20px 0;text-align:center">${profileTab === 'reels' ? 'Nessun reel.' : profileTab === 'saved' ? 'Nessun post salvato.' : 'Nessun post.'}</p>`}</div>`;
   const el = document.getElementById('followers');
-  if (el) el.textContent = [...latest.values()].filter(Boolean).length;
+  const f = await followersOf(tag);
+  if (el) el.textContent = f.length;
+}
+async function followersOf(tag) {
+  const latest = new Map();
+  for (const m of await FNet.read('gram:f:' + tag)) if (m.k === 'follow') latest.set(m.author, { on: m.on === true, name: m.name, tag: m.tag });
+  return [...latest.values()].filter(x => x.on);
+}
+async function showFollowers(tag) {
+  const list = await followersOf(tag);
+  const box = document.createElement('div');
+  box.className = 'sheet';
+  box.innerHTML = `<div><h3 style="padding:8px 16px">Follower</h3><div style="max-height:60vh;overflow:auto;padding:0 16px">${list.length ? list.map(x => `<a class="row" style="padding:8px 0" href="#/user/${esc(x.tag)}">${avatar(x.name, avatarOf(x.tag))}<b>${esc(x.name)}</b></a>`).join('') : '<p class="sub">Ancora nessun follower.</p>'}</div><button>Chiudi</button></div>`;
+  box.onclick = e => { if (e.target === box || e.target.tagName === 'BUTTON' || e.target.closest('a')) box.remove(); };
+  document.body.append(box);
+}
+async function shareProfile(tag) {
+  const t = tag || me.tag;
+  const text = `Il mio profilo su FreenetGram: codice ${t}`;
+  try { await navigator.clipboard.writeText(text); toast('Codice del profilo copiato'); } catch { toast(text); }
 }
 async function toggleFollow(tag) {
   const f = follows();

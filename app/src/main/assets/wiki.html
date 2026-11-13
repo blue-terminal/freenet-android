@@ -185,7 +185,7 @@ async function viewEdit(slug, suggested) {
   const meta = index.find(a => a.slug === slug);
   const title = (last && last.title) || (meta && meta.title) || suggested || '';
   app.innerHTML = `<div class="column">${slug ? tabs(slug, 'edit') : '<h2 style="margin-bottom:10px">Nuova voce</h2>'}
-    <form class="panel" onsubmit="event.preventDefault();saveArticle(this,'${esc(slug)}')">
+    <form class="panel" onsubmit="event.preventDefault();saveArticle(this,${esc(JSON.stringify(slug))})">
     <label class="field"><span>Titolo</span><input name="title" maxlength="80" required value="${esc(title)}" ${last ? 'readonly' : ''}></label>
     <label class="field"><span>Testo</span><textarea name="text" maxlength="${MAX_TEXT}" required>${esc(last ? last.text : '')}</textarea></label>
     <label class="field"><span>Oggetto della modifica</span><input name="note" maxlength="120" placeholder="Per esempio: aggiunta la sezione Storia"></label>

@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Crea sito — Web Open Source⁠</title>
+<link rel="stylesheet" href="web7.css">
+<style>
+.editor { display: grid; gap: 14px; grid-template-columns: 1fr; }
+@media (min-width: 980px) { .editor { grid-template-columns: 1fr 1fr; } .preview-wrap { position: sticky; top: 70px; align-self: start; } }
+.block { border: 1px solid var(--line); border-radius: 12px; padding: 10px; margin-bottom: 10px; background: var(--panel); }
+.block .head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 13px; color: var(--muted); }
+.block textarea, .block input, .field input, .field select { width: 100%; box-sizing: border-box; padding: 9px 11px; border-radius: 9px; border: 1px solid var(--line); background: var(--panel2); color: var(--text); font: inherit; }
+.block textarea { min-height: 70px; resize: vertical; }
+.block img { max-width: 100%; border-radius: 8px; display: block; margin-top: 6px; }
+.addbar { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.addbar button, .mini { padding: 7px 11px; border-radius: 9px; border: 1px solid var(--line); background: var(--panel2); color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
+.pages { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.pages button.on { border-color: var(--accent); font-weight: 700; }
+.preview-wrap iframe { width: 100%; height: 70vh; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.sites a { display: flex; justify-content: space-between; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="round" href="index.html" aria-label="Torna a Web Open Source⁠">‹</a>
+  <a class="brand" href="#/">◈ Crea<b>Sito</b></a>
+  <span class="grow"></span>
+</header>
+<main class="content" id="app" style="max-width:1200px;margin:auto;padding:14px"></main>
+
+<script src="fn-ws.js"></script>
+<script src="fn-net.js"></script>
+<script>
+// Editor di siti a blocchi, open source e tutto locale: i siti restano nel dispositivo finché
+// non li scarichi come file o li pubblichi tu stesso come sito Freenet.
+const { store, esc } = FNet;
+const app = document.getElementById('app');
+const THEMES = {
+  chiaro: { bg: '#ffffff', text: '#1d2330', accent: '#0a66d6', card: '#f2f5fa' },
+  scuro: { bg: '#14161c', text: '#eceff4', accent: '#4aa3ff', card: '#1f232c' },
+  carta: { bg: '#f7f1e3', text: '#2b2418', accent: '#9a5b13', card: '#efe6d0' },
+  natura: { bg: '#f1f7f0', text: '#1f2d1d', accent: '#2f7d32', card: '#e2efe0' },
+};
+const KINDS = { titolo: '🔠 Titolo', testo: '📝 Testo', immagine: '🖼️ Immagine', elenco: '• Elenco', citazione: '❝ Citazione', link: '🔗 Pulsante', separatore: '— Linea' };
+const sites = () => store.get('sites', []);
+const saveSites = list => store.set('sites', list);
+let current = null, pageIndex = 0;
+
+function toast(text) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = text;
+  document.body.append(t);
+  setTimeout(() => t.remove(), 3500);
+}
+function persist() {
+  const list = sites().filter(s => s.id !== current.id);
+  current.updated = Date.now();
+  list.unshift(current);
+  try { saveSites(list); } catch { toast('Spazio pieno: usa immagini più piccole'); }
+}
+const slugOf = (title, used) => {
+  let base = String(title).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) || 'pagina';
+  let slug = base, n = 2;
+  while (used.includes(slug)) slug = `${base}-${n++}`;
+  return slug;
+};
+
+// ── HTML del sito: tutto il testo passa da esc(), le immagini sono solo JPEG incorporati ──
+function pageHtml(site, page) {
+  const t = THEMES[site.theme] || THEMES.chiaro;
+  const nav = site.pages.map(p => `<a href="${p.slug}.html"${p === page ? ' class="on"' : ''}>${esc(p.title)}</a>`).join('');
+  const body = page.blocks.map(b => {
+    if (b.kind === 'titolo') return `<h2>${esc(b.text)}</h2>`;
+    if (b.kind === 'testo') return esc(b.text).split(/\n{2,}/).map(par => `<p>${par.replace(/\n/g, '<br>')}</p>`).join('');
+    if (b.kind === 'immagine') return /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(b.src || '') ? `<figure><img src="${b.src}" alt="${esc(b.text)}">${b.text ? `<figcaption>${esc(b.text)}</figcaption>` : ''}</figure>` : '';
+    if (b.kind === 'elenco') return `<ul>${String(b.text).split('\n').filter(Boolean).map(r => `<li>${esc(r)}</li>`).join('')}</ul>`;
+    if (b.kind === 'citazione') return `<blockquote>${esc(b.text)}</blockquote>`;
+    if (b.kind === 'link') {
+      const page2 = site.pages.find(p => p.slug === b.url);
+      const href = page2 ? `${page2.slug}.html` : /^(https?:\/\/|\/v1\/contract\/web\/)[^\s"'<>]+$/.test(b.url || '') ? b.url : '#';
+      return `<p><a class="btn" href="${esc(href)}">${esc(b.text || 'Apri')}</a></p>`;
+    }
+    if (b.kind === 'separatore') return '<hr>';
+    return '';
+  }).join('\n');
+  return `<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(page.title)} — ${esc(site.name)}</title>
+<style>body{margin:0;background:${t.bg};color:${t.text};font:17px/1.6 system-ui,'Segoe UI',sans-serif}header{background:${t.card};padding:18px 16px}header h1{margin:0 0 8px;font-size:26px}nav{display:flex;gap:14px;flex-wrap:wrap}nav a{color:${t.accent};text-decoration:none;font-weight:600}nav a.on{text-decoration:underline}main{max-width:760px;margin:auto;padding:16px}img{max-width:100%;border-radius:10px}figure{margin:16px 0}figcaption{font-size:14px;opacity:.75}blockquote{border-left:4px solid ${t.accent};margin:16px 0;padding:6px 14px;background:${t.card}}.btn{display:inline-block;background:${t.accent};color:#fff;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:700}hr{border:0;border-top:1px solid ${t.accent};opacity:.4;margin:24px 0}footer{text-align:center;font-size:13px;opacity:.6;padding:20px}</style>
+</head><body><header><h1>${esc(site.name)}</h1><nav>${nav}</nav></header><main>${body}</main><footer>Fatto con Crea sito di Web Open Source⁠</footer></body></html>`;
+}
+
+// ── elenco dei siti ──────────────────────────────────────────────────────────
+function viewList() {
+  const list = sites();
+  app.innerHTML = `<h1 style="font-size:22px;margin-bottom:6px">I tuoi siti</h1>
+    <p class="sub" style="margin-bottom:14px">Editor a blocchi open source: tutto resta nel tuo dispositivo, senza server. Quando vuoi, scarichi i file o pubblichi il sito su Freenet.</p>
+    <button class="btn main" onclick="newSite()" style="margin-bottom:14px">＋ Nuovo sito</button>
+    <div class="sites">${list.length ? list.map(s => `<a href="#/edit/${esc(s.id)}"><b>${esc(s.name)}</b><span class="sub">${s.pages.length} pagine${s.key ? ' · pubblicato' : ''}</span></a>`).join('') : '<p class="sub">Nessun sito ancora.</p>'}</div>`;
+}
+async function newSite() {
+  const name = (await FNet.askText('Nome del sito', 'Il mio sito') || '').trim().slice(0, 60);
+  if (!name) return;
+  current = { id: FNet.newId('s'), name, theme: 'chiaro', pages: [{ title: 'Home', slug: 'index', blocks: [{ kind: 'titolo', text: 'Benvenuti' }, { kind: 'testo', text: 'Scrivi qui il testo della pagina.' }] }] };
+  persist();
+  location.hash = '#/edit/' + current.id;
+}
+
+// ── editor ───────────────────────────────────────────────────────────────────
+function viewEdit(id) {
+  current = sites().find(s => s.id === id);
+  if (!current) { location.hash = '#/'; return; }
+  pageIndex = Math.min(pageIndex, current.pages.length - 1);
+  const page = current.pages[pageIndex];
+  app.innerHTML = `<div class="row wrap" style="margin-bottom:10px;gap:8px"><a class="mini" href="#/">‹ Siti</a>
+      <input value="${esc(current.name)}" maxlength="60" onchange="current.name=this.value.trim()||current.name;persist();drawPreview()" style="flex:1;min-width:160px;padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font:inherit;font-weight:700">
+      <select onchange="current.theme=this.value;persist();drawPreview()" class="mini">${Object.keys(THEMES).map(k => `<option ${k === current.theme ? 'selected' : ''}>${k}</option>`).join('')}</select></div>
+    <div class="editor"><div>
+      <div class="pages">${current.pages.map((p, i) => `<button class="mini ${i === pageIndex ? 'on' : ''}" onclick="pageIndex=${i};render()">${esc(p.title)}</button>`).join('')}<button class="mini" onclick="addPage()">＋ Pagina</button></div>
+      <div class="row" style="gap:6px;margin-bottom:10px"><input value="${esc(page.title)}" maxlength="40" onchange="renamePage(this.value)" style="flex:1;padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font:inherit">${pageIndex ? '<button class="mini" onclick="removePage()">🗑 Pagina</button>' : ''}</div>
+      <div id="blocks">${page.blocks.map(blockEditor).join('')}</div>
+      <div class="addbar">${Object.entries(KINDS).map(([k, l]) => `<button onclick="addBlock('${k}')">${l}</button>`).join('')}</div>
+      <div class="row wrap" style="gap:8px;margin-top:14px"><button class="btn" onclick="downloadSite()">⬇ Scarica i file</button><button class="btn main" onclick="publishSite()">🌐 Pubblica su Freenet</button><button class="btn danger" onclick="deleteSite()">Elimina sito</button></div>
+      <p class="sub" id="state" style="margin-top:8px">${current.key ? `Pubblicato: <code style="overflow-wrap:anywhere">/v1/contract/web/${esc(current.key)}/index.html</code>` : ''}</p>
+    </div><div class="preview-wrap"><div class="sub" style="margin-bottom:6px">Anteprima</div><iframe id="preview" sandbox title="Anteprima"></iframe></div></div>`;
+  drawPreview();
+}
+function blockEditor(b, i) {
+  const head = `<div class="head"><b class="grow">${KINDS[b.kind]}</b><button class="mini" onclick="moveBlock(${i},-1)" aria-label="Su">↑</button><button class="mini" onclick="moveBlock(${i},1)" aria-label="Giù">↓</button><button class="mini" onclick="removeBlock(${i})" aria-label="Togli">✕</button></div>`;
+  const text = (ph, rows) => `<textarea rows="${rows}" placeholder="${ph}" oninput="setBlock(${i},'text',this.value)">${esc(b.text || '')}</textarea>`;
+  if (b.kind === 'titolo') return `<div class="block">${head}<input value="${esc(b.text || '')}" placeholder="Titolo" oninput="setBlock(${i},'text',this.value)"></div>`;
+  if (b.kind === 'testo') return `<div class="block">${head}${text('Testo (riga vuota = nuovo paragrafo)', 4)}</div>`;
+  if (b.kind === 'elenco') return `<div class="block">${head}${text('Una voce per riga', 4)}</div>`;
+  if (b.kind === 'citazione') return `<div class="block">${head}${text('Citazione', 2)}</div>`;
+  if (b.kind === 'immagine') return `<div class="block">${head}<label class="mini" style="display:inline-block">Scegli immagine<input type="file" accept="image/*" hidden onchange="setImage(${i},this)"></label>${b.src ? `<img src="${b.src}" alt="">` : ''}<input value="${esc(b.text || '')}" placeholder="Didascalia" oninput="setBlock(${i},'text',this.value)" style="margin-top:6px"></div>`;
+  if (b.kind === 'link') return `<div class="block">${head}<input value="${esc(b.text || '')}" placeholder="Testo del pulsante" oninput="setBlock(${i},'text',this.value)"><select onchange="setBlock(${i},'url',this.value)" style="margin-top:6px"><option value="">Collegamento a…</option>${current.pages.map(p => `<option value="${esc(p.slug)}" ${b.url === p.slug ? 'selected' : ''}>Pagina: ${esc(p.title)}</option>`).join('')}</select><input value="${esc(/^\w+:/.test(b.url || '') || (b.url || '').startsWith('/') ? b.url : '')}" placeholder="oppure indirizzo https://… o /v1/contract/web/…" oninput="setBlock(${i},'url',this.value.trim())" style="margin-top:6px"></div>`;
+  return `<div class="block">${head}</div>`;
+}
+let previewTimer = null;
+function drawPreview() {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(() => {
+    const f = document.getElementById('preview');
+    if (f) f.srcdoc = pageHtml(current, current.pages[pageIndex]);
+  }, 200);
+}
+function setBlock(i, key, value) { current.pages[pageIndex].blocks[i][key] = value; persist(); drawPreview(); }
+function addBlock(kind) { current.pages[pageIndex].blocks.push({ kind, text: '' }); persist(); render(); }
+function removeBlock(i) { current.pages[pageIndex].blocks.splice(i, 1); persist(); render(); }
+function moveBlock(i, d) {
+  const b = current.pages[pageIndex].blocks;
+  if (i + d < 0 || i + d >= b.length) return;
+  [b[i], b[i + d]] = [b[i + d], b[i]];
+  persist(); render();
+}
+async function setImage(i, input) {
+  const file = input.files[0];
+  if (!file) return;
+  try {
+    const jpeg = await FNet.imageToJpeg(file, 1200, 0.8);
+    setBlock(i, 'src', await FNet.blobToDataUrl(jpeg));
+    render();
+  } catch (e) { toast(e.message); }
+}
+async function addPage() {
+  const title = (await FNet.askText('Titolo della pagina', 'Chi siamo') || '').trim().slice(0, 40);
+  if (!title) return;
+  current.pages.push({ title, slug: slugOf(title, current.pages.map(p => p.slug)), blocks: [{ kind: 'titolo', text: title }] });
+  pageIndex = current.pages.length - 1;
+  persist(); render();
+}
+function renamePage(title) { current.pages[pageIndex].title = title.trim().slice(0, 40) || current.pages[pageIndex].title; persist(); render(); }
+async function removePage() {
+  if (!pageIndex || !await FNet.ask('Eliminare questa pagina?')) return;
+  current.pages.splice(pageIndex, 1);
+  pageIndex = 0;
+  persist(); render();
+}
+async function deleteSite() {
+  if (!await FNet.ask(`Eliminare "${current.name}" da questo dispositivo?`)) return;
+  saveSites(sites().filter(s => s.id !== current.id));
+  location.hash = '#/';
+}
+function downloadSite() {
+  for (const p of current.pages) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([pageHtml(current, p)], { type: 'text/html' }));
+    a.download = p.slug + '.html';
+    document.body.append(a);
+    a.click();
+    a.remove();
+  }
+  toast('File scaricati: aprili insieme nella stessa cartella');
+}
+async function publishSite() {
+  const state = document.getElementById('state');
+  const name = 'w70s-' + current.id.slice(1, 22).toLowerCase().replace(/[^a-z0-9]/g, 'x');
+  try {
+    state.textContent = 'Preparo le pagine…';
+    for (const p of current.pages) await FNet.writeText(name, p.slug + '.html', pageHtml(current, p));
+    state.textContent = 'Pubblico su Freenet… (può volerci qualche minuto)';
+    current.key = await FNet.publishSite(name);
+    persist();
+    render();
+    toast('Sito pubblicato su Freenet');
+  } catch (e) { state.textContent = 'Non pubblicato: ' + e.message; }
+}
+
+function render() {
+  const [, page, arg] = (location.hash || '#/').match(/^#\/([a-z]*)\/?(.*)$/) || [null, '', ''];
+  if (page === 'edit') viewEdit(decodeURIComponent(arg));
+  else viewList();
+  return Promise.resolve();
+}
+addEventListener('hashchange', () => { pageIndex = 0; render(); });
+// Nell'app i siti si salvano e si pubblicano dalla pagina interna, che ricorda le bozze.
+if (FNet.IN_APP) window.open('https://web70.invalid/open?page=sito.html&route=', '_blank');
+render();
+</script>
+</body>
+</html>

@@ -93,14 +93,14 @@ function sortThreads(list, how) {
 }
 function threadHtml(t, full) {
   return `<div class="thread" id="t-${esc(t.id)}"><div class="score">
-      <button class="up ${t.mine === 1 ? 'on' : ''}" onclick="vote('${esc(t.id)}',1)" aria-label="Voto su">▲</button><span>${t.score}</span>
-      <button class="down ${t.mine === -1 ? 'on' : ''}" onclick="vote('${esc(t.id)}',-1)" aria-label="Voto giù">▼</button></div>
+      <button class="up ${t.mine === 1 ? 'on' : ''}" onclick="vote(${esc(JSON.stringify(t.id))},1)" aria-label="Voto su">▲</button><span>${t.score}</span>
+      <button class="down ${t.mine === -1 ? 'on' : ''}" onclick="vote(${esc(JSON.stringify(t.id))},-1)" aria-label="Voto giù">▼</button></div>
     <div class="body"><div class="sub"><a href="#/r/${esc(t.community)}"><b>f/${esc(t.community)}</b></a> · ${esc(t.name)} · ${esc(timeAgo(t.created))}</div>
       <a href="#/t/${esc(t.community)}/${esc(t.id)}"><h3>${esc(t.title)}</h3></a>
       ${full || (t.text && t.text.length < 280) ? `<div class="text">${esc(t.text || '')}</div>` : t.text ? `<div class="text">${esc(t.text.slice(0, 260))}…</div>` : ''}
       <div class="row wrap" style="gap:4px"><a class="btn" href="#/t/${esc(t.community)}/${esc(t.id)}">💬 ${t.comments}</a>
-      <button class="btn" onclick="share('${esc(t.community)}','${esc(t.id)}')">↗ Condividi</button>
-      ${t.author === (me && me.pub) ? `<button class="btn danger" onclick="removeThread('${esc(t.community)}','${esc(t.id)}')">Elimina</button>` : `<button class="btn" onclick="report('${esc(t.community)}','${esc(t.id)}')">Segnala</button>`}</div></div></div>`;
+      <button class="btn" onclick="share(${esc(JSON.stringify(t.community))},${esc(JSON.stringify(t.id))})">↗ Condividi</button>
+      ${t.author === (me && me.pub) ? `<button class="btn danger" onclick="removeThread(${esc(JSON.stringify(t.community))},${esc(JSON.stringify(t.id))})">Elimina</button>` : `<button class="btn" onclick="report(${esc(JSON.stringify(t.community))},${esc(JSON.stringify(t.id))})">Segnala</button>`}</div></div></div>`;
 }
 const sortsHtml = (base, how) => `<div class="sorts">${[['hot', '🔥 Popolari'], ['new', '🆕 Nuovi'], ['top', '🏆 Migliori']].map(([k, l]) => `<a class="${k === how ? 'on' : ''}" href="${base}?s=${k}">${l}</a>`).join('')}</div>`;
 
@@ -117,7 +117,7 @@ async function viewAll() {
   const mine = new Set(joined());
   app.innerHTML = `<div class="column">${offlineNotice(list.online)}<div class="row" style="margin-bottom:8px"><h2 class="grow">Comunità</h2><button class="btn main" onclick="newCommunity()">＋ Crea</button></div>
     ${list.map(c => `<div class="comm"><span class="ic">${esc(c.icon)}</span><a class="grow" href="#/r/${esc(c.name)}" style="min-width:0"><b>f/${esc(c.name)}</b><div class="sub">${esc(c.desc)}</div></a>
-      <button class="btn ${mine.has(c.name) ? '' : 'main'}" onclick="toggleJoin('${esc(c.name)}')">${mine.has(c.name) ? 'Iscritto' : 'Iscriviti'}</button></div>`).join('')}</div>`;
+      <button class="btn ${mine.has(c.name) ? '' : 'main'}" onclick="toggleJoin(${esc(JSON.stringify(c.name))})">${mine.has(c.name) ? 'Iscritto' : 'Iscriviti'}</button></div>`).join('')}</div>`;
 }
 async function viewJoined() {
   const list = (await communities()).filter(c => joined().includes(c.name));
@@ -129,7 +129,7 @@ async function viewCommunity(name, how) {
   const list = sortThreads(await withScores(await threadsOf(name)), how);
   const isIn = joined().includes(name);
   app.innerHTML = `<div class="column"><div class="banner"><h1>${esc(c.icon)} f/${esc(name)}</h1><p>${esc(c.desc)}</p>
-    <div class="row" style="margin-top:10px"><button class="btn" onclick="toggleJoin('${esc(name)}')">${isIn ? 'Iscritto ✓' : 'Iscriviti'}</button><a class="btn main" href="#/scrivi/${esc(name)}">✏️ Nuova discussione</a></div></div>
+    <div class="row" style="margin-top:10px"><button class="btn" onclick="toggleJoin(${esc(JSON.stringify(name))})">${isIn ? 'Iscritto ✓' : 'Iscriviti'}</button><a class="btn main" href="#/scrivi/${esc(name)}">✏️ Nuova discussione</a></div></div>
     ${sortsHtml('#/r/' + name, how)}${list.length ? list.map(t => threadHtml(t)).join('') : '<p class="sub">Ancora nessuna discussione qui.</p>'}</div>`;
 }
 async function viewThread(name, id) {
@@ -163,11 +163,11 @@ async function sendThread(form) {
   }
 }
 async function newCommunity() {
-  const name = (prompt('Nome della comunità (3-24 lettere minuscole, numeri o _)') || '').trim().toLowerCase();
+  const name = (await FNet.askText('Nome della comunità (3-24 lettere minuscole, numeri o _)') || '').trim().toLowerCase();
   if (!name) return;
   if (!nameOk(name)) { toast('Nome non valido'); return; }
   if ((await communities()).some(c => c.name === name)) { location.hash = '#/r/' + name; return; }
-  const desc = (prompt('Di cosa si parla?') || '').trim().slice(0, 140);
+  const desc = (await FNet.askText('Di cosa si parla?') || '').trim().slice(0, 140);
   await FNet.saveItem(COMMUNITIES, 'r' + name, { name, desc, icon: '💬', vis: 'public' });
   toggleJoin(name, true);
   toast('Comunità creata');
@@ -194,19 +194,19 @@ async function vote(id, value) {
   } catch (e) { toast('Voto non inviato: ' + e.message); }
 }
 async function removeThread(community, id) {
-  if (!confirm('Eliminare questa discussione?')) return;
+  if (!await FNet.ask('Eliminare questa discussione?')) return;
   await FNet.deleteItem(feedOf(community), id);
   toast('Discussione eliminata');
   location.hash = '#/r/' + community;
 }
 async function report(community, id) {
-  if (!confirm('Segnalare questa discussione?')) return;
+  if (!await FNet.ask('Segnalare questa discussione?')) return;
   await FNet.reportItem(feedOf(community), id);
   toast('Segnalazione inviata');
 }
 function share(community, id) {
   const text = `freenet://forum f/${community} ${id}`;
-  (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => toast('Codice copiato'), () => prompt('Codice della discussione', text));
+  (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => toast('Codice copiato'), () => FNet.askText('Codice della discussione', text));
 }
 
 function drawChrome() {

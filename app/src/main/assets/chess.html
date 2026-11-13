@@ -99,6 +99,7 @@ function replay(moves) {
 
 function startBot() {
   stopPolling();
+  store.del('chess_online');
   game = newGame('bot', document.getElementById('color').value, { level: Number(document.getElementById('level').value) });
   selected = -1;
   saveBot();
@@ -373,7 +374,8 @@ async function joinOnlineNow(id, color, host) {
 function enterOnline(id, hostColor, host) {
   stopPolling();
   const you = host === me.pub ? hostColor : hostColor === 'w' ? 'b' : 'w';
-  game = newGame('online', you, { id, hostColor, host, white: hostColor === 'w' ? host : null, black: hostColor === 'b' ? host : null });
+  const guest = host === me.pub ? null : me.pub;
+  game = newGame('online', you, { id, hostColor, host, white: hostColor === 'w' ? host : guest, black: hostColor === 'b' ? host : guest });
   store.set('chess_online', { id, hostColor, host });
   selected = -1;
   draw();
@@ -389,8 +391,11 @@ function leaveOnline() {
 }
 // Vale la prima mossa legale del giocatore giusto per ogni turno: tutti ricostruiscono la stessa partita.
 function rebuild(g, messages) {
-  const join = messages.find(m => m.k === 'join' && m.author !== g.host);
-  const guest = join ? join.author : null;
+  // L'avversario è chi è entrato; se il suo ingresso non è ancora arrivato dalla rete vale la sua
+  // prima mossa, e per chi è entrato vale subito la sua scelta: così può muovere senza aspettare.
+  const join = messages.find(m => m.k === 'join' && m.author !== g.host)
+    || messages.find(m => m.k === 'mv' && m.author !== g.host);
+  const guest = join ? join.author : me && g.host !== me.pub ? me.pub : null;
   const white = g.hostColor === 'w' ? g.host : guest;
   const black = g.hostColor === 'b' ? g.host : guest;
   let pos = Chess.parseFen(Chess.START);
@@ -433,7 +438,7 @@ async function sendOnlineMove(m) {
   if (r.queued) toast('Mossa salvata: partirà quando il nodo risponde');
 }
 async function resign() {
-  if (!confirm('Abbandonare la partita?')) return;
+  if (!await FNet.ask('Abbandonare la partita?')) return;
   await FNet.post(gameTopic(game.id), 'resign', {});
   syncOnline();
 }

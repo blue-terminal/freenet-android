@@ -176,10 +176,10 @@ async function viewLibrary() {
 
 // ── playlist (sul telefono) ────────────────────────────────────────────────
 const playlists = () => store.get('tv_playlists', []);
-function addToPlaylist() {
+async function addToPlaylist() {
   const list = playlists();
   const names = list.map((p, i) => `${i + 1}. ${p.name}`).join('\n');
-  const answer = prompt((names ? names + '\n\n' : '') + 'Scrivi il numero di una playlist oppure il nome di una nuova:');
+  const answer = await FNet.askText((names ? names + '\n\n' : '') + 'Scrivi il numero di una playlist oppure il nome di una nuova:');
   if (!answer || !answer.trim()) return;
   const index = Number(answer) - 1;
   let target = Number.isInteger(index) && list[index] ? list[index] : null;
@@ -195,9 +195,9 @@ async function viewPlaylist(id) {
   const byId = new Map(items.map(v => [v.id, v]));
   const list = p.items.map(i => byId.get(i)).filter(Boolean);
   app.innerHTML = `<h1 style="font-size:21px;margin-bottom:10px">${esc(p.name)}</h1>
-    <div class="row wrap" style="margin-bottom:12px">${list.length ? `<button class="btn main" onclick="playPlaylist('${esc(id)}',0)">▶ Riproduci tutto</button>` : ''}<button class="btn danger" onclick="deletePlaylist('${esc(id)}')">Elimina playlist</button></div>`
+    <div class="row wrap" style="margin-bottom:12px">${list.length ? `<button class="btn main" onclick="playPlaylist(${esc(JSON.stringify(id))},0)">▶ Riproduci tutto</button>` : ''}<button class="btn danger" onclick="deletePlaylist(${esc(JSON.stringify(id))})">Elimina playlist</button></div>`
     + (list.length ? list.map((v, i) => `<div class="vrow">${thumbHtml(v)}<div class="grow"><b style="overflow-wrap:anywhere">${esc(v.title)}</b><div class="sub">${esc(v.name)}</div>
-      <div class="row wrap" style="margin-top:6px"><button class="btn" onclick="playPlaylist('${esc(id)}',${i})">▶ Guarda</button><button class="btn" onclick="removeFromPlaylist('${esc(id)}','${esc(v.id)}')">Togli</button></div></div></div>`).join('') : emptyBox('📃', 'Playlist vuota', 'Aggiungi video con ＋ Playlist dalla pagina di un video.'));
+      <div class="row wrap" style="margin-top:6px"><button class="btn" onclick="playPlaylist(${esc(JSON.stringify(id))},${i})">▶ Guarda</button><button class="btn" onclick="removeFromPlaylist(${esc(JSON.stringify(id))},${esc(JSON.stringify(v.id))})">Togli</button></div></div></div>`).join('') : emptyBox('📃', 'Playlist vuota', 'Aggiungi video con ＋ Playlist dalla pagina di un video.'));
 }
 function playPlaylist(id, i) {
   const p = playlists().find(x => x.id === id);
@@ -212,8 +212,8 @@ function removeFromPlaylist(id, video) {
   store.set('tv_playlists', list);
   render();
 }
-function deletePlaylist(id) {
-  if (!confirm('Eliminare la playlist? I video restano.')) return;
+async function deletePlaylist(id) {
+  if (!await FNet.ask('Eliminare la playlist? I video restano.')) return;
   store.set('tv_playlists', playlists().filter(x => x.id !== id));
   location.hash = '#/library';
 }
@@ -264,7 +264,7 @@ async function viewWatch(id) {
     <div class="player" id="player"><div id="player-state">Recupero il video dalla rete…</div></div>
     <h1>${esc(v.title)}</h1>
     <div class="row"><a href="#/channel/${esc(v.tag)}" class="row grow">${avatarHtml(v.name, channels.get(v.tag)?.avatar)}<span class="grow"><b style="overflow-wrap:anywhere">${esc(v.name)}</b><div class="sub" id="ch-subs"></div></span></a>
-      <button class="btn ${subscribed ? '' : 'main'}" id="sub-btn" onclick="toggleSub('${esc(v.tag)}')">${subscribed ? 'Iscritto' : 'Iscriviti'}</button></div>
+      <button class="btn ${subscribed ? '' : 'main'}" id="sub-btn" onclick="toggleSub(${esc(JSON.stringify(v.tag))})">${subscribed ? 'Iscritto' : 'Iscriviti'}</button></div>
     <div class="actions">
       <button class="btn" id="like" onclick="vote(1)">👍 <span>0</span></button>
       <button class="btn" id="dislike" onclick="vote(-1)">👎 <span>0</span></button>
@@ -274,7 +274,7 @@ async function viewWatch(id) {
       <button class="btn" onclick="shareVideo()">🔗 Condividi</button>
       <button class="btn" onclick="addToPlaylist()">＋ Playlist</button>
       <button class="btn" onclick="downloadCurrent()">⬇ Scarica</button>
-      ${own ? `<button class="btn danger" onclick="removeVideo('${esc(v.id)}')">🗑 Elimina</button>` : '<button class="btn" onclick="reportVideo()">🚩 Segnala</button>'}
+      ${own ? `<button class="btn danger" onclick="removeVideo(${esc(JSON.stringify(v.id))})">🗑 Elimina</button>` : '<button class="btn" onclick="reportVideo()">🚩 Segnala</button>'}
       <button class="btn" onclick="blockAuthor()">🚫 Blocca canale</button>
     </div>
     <div class="descr"><div class="sub" id="views-line">${esc(v.cat || '')} · ${esc(timeAgo(v.created))}</div>${esc(v.desc || '')}</div>
@@ -346,12 +346,12 @@ async function shareVideo() {
   try { await navigator.clipboard.writeText(text); toast('Copiato: incollalo a chi vuoi'); } catch { toast(text); }
 }
 async function reportVideo() {
-  if (!confirm('Segnalare questo video come non educativo o non adatto? Con 3 segnalazioni sparisce dalle liste.')) return;
+  if (!await FNet.ask('Segnalare questo video come non educativo o non adatto? Con 3 segnalazioni sparisce dalle liste.')) return;
   const r = await FNet.reportItem(FEED, current.id);
   toast(r.queued ? 'Salvato: partirà quando il nodo risponde' : 'Segnalazione inviata');
 }
-function blockAuthor() {
-  if (!confirm(`Bloccare ${current.name}? Non vedrai più i suoi video e commenti. Puoi annullare dalle Impostazioni.`)) return;
+async function blockAuthor() {
+  if (!await FNet.ask(`Bloccare ${current.name}? Non vedrai più i suoi video e commenti. Puoi annullare dalle Impostazioni.`)) return;
   FNet.blockUser(current.tag, current.name);
   toast('Canale bloccato');
   location.hash = '#/home';
@@ -395,9 +395,9 @@ async function loadActivity() {
   for (const c of a.comments) if (c.reply) { if (!byParent.has(c.reply)) byParent.set(c.reply, []); byParent.get(c.reply).unshift(c); }
   const one = (c, nested) => `<div class="comment" style="${nested ? 'margin-left:44px' : ''}">${avatarHtml(c.name)}<div class="grow">
     <div class="sub"><b>${esc(c.name)}</b> · ${esc(timeAgo(c.time))}</div><p>${esc(c.text)}</p>
-    <div class="row wrap" style="gap:4px"><button class="sub" onclick="likeComment('${esc(c.id)}',${c.likedBy.has(me.pub)})">${c.likedBy.has(me.pub) ? '❤️' : '♡'} ${c.likedBy.size}</button>
-    ${nested ? '' : `<button class="sub" onclick="replyTo('${esc(c.id)}')">Rispondi</button>`}
-    ${c.author === me.pub ? `<button class="sub" onclick="deleteComment('${esc(c.id)}')">Elimina</button>` : ''}</div>
+    <div class="row wrap" style="gap:4px"><button class="sub" onclick="likeComment(${esc(JSON.stringify(c.id))},${c.likedBy.has(me.pub)})">${c.likedBy.has(me.pub) ? '❤️' : '♡'} ${c.likedBy.size}</button>
+    ${nested ? '' : `<button class="sub" onclick="replyTo(${esc(JSON.stringify(c.id))})">Rispondi</button>`}
+    ${c.author === me.pub ? `<button class="sub" onclick="deleteComment(${esc(JSON.stringify(c.id))})">Elimina</button>` : ''}</div>
     <div id="reply-${esc(c.id)}"></div></div></div>`;
   document.getElementById('comments').innerHTML = a.comments.filter(c => !c.reply).map(c => one(c, false) + (byParent.get(c.id) || []).map(r => one(r, true)).join('')).join('');
 }
@@ -410,13 +410,15 @@ async function likeComment(ref, liked) {
   await FNet.post('c:' + current.id, 'clike', { ref, on: !liked });
   loadActivity();
 }
+// Come su YouTube anche chi riguarda un video conta di nuovo, ma al massimo una volta ogni 30 minuti.
 async function markViewed(id) {
   const seen = store.get('tv_viewed', {});
-  if (seen[id]) return;
-  seen[id] = 1;
+  if (Date.now() - (Number(seen[id]) || 0) < VIEW_GAP_MS) return;
+  seen[id] = Date.now();
   store.set('tv_viewed', seen);
   await FNet.post('c:' + id, 'view', {});
 }
+const VIEW_GAP_MS = 30 * 60 * 1000;
 let myVote = null;
 async function vote(value) {
   me = me || await FNet.identity();
@@ -469,7 +471,7 @@ async function viewChannel(tagParam, seq) {
     <div class="grow"><h1 style="font-size:21px;overflow-wrap:anywhere">${esc(name)}</h1><div class="sub"><span id="ch-subs"></span> · ${list.length} video</div></div></div>
     <div class="row wrap" style="margin-bottom:14px">${own
       ? '<a class="btn" href="#/settings">Personalizza canale</a><a class="btn" href="#/studio">Gestisci video</a>'
-      : `<button class="btn ${subscribed ? '' : 'main'}" id="sub-btn" onclick="toggleSub('${esc(tag)}')">${subscribed ? 'Iscritto' : 'Iscriviti'}</button>`}</div>
+      : `<button class="btn ${subscribed ? '' : 'main'}" id="sub-btn" onclick="toggleSub(${esc(JSON.stringify(tag))})">${subscribed ? 'Iscritto' : 'Iscriviti'}</button>`}</div>
     <div class="tabs"><button class="tab ${channelTab === 'video' ? 'on' : ''}" onclick="setChannelTab('video')">Video</button><button class="tab ${channelTab === 'info' ? 'on' : ''}" onclick="setChannelTab('info')">Informazioni</button></div>`
     + (channelTab === 'info'
       ? `<div class="panel"><p style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(bio || 'Nessuna descrizione.')}</p></div>`
@@ -499,7 +501,7 @@ function viewUpload() {
       <label class="field"><span>Visibilità</span>${visibilitySelect('public')}</label>
       <button class="btn main" style="width:100%">Pubblica sulla rete Freenet</button>
     </form><div id="up-progress" hidden style="margin-top:14px"><div class="sub" id="up-label" style="margin-bottom:6px"></div><div class="bar"><i id="up-bar"></i></div></div></div>
-    ${oldOnes.length ? `<div class="panel" style="max-width:640px;margin:14px auto"><h2>Salvati solo sul telefono</h2><p class="sub" style="margin-bottom:10px">Questi video non sono mai usciti dal dispositivo. Premi Prepara, scegli la categoria e pubblica.</p>${oldOnes.map(o => `<div class="vrow"><span class="grow" style="overflow-wrap:anywhere">${esc(o.title)}</span><button class="btn" onclick="prepareLegacy('${esc(String(o.id))}')">Prepara</button></div>`).join('')}</div>` : ''}`;
+    ${oldOnes.length ? `<div class="panel" style="max-width:640px;margin:14px auto"><h2>Salvati solo sul telefono</h2><p class="sub" style="margin-bottom:10px">Questi video non sono mai usciti dal dispositivo. Premi Prepara, scegli la categoria e pubblica.</p>${oldOnes.map(o => `<div class="vrow"><span class="grow" style="overflow-wrap:anywhere">${esc(o.title)}</span><button class="btn" onclick="prepareLegacy(${esc(JSON.stringify(String(o.id)))})">Prepara</button></div>`).join('')}</div>` : ''}`;
 }
 function legacyBlob(key) {
   return new Promise((res, rej) => {
@@ -596,7 +598,7 @@ async function viewStudio(tab) {
       return `<div class="vrow">${thumbHtml(v)}<div class="grow"><b style="overflow-wrap:anywhere">${esc(v.title)}</b>
         <div class="sub">${v.vis === 'unlisted' ? 'Non in elenco' : 'Pubblico'} · ${esc(v.cat || '')} · ${esc(timeAgo(v.created))}</div>
         <div class="sub">${a.views} viste · ${a.likes} 👍 · ${a.dislikes} 👎 · ${a.comments.length} commenti${v.reports ? ` · ${v.reports} segnalazioni` : ''}</div>
-        <div class="row wrap" style="margin-top:8px"><a class="btn" href="#/edit/${esc(v.id)}">Modifica</a><a class="btn" href="#/watch/${esc(v.id)}">Guarda</a><button class="btn danger" onclick="removeVideo('${esc(v.id)}')">Elimina</button></div></div></div>`;
+        <div class="row wrap" style="margin-top:8px"><a class="btn" href="#/edit/${esc(v.id)}">Modifica</a><a class="btn" href="#/watch/${esc(v.id)}">Guarda</a><button class="btn danger" onclick="removeVideo(${esc(JSON.stringify(v.id))})">Elimina</button></div></div></div>`;
     }).join('');
   } else if (studioTab === 'analytics') {
     const ranked = [...mine].sort((a, b) => activity.get(b.id).views - activity.get(a.id).views);
@@ -616,7 +618,7 @@ async function viewStudio(tab) {
   }
 }
 async function removeVideo(id) {
-  if (!confirm('Eliminare questo video? Il contenuto viene cancellato dai contratti e il video sparisce dalle liste.')) return;
+  if (!await FNet.ask('Eliminare questo video? Il contenuto viene cancellato dai contratti e il video sparisce dalle liste.')) return;
   const v = items.find(x => x.id === id);
   toast('Sto eliminando il video…');
   try {
@@ -634,7 +636,7 @@ async function viewEdit(id) {
   const v = items.find(x => x.id === id && x.tag === me.tag);
   if (!v) { app.innerHTML = emptyBox('🔒', 'Non puoi modificare questo video', 'Solo chi lo ha pubblicato può farlo.'); return; }
   app.innerHTML = `<div class="panel" style="max-width:640px;margin:auto"><h2>Modifica video</h2>${thumbHtml(v)}
-    <form style="margin-top:14px" onsubmit="event.preventDefault();saveEdit('${esc(id)}',this)">
+    <form style="margin-top:14px" onsubmit="event.preventDefault();saveEdit(${esc(JSON.stringify(id))},this)">
       <label class="field"><span>Titolo</span><input name="title" maxlength="120" required value="${esc(v.title)}"></label>
       <label class="field"><span>Descrizione</span><textarea name="desc" maxlength="3000">${esc(v.desc || '')}</textarea></label>
       <label class="field"><span>Categoria educativa</span>${categorySelect(v.cat)}</label>
@@ -694,9 +696,9 @@ async function saveChannel(form) {
   viewSettings();
 }
 async function resetAccount() {
-  if (!confirm("Eliminare l'account da questo dispositivo e crearne uno nuovo? Senza una copia salvata non potrai più tornare a questo canale.")) return;
+  if (!await FNet.ask("Eliminare l'account da questo dispositivo e crearne uno nuovo? Senza una copia salvata non potrai più tornare a questo canale.")) return;
   me = me || await FNet.identity();
-  if (confirm('Vuoi eliminare prima dalla rete anche tutti i tuoi video?')) {
+  if (await FNet.ask('Vuoi eliminare prima dalla rete anche tutti i tuoi video?')) {
     await refresh();
     for (const v of items.filter(x => x.tag === me.tag)) {
       try { await FNet.deleteItem(FEED, v.id); await FNet.wipeVideoParts(v.parts || []); } catch {}

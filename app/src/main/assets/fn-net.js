@@ -405,7 +405,7 @@
 
   // Commenti, voti e visualizzazioni: un voto e una visualizzazione per persona.
   function foldActivity(messages) {
-    const comments = new Map(), votes = new Map(), views = new Set(), commentLikes = new Map();
+    const comments = new Map(), votes = new Map(), views = new Map(), commentLikes = new Map();
     for (const m of messages) {
       if (m.k === 'comment' && typeof m.text === 'string') comments.set(m.id, { id: m.id, text: m.text.slice(0, 2000), name: m.name, tag: m.tag, author: m.author, time: m.time, reply: typeof m.reply === 'string' ? m.reply : null });
       else if (m.k === 'clike' && typeof m.ref === 'string') {
@@ -414,7 +414,12 @@
       }
       else if (m.k === 'comment-del' && comments.has(m.ref) && comments.get(m.ref).author === m.author) comments.delete(m.ref);
       else if (m.k === 'vote') votes.set(m.author, m.value);
-      else if (m.k === 'view') views.add(m.author);
+      // Visioni ripetute: contano se distano almeno 30 minuti, e al massimo 20 per persona.
+      else if (m.k === 'view') {
+        const v = views.get(m.author) || { n: 0, last: -Infinity };
+        if (v.n < 20 && m.time - v.last >= 30 * 60 * 1000) { v.n++; v.last = m.time; }
+        views.set(m.author, v);
+      }
     }
     const values = [...votes.values()];
     for (const c of comments.values()) {
@@ -425,7 +430,7 @@
       comments: [...comments.values()].sort((a, b) => b.time - a.time),
       likes: values.filter(v => v === 1).length,
       dislikes: values.filter(v => v === -1).length,
-      votes, views: views.size,
+      votes, views: [...views.values()].reduce((t, v) => t + v.n, 0), viewers: views.size,
     };
   }
 
@@ -660,6 +665,46 @@ var l=document.getElementById('l');(f.items||[]).forEach(function(i){var a=docum
     });
   }
 
+  // Finestre di conferma e di testo disegnate nella pagina: dentro Freenet la cornice protetta
+  // blocca confirm() e prompt() del browser, che restituirebbero sempre "annulla".
+  function dialog(message, withText, initial) {
+    return new Promise(done => {
+      const bg = document.createElement('div');
+      bg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+      const box = document.createElement('div');
+      box.style.cssText = 'background:var(--panel,var(--bg2,#222));color:var(--text,#eee);border:1px solid var(--line,var(--border,#444));border-radius:14px;padding:18px;width:100%;max-width:420px;font:15px/1.4 system-ui,sans-serif';
+      const text = document.createElement('div');
+      text.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:12px';
+      text.textContent = message;
+      box.append(text);
+      let input = null;
+      if (withText) {
+        input = document.createElement('textarea');
+        input.value = initial || '';
+        input.rows = 3;
+        input.style.cssText = 'width:100%;box-sizing:border-box;padding:9px;border-radius:9px;border:1px solid var(--line,var(--border,#444));background:var(--panel2,var(--bg3,#333));color:inherit;font:inherit;margin-bottom:12px';
+        box.append(input);
+      }
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:8px;justify-content:flex-end';
+      const button = (label, main, value) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = label;
+        b.style.cssText = 'padding:9px 16px;border-radius:10px;border:1px solid var(--line,var(--border,#444));font:inherit;cursor:pointer;' + (main ? 'background:var(--accent,#0a84ff);color:var(--on-accent,#fff);border-color:transparent;font-weight:700' : 'background:none;color:inherit');
+        b.onclick = () => { bg.remove(); done(value()); };
+        return b;
+      };
+      row.append(button('Annulla', false, () => (withText ? null : false)), button('OK', true, () => (withText ? input.value : true)));
+      box.append(row);
+      bg.append(box);
+      document.body.append(bg);
+      (input || row.lastChild).focus();
+    });
+  }
+  const ask = message => dialog(String(message), false);
+  const askText = (message, initial) => dialog(String(message), true, initial);
+
   // Tema: scuro, chiaro o automatico (segue il telefono o il PC).
   const systemLight = root.matchMedia ? root.matchMedia('(prefers-color-scheme: light)') : null;
   function applyTheme() {
@@ -675,7 +720,7 @@ var l=document.getElementById('l');(f.items||[]).forEach(function(i){var a=docum
   root.FNet = {
     INSIDE_FREENET, IN_APP, logout, lastReadError: () => lastReadError,
     NODE, PART_BYTES, MAX_PARTS, CATEGORIES, SAFE_ID, SAFE_KEY,
-    store, esc, safeImage, timeAgo, newId, hasBridge, applyTheme, setTheme,
+    store, esc, safeImage, timeAgo, newId, hasBridge, applyTheme, setTheme, ask, askText,
     sendDM, readDM, dmInbox, rememberDM,
     identity, exportIdentity, importIdentity, profile, displayName, saveProfile,
     blocked, blockUser, unblockUser, filteredTotal: () => filteredCount,
