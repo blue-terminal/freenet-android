@@ -129,10 +129,7 @@
     if (INSIDE_FREENET) {
       if (method === 'hubGet') return { ok: true, state: await FreenetWS.hubGet(args.topic) };
       if (method === 'hubPost') { await FreenetWS.hubPost(args.topic, args.message); return { ok: true }; }
-      if (IN_APP) {
-        openInApp();
-        throw new Error("Apro il caricamento nell'app…");
-      }
+      if (IN_APP) throw new Error("Per caricare foto e video tocca ＋ o Carica: si apre la pagina dell'app");
       throw new Error("Per caricare video e foto usa l'app Freenet o Web 7.0 per PC");
     }
     if (!hasBridge()) throw new Error("Questa funzione è disponibile nell'app Freenet");

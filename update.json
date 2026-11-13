@@ -1,14 +1,14 @@
 {
-  "version": "v1.7.5",
-  "notes": "• Aggiornamenti dentro Freenet: l'app li scarica dal proprio nodo, GitHub solo di riserva\n• FreenetTV Live: condividi lo schermo (da PC), anche con la fotocamera nel riquadro\n• Video più veloci: tre parti scaricate insieme",
+  "version": "v1.7.6",
+  "notes": "• FreenetGram: fotocamera nella pagina con effetti dal vivo, foto e video\n• Elimina una sola foto o video da un post con più elementi\n• Dal telefono si possono scegliere più foto e video insieme (FreenetGram e FreenetPosts)",
   "assets": {
     "arm64-v8a": {
-      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.7.5/freenet-mobile-v1.7.5-freenet-0.2.154-arm64-v8a-release.apk",
-      "sha256": "3a8d45c4e05cd127639b9ba061b23c4d02aa9930803e2f401eaed3ae79105544"
+      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.7.6/freenet-mobile-v1.7.6-freenet-0.2.154-arm64-v8a-release.apk",
+      "sha256": "670bb77abfceed8f698e5cd71c7ef66e21444a9e9d6a2f37b6554614343032a2"
     },
     "x86_64": {
-      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.7.5/freenet-mobile-v1.7.5-freenet-0.2.154-x86_64-release.apk",
-      "sha256": "53dffb247057d488dc5ddd903ca239d42bdeb74c366cec44134c401bb717ce4c"
+      "url": "https://github.com/blue-terminal/freenet-android/releases/download/v1.7.6/freenet-mobile-v1.7.6-freenet-0.2.154-x86_64-release.apk",
+      "sha256": "f0fe39074e9ea19889f3b41a1db233cfdfa4a422a3e37a3ba058dc9854e42381"
     }
   },
   "beta": {
