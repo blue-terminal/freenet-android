@@ -296,12 +296,11 @@ async function viewWatch(id) {
 async function playVideo(v) {
   const state = document.getElementById('player-state');
   try {
-    const blob = await FNet.downloadVideo(v, (got, total) => {
+    const url = await FNet.videoUrl(v, (got, total) => {
       if (state) state.textContent = total ? `Recupero dalla rete: ${Math.round(got / total * 100)}%` : `Recupero dalla rete: ${Math.round(got / 1048576)} MB`;
     });
     if (current !== v) return;
-    if (watchUrl) URL.revokeObjectURL(watchUrl);
-    watchUrl = URL.createObjectURL(blob);
+    watchUrl = url;
     document.getElementById('player').innerHTML = `<video id="vid" controls playsinline src="${watchUrl}"></video>`;
     const el = document.getElementById('vid');
     el.playbackRate = store.get('tv_speed', 1);

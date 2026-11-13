@@ -52,7 +52,7 @@ const COMMUNITIES = 'forum:subs';
 const BASE = [['scienza', '🔬', 'Fisica, chimica, biologia, astronomia'], ['matematica', '➗', 'Esercizi, dimostrazioni e curiosità'],
   ['programmazione', '💻', 'Codice, linguaggi e progetti'], ['storia', '🏛️', 'Eventi, persone e fonti'],
   ['lingue', '🗣️', 'Imparare e praticare le lingue'], ['tecnologia', '⚙️', 'Come funzionano le cose'], ['freenet', '◈', 'La rete Freenet e Web 7.0']];
-const NAV = [['#/home', '🏠', 'Home'], ['#/all', '🧭', 'Comunità'], ['#/new', '✏️', 'Scrivi'], ['#/joined', '⭐', 'Iscritto']];
+const NAV = [['#/home', '🏠', 'Home'], ['#/all', '🧭', 'Comunità'], ['#/scrivi', '✏️', 'Scrivi'], ['#/joined', '⭐', 'Iscritto']];
 const app = document.getElementById('app');
 const feedOf = c => 'forum:r:' + c;
 const nameOk = n => /^[a-z0-9_]{3,24}$/.test(n);
@@ -110,7 +110,7 @@ async function viewHome(how) {
   const all = (await Promise.all(names.map(threadsOf))).flat();
   sortThreads(await withScores(all), how);
   app.innerHTML = `<div class="column">${offlineNotice(all.online !== false)}${sortsHtml('#/home', how)}
-    ${all.length ? all.slice(0, 60).map(t => threadHtml(t)).join('') : '<div class="empty"><div>💬</div><h2>Ancora nessuna discussione</h2><p>Apri la prima in una delle tue comunità.</p><a class="btn main" href="#/new">Scrivi</a></div>'}</div>`;
+    ${all.length ? all.slice(0, 60).map(t => threadHtml(t)).join('') : '<div class="empty"><div>💬</div><h2>Ancora nessuna discussione</h2><p>Apri la prima in una delle tue comunità.</p><a class="btn main" href="#/scrivi">Scrivi</a></div>'}</div>`;
 }
 async function viewAll() {
   const list = await communities();
@@ -129,7 +129,7 @@ async function viewCommunity(name, how) {
   const list = sortThreads(await withScores(await threadsOf(name)), how);
   const isIn = joined().includes(name);
   app.innerHTML = `<div class="column"><div class="banner"><h1>${esc(c.icon)} f/${esc(name)}</h1><p>${esc(c.desc)}</p>
-    <div class="row" style="margin-top:10px"><button class="btn" onclick="toggleJoin('${esc(name)}')">${isIn ? 'Iscritto ✓' : 'Iscriviti'}</button><a class="btn main" href="#/new/${esc(name)}">✏️ Nuova discussione</a></div></div>
+    <div class="row" style="margin-top:10px"><button class="btn" onclick="toggleJoin('${esc(name)}')">${isIn ? 'Iscritto ✓' : 'Iscriviti'}</button><a class="btn main" href="#/scrivi/${esc(name)}">✏️ Nuova discussione</a></div></div>
     ${sortsHtml('#/r/' + name, how)}${list.length ? list.map(t => threadHtml(t)).join('') : '<p class="sub">Ancora nessuna discussione qui.</p>'}</div>`;
 }
 async function viewThread(name, id) {
@@ -223,7 +223,7 @@ async function route() {
   try {
     if (page === 'all') await viewAll();
     else if (page === 'joined') await viewJoined();
-    else if (page === 'new') await viewNew(a);
+    else if (page === 'scrivi') await viewNew(a);
     else if (page === 'r' && a) await viewCommunity(a, how);
     else if (page === 't' && a && b) await viewThread(a, b);
     else await viewHome(how);

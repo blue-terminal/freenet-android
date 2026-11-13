@@ -143,11 +143,20 @@ public class BootstrapActivity extends AppCompatActivity {
         preferences = PreferenceManager.getDefaultSharedPreferences(this);
         findViewById(R.id.web_back).setOnClickListener(
                 v -> getOnBackPressedDispatcher().onBackPressed());
-        // Home: back to the Web 7.0 start page or to the Freenet node's own home.
-        findViewById(R.id.web_home).setOnClickListener(v -> new AlertDialog.Builder(this)
-                .setItems(new String[]{"🏠 Home Web 7.0", "🌐 Home Freenet"}, (d, which) ->
-                        web.loadUrl(which == 0 ? ASSET_PREFIX + "loading.html" : Manager.WEB_URL))
-                .show());
+        // Home: goes where the user chose (long press to choose); until then it asks each time.
+        View home = findViewById(R.id.web_home);
+        home.setOnClickListener(v -> {
+            String target = preferences.getString(HOME_KEY, "");
+            if (target.isEmpty()) {
+                askHome(web);
+            } else {
+                web.loadUrl(homeUrl(target));
+            }
+        });
+        home.setOnLongClickListener(v -> {
+            chooseHome(web);
+            return true;
+        });
         ImageButton editUrl = findViewById(R.id.web_edit_url);
         editUrl.setOnClickListener(v -> {
             EditText input = new EditText(this);
@@ -373,6 +382,58 @@ public class BootstrapActivity extends AppCompatActivity {
             return all;
         }
         return data.getData() == null ? null : new Uri[]{data.getData()};
+    }
+
+    private static final String HOME_KEY = "home_target";
+
+    private static String homeUrl(String target) {
+        if ("web70".equals(target)) {
+            return ASSET_PREFIX + "loading.html";
+        }
+        if ("freenet".equals(target)) {
+            return Manager.WEB_URL;
+        }
+        // A saved page: only the local node, never another host.
+        return target.startsWith(Manager.WEB_URL) ? target : Manager.WEB_URL;
+    }
+
+    private void askHome(WebView web) {
+        new AlertDialog.Builder(this)
+                .setTitle("Vai alla home")
+                .setItems(new String[]{"🏠 Home Web 7.0", "🌐 Home Freenet", "⚙️ Scegli la home predefinita…"}, (d, which) -> {
+                    if (which == 2) {
+                        chooseHome(web);
+                    } else {
+                        web.loadUrl(homeUrl(which == 0 ? "web70" : "freenet"));
+                    }
+                })
+                .show();
+    }
+
+    private void chooseHome(WebView web) {
+        String current = web.getUrl();
+        boolean canSaveCurrent = current != null && current.startsWith(Manager.WEB_URL);
+        String[] labels = canSaveCurrent
+                ? new String[]{"Home Web 7.0", "Home Freenet", "Questa pagina", "Chiedi ogni volta"}
+                : new String[]{"Home Web 7.0", "Home Freenet", "Chiedi ogni volta"};
+        new AlertDialog.Builder(this)
+                .setTitle("Il tasto Home porta a")
+                .setItems(labels, (d, which) -> {
+                    String value;
+                    if (which == 0) {
+                        value = "web70";
+                    } else if (which == 1) {
+                        value = "freenet";
+                    } else if (canSaveCurrent && which == 2) {
+                        value = Uri.parse(current).buildUpon().clearQuery().build().toString();
+                    } else {
+                        value = "";
+                    }
+                    preferences.edit().putString(HOME_KEY, value).apply();
+                    android.widget.Toast.makeText(this, value.isEmpty() ? "Il tasto Home chiederà ogni volta"
+                            : "Home salvata · tieni premuto il tasto per cambiarla", android.widget.Toast.LENGTH_SHORT).show();
+                })
+                .show();
     }
 
     private static String internalPage(Uri url) {

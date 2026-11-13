@@ -144,11 +144,11 @@ async function playVideo(id, el) {
   const video = (n.media || []).find(m => m.type === 'video');
   el.querySelector('span').textContent = '…';
   try {
-    const blob = await FNet.downloadVideo(video, (got, total) => { el.querySelector('span').textContent = total ? Math.round(got / total * 100) + '%' : '…'; });
+    const url = await FNet.videoUrl(video, (got, total) => { el.querySelector('span').textContent = total ? Math.round(got / total * 100) + '%' : '…'; });
     const v = document.createElement('video');
     v.controls = true;
     v.playsInline = true;
-    v.src = URL.createObjectURL(blob);
+    v.src = url;
     el.replaceWith(v);
     v.play().catch(() => {});
   } catch (e) { el.querySelector('span').textContent = '!'; toast(e.message); }
