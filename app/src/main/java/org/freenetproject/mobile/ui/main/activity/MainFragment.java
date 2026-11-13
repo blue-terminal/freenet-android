@@ -245,7 +245,9 @@ public class MainFragment extends Fragment {
             return null;
         }
         String found = Manager.localAddress();
-        return found == null ? null : "http://" + found + ":" + Manager.WEB_PORT + "/";
+        return found == null ? null : "ssh -N -L " + Manager.WEB_PORT + ":127.0.0.1:" + Manager.WEB_PORT
+                + " -p " + org.freenetproject.mobile.net.SshTunnel.PORT + " "
+                + org.freenetproject.mobile.net.SshTunnel.USER + "@" + found;
     }
 
     private void copyToClipboard(String label, String text) {
