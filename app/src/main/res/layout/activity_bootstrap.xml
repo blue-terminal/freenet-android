@@ -14,7 +14,7 @@
 
         <ImageButton
             android:id="@+id/web_back"
-            android:layout_width="52dp"
+            android:layout_width="44dp"
             android:layout_height="52dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/web_back"
@@ -27,6 +27,30 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/web_home"
             android:src="@drawable/ic_web_home" />
+
+        <ImageButton
+            android:id="@+id/web_forward"
+            android:layout_width="40dp"
+            android:layout_height="52dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/web_forward"
+            android:src="@drawable/ic_web_fwd" />
+
+        <ImageButton
+            android:id="@+id/web_reload"
+            android:layout_width="40dp"
+            android:layout_height="52dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/web_reload"
+            android:src="@drawable/ic_web_reload" />
+
+        <ImageButton
+            android:id="@+id/web_start"
+            android:layout_width="40dp"
+            android:layout_height="52dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/web_start"
+            android:src="@drawable/ic_web_start" />
 
         <TextView
             android:id="@+id/web_address"

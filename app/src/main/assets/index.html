@@ -174,6 +174,8 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 .pf-top { display: flex; gap: 14px; align-items: center; margin-bottom: 10px; }
 .pf-av { width: 64px; height: 64px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; overflow: hidden; flex-shrink: 0; }
 .pf-av img { width: 100%; height: 100%; object-fit: cover; }
+.pf-field { display: block; font-size: 13px; margin-bottom: 10px; }
+.pf-field input, .pf-field textarea { display: block; width: 100%; margin-top: 4px; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: inherit; font: inherit; }
 .pf-bio { white-space: pre-wrap; overflow-wrap: anywhere; opacity: .85; margin-bottom: 10px; }
 </style>
 </head>
@@ -394,8 +396,20 @@ async function openPanel(kind) {
       <div class="row">${Object.entries(LANGS).map(([k, name]) => `<button class="opt ${k === curLang() ? 'on' : ''}" onclick="setLang('${k}')">${name}</button>`).join('')}</div>
       <div>${tr('Tema')}</div>
       <div class="row">${[['dark', '🌙 ' + tr('Scuro')], ['light', '☀️ ' + tr('Chiaro')], ['auto', '📱 ' + tr('Automatico')]].map(([k, l]) => `<button class="opt ${FNet.store.get('theme', 'auto') === k ? 'on' : ''}" onclick="FNet.setTheme('${k}');themeIcon();openPanel('settings')">${l}</button>`).join('')}</div>
-      <div class="row"><a class="opt" href="video.html#/settings">${tr('Altre impostazioni (nome, foto, account)')}</a></div>
+      <div class="row"><button class="opt" onclick="openPanel('edit')">✏️ ${tr('Foto, nome e nickname')}</button><a class="opt" href="video.html#/settings">${tr('Account')}</a></div>
       <div class="row"><button class="opt" onclick="closePanel()">${tr('Chiudi')}</button></div></div>`;
+  } else if (kind === 'edit') {
+    const p = FNet.profile();
+    const pic = FNet.safeImage(p.avatar);
+    bg.innerHTML = `<form class="panel-box" onsubmit="event.preventDefault();saveHomeProfile(this)"><h3>✏️ ${tr('Modifica profilo')}</h3>
+      <div class="pf-top"><div class="pf-av" id="pf-pic">${pic ? `<img src="${pic}" alt="">` : '👤'}</div>
+        <label class="opt" style="cursor:pointer">📷 ${tr('Cambia foto')}<input type="file" name="avatar" accept="image/*" hidden onchange="previewAvatar(this)"></label>
+        ${pic ? `<button type="button" class="opt" onclick="this.form.dataset.nopic=1;document.getElementById('pf-pic').textContent='👤'">${tr('Togli')}</button>` : ''}</div>
+      <label class="pf-field">${tr('Nome')}<input name="name" maxlength="40" value="${esc(p.name || '')}" placeholder="${tr('Come ti vedono gli altri')}"></label>
+      <label class="pf-field">${tr('Nickname')}<input name="nick" maxlength="24" value="${esc(p.nick || '')}" placeholder="@nickname" pattern="@?[A-Za-z0-9_.]{2,24}"></label>
+      <label class="pf-field">${tr('Descrizione')}<textarea name="bio" maxlength="500" rows="3">${esc(p.bio || '')}</textarea></label>
+      <div id="pf-state" style="font-size:13px;opacity:.75"></div>
+      <div class="row"><button class="opt on">${tr('Salva')}</button><button type="button" class="opt" onclick="openPanel('profile')">${tr('Annulla')}</button></div></form>`;
   } else {
     const id = await FNet.identity();
     const p = FNet.profile();
@@ -403,13 +417,34 @@ async function openPanel(kind) {
     const pic = FNet.safeImage(p.avatar);
     bg.innerHTML = `<div class="panel-box"><h3>👤 ${tr('Profilo')}</h3>
       <div class="pf-top"><div class="pf-av">${pic ? `<img src="${pic}" alt="">` : esc(name[0].toUpperCase())}</div>
-        <div><b style="font-size:18px;overflow-wrap:anywhere">${esc(name)}</b><div style="opacity:.7;font-size:12px">${tr('Codice identità')}: ${esc(id.tag.slice(0, 12))}</div></div></div>
+        <div><b style="font-size:18px;overflow-wrap:anywhere">${esc(name)}</b>${p.nick ? `<div style="opacity:.8">@${esc(p.nick)}</div>` : ''}<div style="opacity:.7;font-size:12px">${tr('Codice identità')}: ${esc(id.tag.slice(0, 12))}</div></div></div>
       <div class="pf-bio">${esc(p.bio || tr('Nessuna descrizione: aggiungila in Modifica profilo.'))}</div>
-      <div class="row"><a class="opt" href="video.html#/settings">✏️ ${tr('Modifica profilo')}</a></div>
+      <div class="row"><button class="opt" onclick="openPanel('edit')">✏️ ${tr('Modifica profilo')}</button></div>
       <div class="row"><a class="opt" href="video.html#/studio">▶️ ${tr('I miei video')}</a><a class="opt" href="photos.html#/me">📸 ${tr('Le mie foto')}</a><a class="opt" href="posts.html#/me">🐤 ${tr('I miei post')}</a></div>
       <div class="row"><button class="opt" onclick="closePanel()">${tr('Chiudi')}</button></div></div>`;
   }
   document.body.append(bg);
+}
+async function previewAvatar(input) {
+  if (!input.files[0]) return;
+  const url = await FNet.smallImage(input.files[0], 96, 0.6);
+  input.form.dataset.pic = url;
+  delete input.form.dataset.nopic;
+  document.getElementById('pf-pic').innerHTML = `<img src="${url}" alt="">`;
+}
+async function saveHomeProfile(form) {
+  const state = document.getElementById('pf-state');
+  const p = { ...FNet.profile(), name: form.name.value.trim().slice(0, 40), nick: form.nick.value.trim().replace(/^@/, '').slice(0, 24), bio: form.bio.value.trim().slice(0, 500) };
+  if (form.dataset.pic) p.avatar = form.dataset.pic;
+  if (form.dataset.nopic) p.avatar = '';
+  state.textContent = tr('Salvo sulla rete…');
+  try {
+    await FNet.saveProfile(p);
+    openPanel('profile');
+  } catch (e) {
+    // Il profilo resta salvato qui e parte con la prossima pubblicazione.
+    state.textContent = tr('Salvato su questo dispositivo') + ' · ' + e.message;
+  }
 }
 function themeIcon() { const b = document.getElementById('theme-btn'); if (b) b.textContent = document.documentElement.dataset.theme === 'dark' ? '☀️' : '🌙'; }
 addEventListener('DOMContentLoaded', () => { applyLang(); themeIcon(); });
