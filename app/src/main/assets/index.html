@@ -545,6 +545,7 @@ function archiveSite(url, title) {
 
 // ── navigation ────────────────────────────────────────────────────────────────
 let history_ = ['freenet://home'], histIdx = 0;
+let pushed = true;
 
 function updateNavUI(url) {
   document.getElementById('btn-back').disabled  = histIdx <= 0;
@@ -561,14 +562,14 @@ function navigate(url) {
   url = url || document.getElementById('addr').value.trim();
   if (!url) return;
   histIdx++; history_.splice(histIdx); history_.push(url);
-  history.pushState({ w70: histIdx }, '');
+  try { history.pushState({ w70: histIdx }, ''); pushed = true; } catch { pushed = false; }
   archiveSite(url, url);
   updateNavUI(url);
   loadUrl(url);
 }
 // Ogni pagina aperta è anche un passo della cronologia del browser: il gesto indietro
 // del telefono (anche quello dei Samsung) torna alla pagina prima, come il pulsante ‹.
-function goBack()    { if (histIdx > 0) history.back(); }
+function goBack()    { if (histIdx <= 0) return; if (pushed) history.back(); else { const url = history_[--histIdx]; updateNavUI(url); loadUrl(url); } }
 function goHome()    { navigate('freenet://home'); }
 addEventListener('popstate', e => {
   const i = e.state && typeof e.state.w70 === 'number' ? e.state.w70 : 0;
@@ -577,8 +578,9 @@ addEventListener('popstate', e => {
   updateNavUI(history_[i]);
   loadUrl(history_[i]);
 });
-history.replaceState({ w70: 0 }, '');
-function goForward() { if (histIdx < history_.length-1) history.forward(); }
+// Dentro Freenet la pagina può non avere il permesso: allora resta solo il pulsante ‹.
+try { history.replaceState({ w70: 0 }, ''); } catch {}
+function goForward() { if (histIdx >= history_.length-1) return; if (pushed) history.forward(); else { const url = history_[++histIdx]; updateNavUI(url); loadUrl(url); } }
 function reload()    { loadUrl(history_[histIdx]); }
 
 const LOCAL_APPS = {
