@@ -65,8 +65,7 @@ public class BootstrapActivity extends AppCompatActivity {
     private final ActivityResultLauncher<Intent> filePicker = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (fileCallback != null) {
-                    fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(
-                            result.getResultCode(), result.getData()));
+                    fileCallback.onReceiveValue(pickedFiles(result.getResultCode(), result.getData()));
                     fileCallback = null;
                 }
             });
@@ -232,7 +231,7 @@ public class BootstrapActivity extends AppCompatActivity {
                 }
                 fileCallback = callback;
                 try {
-                    filePicker.launch(params.createIntent());
+                    filePicker.launch(pickIntent(params));
                 } catch (ActivityNotFoundException | IllegalStateException e) {
                     fileCallback = null;
                     return false;
@@ -296,6 +295,42 @@ public class BootstrapActivity extends AppCompatActivity {
     // opening https://web70.invalid/open?page=...&route=... (a reserved name that never resolves).
     private static final java.util.Set<String> INTERNAL_PAGES = new java.util.HashSet<>(
             java.util.Arrays.asList("video.html", "photos.html", "posts.html"));
+
+    // The page's accept list (for example "image/*,video/*") and "multiple" both reach the picker;
+    // the stock intent keeps only the first type and returns a single file.
+    private static Intent pickIntent(WebChromeClient.FileChooserParams params) {
+        java.util.List<String> types = new java.util.ArrayList<>();
+        for (String accept : params.getAcceptTypes()) {
+            for (String type : accept.split(",")) {
+                if (type.trim().contains("/")) {
+                    types.add(type.trim());
+                }
+            }
+        }
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT).addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType(types.size() == 1 ? types.get(0) : "*/*");
+        if (types.size() > 1) {
+            intent.putExtra(Intent.EXTRA_MIME_TYPES, types.toArray(new String[0]));
+        }
+        if (params.getMode() == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE) {
+            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        }
+        return intent;
+    }
+
+    private static Uri[] pickedFiles(int code, Intent data) {
+        if (code != RESULT_OK || data == null) {
+            return null;
+        }
+        if (data.getClipData() != null && data.getClipData().getItemCount() > 0) {
+            Uri[] all = new Uri[data.getClipData().getItemCount()];
+            for (int i = 0; i < all.length; i++) {
+                all[i] = data.getClipData().getItemAt(i).getUri();
+            }
+            return all;
+        }
+        return data.getData() == null ? null : new Uri[]{data.getData()};
+    }
 
     private static String internalPage(Uri url) {
         if (!"https".equals(url.getScheme()) || !"web70.invalid".equals(url.getHost())

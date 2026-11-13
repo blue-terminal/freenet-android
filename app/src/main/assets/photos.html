@@ -42,6 +42,14 @@
 .picked .one button { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,.6); color: #fff; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; }
 .sources { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0; }
 .sources label { text-align: center; padding: 12px 4px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; font-size: 13px; }
+.cam { position: fixed; inset: 0; background: #000; z-index: 45; display: flex; flex-direction: column; }
+.cam video { flex: 1; min-height: 0; width: 100%; object-fit: cover; }
+.cam .fx { display: flex; gap: 8px; overflow-x: auto; padding: 8px; }
+.cam .fx button { color: #fff; font-size: 12px; padding: 6px 10px; border-radius: 16px; border: 1px solid #fff6; white-space: nowrap; }
+.cam .fx button.on { background: #fff; color: #000; }
+.cam .bar { display: flex; align-items: center; justify-content: space-around; padding: 12px 0 22px; color: #fff; font-size: 26px; }
+.cam .shot { width: 70px; height: 70px; border-radius: 50%; border: 5px solid #fff; background: #fff3; }
+.cam .shot.rec { background: #e33; }
 .sources label b { display: block; font-size: 24px; }
 .viewer .trash { position: absolute; bottom: 20px; right: 16px; color: #fff; font-size: 15px; background: rgba(0,0,0,.5); padding: 8px 12px; border-radius: 18px; z-index: 3; }
 .dots { display: flex; justify-content: center; gap: 4px; padding-top: 8px; }
@@ -285,11 +293,28 @@ async function editCaption(p) {
   toast('Didascalia aggiornata');
   render();
 }
+// Toglie un elemento dal carosello, come su Instagram; il resto del post rimane.
+async function removeOne(p) {
+  const media = mediaOf(p);
+  const n = await sheet(media.map((m, i) => [String(i + 1), (m.type === 'video' ? '🎬 Video ' : '🖼️ Foto ') + (i + 1)]));
+  if (!n) return;
+  const gone = media[Number(n) - 1];
+  const rest = media.filter(m => m !== gone);
+  await FNet.saveItem(FEED, p.id, { media: rest, caption: p.caption || '', story: !!p.story, vis: p.vis || 'public' });
+  try {
+    if (gone.type === 'video') await FNet.wipeVideoParts(gone.parts || []);
+    else { await FNet.call('siteDeleteFile', { site: SITE, file: gone.file }); await FNet.publishSite(SITE); }
+  } catch {}
+  toast('Eliminata dal post');
+  render();
+}
 async function postMenu(id) {
   const p = items.find(x => x.id === id);
   if (p.author === me.pub) {
-    const k = await sheet([['edit', 'Modifica didascalia'], ['link', 'Copia codice del post'], ['del', 'Elimina', 'danger']]);
+    const many = mediaOf(p).length > 1;
+    const k = await sheet([['edit', 'Modifica didascalia'], ...(many ? [['photo', 'Elimina una foto o un video']] : []), ['link', 'Copia codice del post'], ['del', 'Elimina', 'danger']]);
     if (k === 'edit') editCaption(p);
+    if (k === 'photo') removeOne(p);
     if (k === 'link') share(id);
     if (k === 'del' && await deletePost(p)) render();
     return;
@@ -479,7 +504,7 @@ function viewNew(kind) {
   app.innerHTML = `<div class="panel" style="max-width:520px;margin:auto"><h2>${story ? 'Nuova storia' : 'Nuovo post'}</h2><form onsubmit="event.preventDefault();publish(this)">
     <p class="sub">${story ? 'Una foto, resta 24 ore' : `Fino a ${MAX_IMAGES} foto e un video nello stesso post`}</p>
     <div class="sources">
-      <label><b>📷</b>Scatta foto<input type="file" accept="image/*" capture="environment" hidden onchange="addPicked(this,${story})"></label>
+      <label onclick="openCamera(${story})"><b>📸</b>Fotocamera</label>
       ${story ? '' : '<label><b>🎥</b>Registra video<input type="file" accept="video/*" capture="environment" hidden onchange="addPicked(this,false)"></label>'}
       <label><b>🖼️</b>Galleria<input type="file" accept="${story ? 'image/*' : 'image/*,video/*'}" ${story ? '' : 'multiple'} hidden onchange="addPicked(this,${story})"></label>
     </div>
@@ -501,7 +526,7 @@ function addPicked(input, single) {
   drawPicked();
 }
 function drawPicked() {
-  document.getElementById('picked').innerHTML = picked.map((f, i) => `<div class="one">${f.type.startsWith('image/') ? `<img src="${URL.createObjectURL(f)}" style="filter:${filter}" alt="">` : `<video src="${URL.createObjectURL(f)}" muted playsinline></video>`}<button type="button" onclick="picked.splice(${i},1);drawPicked()" aria-label="Togli">✕</button></div>`).join('');
+  document.getElementById('picked').innerHTML = picked.map((f, i) => `<div class="one">${f.type.startsWith('image/') ? `<img src="${URL.createObjectURL(f)}" style="filter:${baked.has(f) ? 'none' : filter}" alt="">` : `<video src="${URL.createObjectURL(f)}" muted playsinline></video>`}<button type="button" onclick="picked.splice(${i},1);drawPicked()" aria-label="Togli">✕</button></div>`).join('');
   const first = picked.find(f => f.type.startsWith('image/'));
   const box = document.getElementById('filters');
   box.hidden = !first;
@@ -510,9 +535,70 @@ function drawPicked() {
     box.innerHTML = FILTERS.map(([name, css], n) => `<button type="button" class="${css === filter ? 'on' : ''}" onclick="filter=FILTERS[${n}][1];drawPicked()"><img src="${url}" style="filter:${css}" alt="">${name}</button>`).join('');
   }
 }
+// Fotocamera dentro la pagina: effetti dal vivo, foto con l'effetto applicato, video registrati.
+async function openCamera(story) {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('Fotocamera non disponibile qui'); return; }
+  let facing = 'environment', stream = null, rec = null, chunks = [];
+  const box = document.createElement('div');
+  box.className = 'cam';
+  box.innerHTML = `<video autoplay playsinline muted></video><div class="fx">${FILTERS.map(([n, css], i) => `<button type="button" data-i="${i}" class="${css === filter ? 'on' : ''}">${n}</button>`).join('')}</div>
+    <div class="bar"><button type="button" data-a="x" aria-label="Chiudi">✕</button>${story ? '' : '<button type="button" data-a="mode" aria-label="Foto o video">📷</button>'}<button type="button" class="shot" data-a="shot" aria-label="Scatta"></button><button type="button" data-a="flip" aria-label="Cambia fotocamera">🔄</button></div>`;
+  document.body.append(box);
+  const video = box.querySelector('video');
+  let videoMode = false;
+  const stop = () => { if (stream) stream.getTracks().forEach(t => t.stop()); };
+  const start = async () => {
+    stop();
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: videoMode });
+      video.srcObject = stream;
+    } catch (e) { toast('Permesso fotocamera negato'); stop(); box.remove(); }
+  };
+  video.style.filter = filter;
+  box.onclick = async e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.i) { filter = FILTERS[b.dataset.i][1]; video.style.filter = filter; box.querySelectorAll('.fx button').forEach(x => x.classList.toggle('on', x === b)); return; }
+    const a = b.dataset.a;
+    if (a === 'x') { if (rec) rec.stop(); stop(); box.remove(); return; }
+    if (a === 'flip') { facing = facing === 'environment' ? 'user' : 'environment'; await start(); return; }
+    if (a === 'mode') { videoMode = !videoMode; b.textContent = videoMode ? '🎥' : '📷'; await start(); return; }
+    if (a !== 'shot') return;
+    if (!videoMode) {
+      const c = document.createElement('canvas');
+      c.width = video.videoWidth; c.height = video.videoHeight;
+      const g = c.getContext('2d');
+      g.filter = filter;
+      g.drawImage(video, 0, 0);
+      c.toBlob(blob => {
+        if (!blob) return;
+        const file = new File([blob], 'foto.jpg', { type: 'image/jpeg' });
+        baked.add(file);
+        if (story) picked = [file]; else if (picked.filter(f => f.type.startsWith('image/')).length < MAX_IMAGES) picked.push(file);
+        drawPicked();
+        stop(); box.remove(); toast('Foto aggiunta');
+      }, 'image/jpeg', 0.9);
+      return;
+    }
+    if (rec) { rec.stop(); return; }
+    chunks = [];
+    rec = new MediaRecorder(stream);
+    rec.ondataavailable = ev => { if (ev.data.size) chunks.push(ev.data); };
+    rec.onstop = () => {
+      const type = rec.mimeType || 'video/webm';
+      const file = new File([new Blob(chunks, { type })], type.includes('mp4') ? 'video.mp4' : 'video.webm', { type });
+      picked = picked.filter(f => !f.type.startsWith('video/')); picked.push(file);
+      rec = null; stop(); box.remove(); drawPicked(); toast('Video aggiunto');
+    };
+    rec.start(1000);
+    b.classList.add('rec');
+  };
+  await start();
+}
 // Applica il filtro scelto ai pixel, così chi guarda vede la foto come l'hai vista tu.
+const baked = new WeakSet(); // foto della fotocamera: l'effetto è già nei pixel
 function withFilter(file) {
-  if (filter === 'none' || !file.type.startsWith('image/')) return Promise.resolve(file);
+  if (filter === 'none' || baked.has(file) || !file.type.startsWith('image/')) return Promise.resolve(file);
   return new Promise((res, rej) => {
     const img = new Image();
     img.onload = () => {
