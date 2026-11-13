@@ -531,16 +531,14 @@ public class SettingsActivity extends AppCompatActivity {
                 return;
             }
             String found = Manager.localAddress();
-            // Use the proxy URL with Basic Auth password so the PC connection is protected.
             String pwd = HostProxy.getOrCreatePassword(requireContext());
-            String proxyUrl = "http://freenet:" + pwd + "@" + found + ":" + HostProxy.PORT + "/";
+            // On the PC: one SSH command opens the tunnel, then the node is at the PC's own 127.0.0.1.
+            String command = "ssh -N -L " + Manager.WEB_PORT + ":127.0.0.1:" + Manager.WEB_PORT
+                    + " -p " + org.freenetproject.mobile.net.SshTunnel.PORT + " "
+                    + org.freenetproject.mobile.net.SshTunnel.USER + "@" + found;
             StringBuilder list = new StringBuilder();
             for (String one : all) {
-                String ip = one.substring(one.indexOf(": ") + 2);
-                String iface = one.substring(0, one.indexOf(':'));
-                list.append("http://freenet:").append(pwd).append("@")
-                        .append(ip).append(':').append(HostProxy.PORT)
-                        .append("/  (").append(iface).append(")\n");
+                list.append(one).append('\n');
             }
             TextView shown = new TextView(requireContext());
             int padding = Math.round(20 * getResources().getDisplayMetrics().density);
@@ -548,17 +546,22 @@ public class SettingsActivity extends AppCompatActivity {
             shown.setTextIsSelectable(true);
             shown.setTextSize(13);
             shown.setTypeface(Typeface.MONOSPACE);
-            String network = found.substring(0, found.lastIndexOf('.') + 1) + "x";
-            shown.setText(list + "\n" + getString(R.string.host_same_network, network)
-                    + "\n\n" + getString(R.string.host_restart_node)
-                    + "\n\n" + getString(R.string.proxy_password_hint));
+            shown.setText(getString(R.string.ssh_steps, command, pwd, Manager.WEB_PORT)
+                    + "\n\n" + list
+                    + "\n" + getString(R.string.host_restart_node));
             new AlertDialog.Builder(requireContext())
                     .setTitle(R.string.host_address)
                     .setView(shown)
                     .setNegativeButton(android.R.string.ok, null)
+                    .setNeutralButton(R.string.ssh_copy_password, (d, w) -> {
+                        requireContext().getSystemService(ClipboardManager.class)
+                                .setPrimaryClip(ClipData.newPlainText("Freenet", pwd));
+                        Toast.makeText(requireContext(), R.string.host_address_copied,
+                                Toast.LENGTH_SHORT).show();
+                    })
                     .setPositiveButton(R.string.host_copy_address, (d, w) -> {
                         requireContext().getSystemService(ClipboardManager.class)
-                                .setPrimaryClip(ClipData.newPlainText("Freenet", proxyUrl));
+                                .setPrimaryClip(ClipData.newPlainText("Freenet", command));
                         Toast.makeText(requireContext(), R.string.host_address_copied,
                                 Toast.LENGTH_SHORT).show();
                     })

@@ -17,8 +17,8 @@ android {
         applicationId "local.freenet.mobile"
         minSdk 26
         targetSdk 34
-        versionCode 1780
-        versionName "1.7.8-freenet-$freenetVersion"
+        versionCode 1790
+        versionName "1.7.9-freenet-$freenetVersion"
         buildConfigField "String", "FREENET_VERSION", "\"$freenetVersion\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -35,6 +35,9 @@ android {
     }
 
     packaging {
+        resources {
+            excludes += ['META-INF/DEPENDENCIES', 'META-INF/LICENSE*', 'META-INF/NOTICE*']
+        }
         jniLibs {
             // Android esegue solo programmi nella cartella delle librerie estratte
             useLegacyPackaging true
@@ -76,6 +79,9 @@ dependencies {
     implementation 'androidx.preference:preference:1.2.1'
     implementation 'androidx.documentfile:documentfile:1.0.1'
     implementation 'androidx.work:work-runtime:2.9.1'
+    // SSH server for the PC: only forwards the node's port, no shell, no files.
+    implementation 'org.apache.sshd:sshd-core:2.14.0'
+    implementation 'org.slf4j:slf4j-nop:1.7.36'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'

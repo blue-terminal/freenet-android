@@ -11,6 +11,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.preference.PreferenceManager;
 
 import org.freenetproject.mobile.net.HostProxy;
+import org.freenetproject.mobile.net.SshTunnel;
 
 import java.io.File;
 import java.io.IOException;
@@ -73,7 +74,7 @@ public class Manager {
     private volatile Status status = Status.STOPPED;
     private volatile long startedAtMs = 0;
     private Process process = null;
-    private HostProxy proxy = null;
+    private SshTunnel proxy = null;
     private File logFile = null;
     private volatile String lastProblem = "";
 
@@ -188,10 +189,9 @@ public class Manager {
         applyEnvironment(context, env);
         // Upstream sends telemetry unless told otherwise.
         env.put("FREENET_TELEMETRY_ENABLED", "false");
-        // Only the phone itself can reach the node's web interface and its keys,
-        // unless host mode was turned on: then the local network can reach it too.
-        env.put("FREENET_WS_API_ADDRESS",
-                preferences.getBoolean("host_mode", false) ? "0.0.0.0" : "127.0.0.1");
+        // Only the phone itself reaches the node's web interface and its keys. A PC reaches it
+        // through the SSH tunnel (password protected), never directly.
+        env.put("FREENET_WS_API_ADDRESS", "127.0.0.1");
         String disk = setting(preferences, "dev_disk", saving ? SAVING_DISK : "");
         if (!disk.isEmpty()) {
             env.put("MAX_HOSTING_DISK", disk);
@@ -280,7 +280,7 @@ public class Manager {
                         SharedPreferences prefs =
                                 PreferenceManager.getDefaultSharedPreferences(context);
                         if (prefs.getBoolean("host_mode", false) && proxy == null) {
-                            proxy = HostProxy.start(context);
+                            proxy = SshTunnel.start(context);
                         }
                     }
                 }
@@ -321,7 +321,7 @@ public class Manager {
     }
 
     private void stopProxy() {
-        HostProxy p = proxy;
+        SshTunnel p = proxy;
         proxy = null;
         if (p != null) {
             p.stop();
@@ -331,7 +331,7 @@ public class Manager {
     /** Called when the host_mode preference changes while the node is running. */
     public synchronized void onHostModeChanged(Context context, boolean enabled) {
         if (enabled && status == Status.STARTED && proxy == null) {
-            proxy = HostProxy.start(context.getApplicationContext());
+            proxy = SshTunnel.start(context.getApplicationContext());
         } else if (!enabled) {
             stopProxy();
         }
@@ -339,11 +339,7 @@ public class Manager {
 
     /** The password the proxy uses, or null if the proxy is not running. */
     public String proxyPassword(Context context) {
-        HostProxy p = proxy;
-        if (p != null) {
-            return p.getPassword();
-        }
-        return null;
+        return proxy != null ? HostProxy.getOrCreatePassword(context) : null;
     }
 
     public synchronized void stopNode(boolean paused) {
