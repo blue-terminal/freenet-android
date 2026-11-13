@@ -297,13 +297,64 @@
     });
   }
 
+  // Copia delle bacheche per quando il nodo non risponde: solo le più recenti, così la memoria
+  // del browser non si riempie (piena, ogni salvataggio fallisce e tutto rallenta).
+  const BOARD_KEEP = hasLocalStorage ? 40 : 8;
+  const BOARD_MESSAGES = hasLocalStorage ? 150 : 40;
+  function cacheBoard(topic, raw) {
+    const keys = store.get('board_keys', []).filter(k => k !== topic);
+    keys.push(topic);
+    while (keys.length > BOARD_KEEP) store.del('board_' + keys.shift());
+    store.set('board_keys', keys);
+    if (!store.set('board_' + topic, raw.slice(-BOARD_MESSAGES))) {
+      // Spazio finito: si liberano le copie più vecchie e si riprova una volta.
+      while (keys.length > 1) store.del('board_' + keys.shift());
+      store.set('board_keys', keys);
+      store.set('board_' + topic, raw.slice(-BOARD_MESSAGES));
+    }
+  }
+  // Le copie salvate dalle versioni precedenti non avevano limite: si tolgono quelle fuori elenco.
+  if (hasLocalStorage) {
+    try {
+      const keep = new Set(store.get('board_keys', []).map(k => PREFIX + 'board_' + k));
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(PREFIX + 'board_') && k !== PREFIX + 'board_keys' && !keep.has(k)) localStorage.removeItem(k);
+      }
+    } catch {}
+  } else {
+    for (const k of Object.keys(session)) if (k.startsWith('board_') && k !== 'board_keys' && !(store.get('board_keys', []).includes(k.slice(6)))) delete session[k];
+    saveSession();
+  }
+
+  // Video già scaricati in questa pagina: tornando indietro non si riscaricano, e i più vecchi
+  // vengono liberati dalla memoria (un video può pesare decine di MB).
+  const videoCache = new Map();
+  const VIDEO_KEEP = 3;
+  async function videoUrl(item, onProgress) {
+    const key = (item.parts || []).map(p => p && p.sha).join(',');
+    if (videoCache.has(key)) {
+      const url = videoCache.get(key);
+      videoCache.delete(key); videoCache.set(key, url);
+      return url;
+    }
+    const url = URL.createObjectURL(await downloadVideo(item, onProgress));
+    videoCache.set(key, url);
+    while (videoCache.size > VIDEO_KEEP) {
+      const [oldKey, oldUrl] = videoCache.entries().next().value;
+      videoCache.delete(oldKey);
+      URL.revokeObjectURL(oldUrl);
+    }
+    return url;
+  }
+
   let lastReadError = '';
   async function read(topic) {
     let raw = [];
     let online = true;
     try {
       raw = JSON.parse((await call('hubGet', { topic })).state).m || [];
-      store.set('board_' + topic, raw.slice(-300));
+      cacheBoard(topic, raw);
     } catch (e) {
       lastReadError = String(e && e.message || e).slice(0, 160);
       online = false;
@@ -630,6 +681,6 @@ var l=document.getElementById('l');(f.items||[]).forEach(function(i){var a=docum
     blocked, blockUser, unblockUser, filteredTotal: () => filteredCount,
     post, read, foldItems, foldActivity, readItems, isVisible, saveItem, deleteItem, reportItem, flushOutbox,
     call, writeBlob, writeText, publishSite, siteUrl, updateChannel, publishMedia, removeFromChannel,
-    uploadVideoParts, wipeVideoParts, downloadVideo, videoFacts, hashBlob, loadVerifiedImages, fetchPart, imageToJpeg, smallImage, blobToDataUrl,
+    uploadVideoParts, wipeVideoParts, downloadVideo, videoUrl, videoFacts, hashBlob, loadVerifiedImages, fetchPart, imageToJpeg, smallImage, blobToDataUrl,
   };
 })(window);

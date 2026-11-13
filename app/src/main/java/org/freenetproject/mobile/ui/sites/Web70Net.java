@@ -41,6 +41,23 @@ public final class Web70Net {
     public Web70Net(Context context) throws IOException {
         this.context = context.getApplicationContext();
         this.vault = new Vault(this.context);
+        cleanTemporaryFiles(this.context);
+    }
+
+    // Files left behind when a request was cut off (app closed, timeout): they would pile up in the cache.
+    private static void cleanTemporaryFiles(Context context) {
+        File[] files = context.getCacheDir().listFiles();
+        if (files == null) {
+            return;
+        }
+        long old = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1);
+        for (File file : files) {
+            String name = file.getName();
+            boolean ours = name.startsWith("topic") || name.startsWith("state") || name.startsWith("delta") || name.startsWith("fdev");
+            if (ours && file.isFile() && file.lastModified() < old) {
+                file.delete();
+            }
+        }
     }
 
     /** Runs one request from a page and answers with JSON: {"ok":true,...} or {"ok":false,"error":...}. */

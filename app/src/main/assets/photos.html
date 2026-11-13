@@ -241,12 +241,12 @@ async function playInline(id, el, index) {
   const label = el.querySelector('span');
   label.textContent = '…';
   try {
-    const blob = await FNet.downloadVideo(index == null ? videoOf(p) : mediaOf(p)[index], (got, total) => { label.textContent = total ? Math.round(got / total * 100) + '%' : '…'; });
+    const url = await FNet.videoUrl(index == null ? videoOf(p) : mediaOf(p)[index], (got, total) => { label.textContent = total ? Math.round(got / total * 100) + '%' : '…'; });
     const v = document.createElement('video');
     v.controls = true;
     v.playsInline = true;
     v.loop = true;
-    v.src = URL.createObjectURL(blob);
+    v.src = url;
     el.replaceWith(v);
     v.play().catch(() => {});
   } catch (e) { label.textContent = '!'; toast(e.message); }
@@ -425,11 +425,11 @@ async function playReel(id, el) {
   const label = el.querySelector('span');
   label.textContent = '…';
   try {
-    const blob = await FNet.downloadVideo(videoOf(p), (got, total) => { label.textContent = total ? Math.round(got / total * 100) + '%' : '…'; });
+    const url = await FNet.videoUrl(videoOf(p), (got, total) => { label.textContent = total ? Math.round(got / total * 100) + '%' : '…'; });
     const v = document.createElement('video');
     v.playsInline = true;
     v.loop = true;
-    v.src = URL.createObjectURL(blob);
+    v.src = url;
     v.onclick = () => (v.paused ? v.play() : v.pause());
     el.replaceWith(v);
     v.play().catch(() => {});

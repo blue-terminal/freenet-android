@@ -53,7 +53,7 @@ const { esc, timeAgo } = FNet;
 const { toast, offlineNotice, drawComments } = Social;
 const INDEX = 'wiki:index';
 const MAX_TEXT = 12000;
-const NAV = [['#/home', '🏠', 'Pagina principale'], ['#/all', '📚', 'Tutte le voci'], ['#/recent', '🕘', 'Ultime modifiche'], ['#/random', '🎲', 'Voce a caso'], ['#/new', '✏️', 'Nuova voce']];
+const NAV = [['#/home', '🏠', 'Pagina principale'], ['#/all', '📚', 'Tutte le voci'], ['#/recent', '🕘', 'Ultime modifiche'], ['#/random', '🎲', 'Voce a caso'], ['#/crea', '✏️', 'Nuova voce']];
 const app = document.getElementById('app');
 const slugOf = t => String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
 const topicOf = slug => 'wiki:a:' + slug;
@@ -132,7 +132,7 @@ async function viewHome() {
   app.innerHTML = `<div class="column">${offlineNotice(index.online)}${searchBox()}
     <div class="panel" style="text-align:center;margin-bottom:14px"><h1 style="font-family:Georgia,serif;font-weight:400">Benvenuto su FreenetWiki</h1>
     <p class="sub">L'enciclopedia libera che vive sulla rete Freenet: niente server, chiunque può scrivere e migliorare le voci.</p>
-    <p class="sub" style="margin-top:6px"><b>${index.length}</b> voci · <a href="#/new">scrivi una voce</a></p></div>
+    <p class="sub" style="margin-top:6px"><b>${index.length}</b> voci · <a href="#/crea">scrivi una voce</a></p></div>
     <div class="panel"><h2 style="margin-bottom:6px">Voci nuove</h2>${listHtml(latest, 'Ancora nessuna voce: scrivi la prima.')}</div></div>`;
 }
 async function viewAll() {
@@ -244,7 +244,7 @@ async function route() {
     else if (page === 'recent') await viewRecent();
     else if (page === 'random') await viewRandom();
     else if (page === 'search') await viewSearch(decodeURIComponent(a));
-    else if (page === 'new') await viewEdit('', '');
+    else if (page === 'crea') await viewEdit('', '');
     else if (page === 'edit') await viewEdit(slug, q.get('t') || '');
     else if (page === 'history') await viewHistory(slug);
     else if (page === 'talk') await viewTalk(slug);
