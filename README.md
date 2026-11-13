@@ -47,8 +47,7 @@ non sono nel repository: li scarica `prepara-freenet.sh`, che ne controlla le im
 
 ## Autori
 
-- [desyncr](https://github.com/desyncr) — progetto originale [freenet-mobile/app](https://github.com/freenet-mobile/app)
-- [blue-terminal](https://github.com/blue-terminal) — questa versione
+
 
 ## Licenza
 
