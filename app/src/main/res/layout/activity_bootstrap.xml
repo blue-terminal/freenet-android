@@ -20,6 +20,14 @@
             android:contentDescription="@string/web_back"
             android:src="@drawable/ic_web_back" />
 
+        <ImageButton
+            android:id="@+id/web_home"
+            android:layout_width="44dp"
+            android:layout_height="52dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/web_home"
+            android:src="@drawable/ic_web_home" />
+
         <TextView
             android:id="@+id/web_address"
             android:layout_width="0dp"

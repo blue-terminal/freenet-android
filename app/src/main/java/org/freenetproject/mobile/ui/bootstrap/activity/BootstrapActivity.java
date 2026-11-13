@@ -38,6 +38,7 @@ import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.preference.PreferenceManager;
 
 import org.freenetproject.mobile.R;
+import org.freenetproject.mobile.services.ScreenCaptureService;
 import org.freenetproject.mobile.services.node.Manager;
 import org.freenetproject.mobile.ui.sites.Web70Net;
 import org.json.JSONObject;
@@ -69,6 +70,43 @@ public class BootstrapActivity extends AppCompatActivity {
                     fileCallback = null;
                 }
             });
+    private final ActivityResultLauncher<Intent> screenPicker = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() != RESULT_OK || result.getData() == null) {
+                    sendToPage("window.__screenEnd&&window.__screenEnd('Condivisione rifiutata')");
+                    return;
+                }
+                ScreenCaptureService.setListener(new ScreenCaptureService.Frames() {
+                    @Override
+                    public void frame(String jpeg) {
+                        sendToPage("window.__screenFrame&&window.__screenFrame('" + jpeg + "')");
+                    }
+
+                    @Override
+                    public void ended() {
+                        sendToPage("window.__screenEnd&&window.__screenEnd('')");
+                    }
+                });
+                Intent start = new Intent(this, ScreenCaptureService.class)
+                        .putExtra(ScreenCaptureService.EXTRA_CODE, result.getResultCode())
+                        .putExtra(ScreenCaptureService.EXTRA_DATA, result.getData());
+                startForegroundService(start);
+            });
+
+    // Frames go only to the app's own pages, never to a remote site that happens to be open.
+    private void sendToPage(String script) {
+        WebView web = webView;
+        if (web == null) {
+            return;
+        }
+        web.post(() -> {
+            String url = web.getUrl();
+            if (url != null && url.startsWith(ASSET_PREFIX)) {
+                web.evaluateJavascript(script, null);
+            }
+        });
+    }
+
     private final ActivityResultLauncher<String[]> mediaPermissions = registerForActivityResult(
             new ActivityResultContracts.RequestMultiplePermissions(), granted -> {
                 if (pendingPermission == null) {
@@ -105,6 +143,11 @@ public class BootstrapActivity extends AppCompatActivity {
         preferences = PreferenceManager.getDefaultSharedPreferences(this);
         findViewById(R.id.web_back).setOnClickListener(
                 v -> getOnBackPressedDispatcher().onBackPressed());
+        // Home: back to the Web 7.0 start page or to the Freenet node's own home.
+        findViewById(R.id.web_home).setOnClickListener(v -> new AlertDialog.Builder(this)
+                .setItems(new String[]{"🏠 Home Web 7.0", "🌐 Home Freenet"}, (d, which) ->
+                        web.loadUrl(which == 0 ? ASSET_PREFIX + "loading.html" : Manager.WEB_URL))
+                .show());
         ImageButton editUrl = findViewById(R.id.web_edit_url);
         editUrl.setOnClickListener(v -> {
             EditText input = new EditText(this);
@@ -366,6 +409,8 @@ public class BootstrapActivity extends AppCompatActivity {
     protected void onDestroy() {
         publishThread.shutdownNow();
         requestThreads.shutdownNow();
+        ScreenCaptureService.setListener(null);
+        ScreenCaptureService.stop();
         super.onDestroy();
     }
 
@@ -415,6 +460,28 @@ public class BootstrapActivity extends AppCompatActivity {
         }
 
         /** Network requests of the app's own pages; the answer comes back through window.__fnReply. */
+        @JavascriptInterface
+        public void screenStart(String token) {
+            if (!netToken.equals(token)) {
+                return;
+            }
+            runOnUiThread(() -> {
+                try {
+                    screenPicker.launch(getSystemService(android.media.projection.MediaProjectionManager.class)
+                            .createScreenCaptureIntent());
+                } catch (ActivityNotFoundException | IllegalStateException e) {
+                    sendToPage("window.__screenEnd&&window.__screenEnd('Condivisione non disponibile')");
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void screenStop(String token) {
+            if (netToken.equals(token)) {
+                ScreenCaptureService.stop();
+            }
+        }
+
         @JavascriptInterface
         public void net(String token, String method, String arguments, String replyId) {
             if (!netToken.equals(token)) {

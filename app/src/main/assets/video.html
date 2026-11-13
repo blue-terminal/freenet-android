@@ -375,6 +375,13 @@ async function loadActivity() {
   const a = FNet.foldActivity(await FNet.read('c:' + v.id));
   if (current !== v) return;
   me = me || await FNet.identity();
+  // Il voto appena dato vale subito, anche se la bacheca non lo mostra ancora.
+  if (myVote && myVote.id === v.id && Date.now() - myVote.at < 90000 && a.votes.get(me.pub) !== myVote.value) {
+    const old = a.votes.get(me.pub) || 0;
+    if (old === 1) a.likes--; if (old === -1) a.dislikes--;
+    if (myVote.value === 1) a.likes++; if (myVote.value === -1) a.dislikes++;
+    a.votes.set(me.pub, myVote.value);
+  }
   const mine = a.votes.get(me.pub);
   const like = document.getElementById('like'), dislike = document.getElementById('dislike');
   if (!like) return;
@@ -411,14 +418,25 @@ async function markViewed(id) {
   store.set('tv_viewed', seen);
   await FNet.post('c:' + id, 'view', {});
 }
+let myVote = null;
 async function vote(value) {
   me = me || await FNet.identity();
-  const a = FNet.foldActivity(await FNet.read('c:' + current.id));
-  const next = a.votes.get(me.pub) === value ? 0 : value;
+  const v = current;
+  const now = myVote && myVote.id === v.id ? myVote.value
+    : document.getElementById('like').classList.contains('on') ? 1 : document.getElementById('dislike').classList.contains('on') ? -1 : 0;
+  const next = now === value ? 0 : value;
+  myVote = { id: v.id, value: next, at: Date.now() };
+  loadActivity();
   const liked = store.get('tv_liked', []).filter(x => x !== current.id);
   if (next === 1) liked.unshift(current.id);
   store.set('tv_liked', liked);
-  await FNet.post('c:' + current.id, 'vote', { value: next });
+  try {
+    const r = await FNet.post('c:' + v.id, 'vote', { value: next });
+    if (r && r.queued) toast('Voto salvato: partirà quando il nodo risponde');
+  } catch (e) {
+    myVote = null;
+    toast('Voto non inviato: ' + e.message);
+  }
   loadActivity();
 }
 async function sendComment(form) {
@@ -715,7 +733,7 @@ let liveState = null;
 async function liveSource(kind) {
   const md = navigator.mediaDevices;
   if (kind === 'camera') return md.getUserMedia({ video: { width: 640, height: 360 }, audio: true });
-  const screen = await md.getDisplayMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 15 } }, audio: true });
+  const screen = md.getDisplayMedia ? await md.getDisplayMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 15 } }, audio: true }) : await appScreen();
   // La voce dal microfono: lo schermo da solo spesso non ha audio.
   let mic = null;
   try { mic = await md.getUserMedia({ audio: true, video: kind === 'both' ? { width: 320, height: 180 } : false }); } catch {}
@@ -744,6 +762,36 @@ async function liveSource(kind) {
   out.getTracks = () => { stops.forEach(f => f()); return stopAll(); };
   return out;
 }
+// Telefono: la WebView non sa condividere lo schermo, lo cattura l'app e manda le immagini qui.
+const appCanShare = () => typeof Android !== 'undefined' && !!Android.screenStart && !!window.__fnToken;
+const canShareScreen = () => !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) || appCanShare();
+function appScreen() {
+  if (!appCanShare()) return Promise.reject(new Error('Condivisione schermo non disponibile'));
+  return new Promise((resolve, reject) => {
+    const c = Object.assign(document.createElement('canvas'), { width: 960, height: 540 });
+    const g = c.getContext('2d');
+    const stream = c.captureStream(5);
+    let started = false;
+    window.__screenFrame = data => {
+      const img = new Image();
+      img.onload = () => {
+        if (c.width !== img.width || c.height !== img.height) { c.width = img.width; c.height = img.height; }
+        g.drawImage(img, 0, 0);
+        if (!started) { started = true; resolve(stream); }
+      };
+      img.src = 'data:image/jpeg;base64,' + data;
+    };
+    window.__screenEnd = why => {
+      window.__screenFrame = null;
+      stream.getVideoTracks().forEach(t => { t.stop(); t.dispatchEvent(new Event('ended')); });
+      if (!started) reject(new Error(why || 'Condivisione interrotta'));
+    };
+    const track = stream.getVideoTracks()[0];
+    const stop = track.stop.bind(track);
+    track.stop = () => { stop(); try { Android.screenStop(window.__fnToken); } catch {} };
+    Android.screenStart(window.__fnToken);
+  });
+}
 function viewLive() {
   const lives = items.filter(v => v.live && FNet.isVisible(v));
   app.innerHTML = `<div class="livebox" style="max-width:720px;margin:auto"><h1 style="font-size:21px;margin-bottom:6px">Diretta</h1>
@@ -754,9 +802,9 @@ function viewLive() {
       <label class="field"><span>Categoria educativa</span>${categorySelect('')}</label>
       <label class="field"><span>Cosa mostri</span><select name="source">
         <option value="camera">📷 Fotocamera</option>
-        ${navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia ? '<option value="screen">🖥️ Schermo condiviso</option><option value="both">🖥️ Schermo + 📷 fotocamera nel riquadro</option>' : ''}
+        ${canShareScreen() ? '<option value="screen">🖥️ Schermo condiviso</option><option value="both">🖥️ Schermo + 📷 fotocamera nel riquadro</option>' : ''}
       </select></label>
-      ${navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia ? '' : '<p class="sub" style="margin:-4px 0 10px">Su questo dispositivo si può trasmettere solo la fotocamera: lo schermo si condivide da Web 7.0 per PC.</p>'}
+      ${canShareScreen() ? '' : '<p class="sub" style="margin:-4px 0 10px">Su questo dispositivo si può trasmettere solo la fotocamera: lo schermo si condivide da Web 7.0 per PC.</p>'}
       <button class="btn main" id="live-btn" style="width:100%">🔴 Vai in diretta</button></form>
     <div class="sub" id="live-status" style="margin-top:10px"></div></div>
     <h2 style="margin:20px 0 10px">In onda ora</h2><div class="grid">${lives.map(card).join('')}</div>${lives.length ? '' : '<p class="sub">Nessuna diretta in corso.</p>'}`;
