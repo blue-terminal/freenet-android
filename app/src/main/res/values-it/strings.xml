@@ -332,4 +332,12 @@ Freenet: GNU AGPL, codice su <a href="https://github.com/freenet/freenet-core">f
     <string name="web70_coming_soon">Avvia il nodo Freenet per usare Web 7.0</string>
     <string name="ssh_steps">1. Sul PC, nel terminale (Linux, Mac o Windows 10+):\n\n%1$s\n\n2. Password: %2$s\n\n3. Lascia il terminale aperto e nel browser del PC apri:\nhttp://127.0.0.1:%3$d/\n\nCon Web 7.0 per PC basta: web70 --telefono INDIRIZZO-DEL-TELEFONO\n\nIndirizzi di questo telefono:</string>
     <string name="ssh_copy_password">Copia password</string>
+    <string name="security">Sicurezza</string>
+    <string name="security_level">Livello di sicurezza</string>
+    <string-array name="security_names"><item>Normale</item><item>Alto</item><item>Estremo</item></string-array>
+    <string name="security_info">Cosa cambia ogni livello</string>
+    <string name="security_info_summary">Normale: tutto attivo; 10 password SSH sbagliate bloccano quell\'indirizzo per 15 minuti.\nAlto: 3 password sbagliate e l\'indirizzo resta bloccato un\'ora.\nEstremo: niente accesso SSH dal PC, niente comandi root, niente videochiamata (passa da un server esterno), niente screenshot dell\'app.\nOgni password sbagliata manda una notifica con l\'indirizzo da cui arriva.</string>
+    <string name="security_no_root">Con il livello di sicurezza Estremo i comandi root sono spenti.</string>
+    <string name="security_no_call">Con il livello di sicurezza Estremo la videochiamata è spenta: passa da un server esterno a Freenet.</string>
+    <string name="security_no_ssh">Con il livello di sicurezza Estremo l\'accesso SSH dal PC è spento.</string>
 </resources>

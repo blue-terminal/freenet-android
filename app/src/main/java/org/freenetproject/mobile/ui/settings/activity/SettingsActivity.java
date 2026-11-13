@@ -270,6 +270,10 @@ public class SettingsActivity extends AppCompatActivity {
             SwitchPreferenceCompat macRandom = findPreference("mac_random");
             if (macRandom != null) {
                 macRandom.setOnPreferenceChangeListener((preference, value) -> {
+                    if ((Boolean) value && org.freenetproject.mobile.Security.extreme(requireContext())) {
+                        Toast.makeText(requireContext(), R.string.security_no_root, Toast.LENGTH_LONG).show();
+                        return false;
+                    }
                     boolean enable = (Boolean) value;
                     new Thread(() -> {
                         boolean root = hasRoot();
@@ -299,6 +303,10 @@ public class SettingsActivity extends AppCompatActivity {
             SwitchPreferenceCompat blockTracking = findPreference("block_tracking");
             if (blockTracking != null) {
                 blockTracking.setOnPreferenceChangeListener((preference, value) -> {
+                    if ((Boolean) value && org.freenetproject.mobile.Security.extreme(requireContext())) {
+                        Toast.makeText(requireContext(), R.string.security_no_root, Toast.LENGTH_LONG).show();
+                        return false;
+                    }
                     boolean enable = (Boolean) value;
                     new Thread(() -> {
                         boolean root = hasRoot();
@@ -323,12 +331,29 @@ public class SettingsActivity extends AppCompatActivity {
                     return true;
                 });
             }
+            Preference level = findPreference(org.freenetproject.mobile.Security.KEY);
+            if (level != null) {
+                level.setOnPreferenceChangeListener((preference, value) -> {
+                    if ("extreme".equals(value)) {
+                        // Extreme closes the door at once: SSH off now, not at the next start.
+                        SwitchPreferenceCompat ssh = findPreference("host_mode");
+                        if (ssh != null) ssh.setChecked(false);
+                        Manager.getInstance().onHostModeChanged(requireContext(), false);
+                        App.applyScreenshotBlock(requireActivity(), true);
+                    }
+                    return true;
+                });
+            }
             SwitchPreferenceCompat host = findPreference("host_mode");
             if (host != null) {
                 host.setOnPreferenceChangeListener((preference, value) -> {
                     if (!(Boolean) value) {
                         Manager.getInstance().onHostModeChanged(requireContext(), false);
                         return true;
+                    }
+                    if (org.freenetproject.mobile.Security.extreme(requireContext())) {
+                        Toast.makeText(requireContext(), R.string.security_no_ssh, Toast.LENGTH_LONG).show();
+                        return false;
                     }
                     // Opening the node to the network is the user's call, asked for each time.
                     new AlertDialog.Builder(requireContext())

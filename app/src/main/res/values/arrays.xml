@@ -91,4 +91,9 @@
         <item>green</item>
         <item>pink</item>
     </string-array>
+    <string-array name="security_values" translatable="false">
+        <item>standard</item>
+        <item>high</item>
+        <item>extreme</item>
+    </string-array>
 </resources>

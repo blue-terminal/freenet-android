@@ -194,6 +194,25 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory app:title="@string/security">
+
+        <ListPreference
+            app:key="security_level"
+            app:title="@string/security_level"
+            app:defaultValue="standard"
+            app:entries="@array/security_names"
+            app:entryValues="@array/security_values"
+            app:useSimpleSummaryProvider="true"
+            />
+
+        <Preference
+            app:key="security_info"
+            app:title="@string/security_info"
+            app:summary="@string/security_info_summary"
+            />
+
+    </PreferenceCategory>
+
     <PreferenceCategory app:title="@string/host">
 
         <SwitchPreferenceCompat

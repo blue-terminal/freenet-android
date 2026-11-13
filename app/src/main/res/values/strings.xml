@@ -340,4 +340,12 @@ Freenet: GNU AGPL, source at <a href="https://github.com/freenet/freenet-core">f
     <string name="web70_coming_soon">Avvia il nodo Freenet per usare Web 7.0</string>
     <string name="ssh_steps">1. On the PC, in a terminal (Linux, Mac or Windows 10+):\n\n%1$s\n\n2. Password: %2$s\n\n3. Keep the terminal open and in the PC browser open:\nhttp://127.0.0.1:%3$d/\n\nWith Web 7.0 for PC just run: web70 --telefono PHONE-ADDRESS\n\nAddresses of this phone:</string>
     <string name="ssh_copy_password">Copy password</string>
+    <string name="security">Security</string>
+    <string name="security_level">Security level</string>
+    <string-array name="security_names"><item>Standard</item><item>High</item><item>Extreme</item></string-array>
+    <string name="security_info">What each level changes</string>
+    <string name="security_info_summary">Standard: everything on; 10 wrong SSH passwords lock that address out for 15 minutes.\nHigh: 3 wrong passwords and the address stays locked for an hour.\nExtreme: no SSH access from the PC, no root commands, no video call (it goes through an outside server), no screenshots of the app.\nEvery wrong password sends a notification with the address it came from.</string>
+    <string name="security_no_root">At the Extreme security level root commands are off.</string>
+    <string name="security_no_call">At the Extreme security level the video call is off: it goes through a server outside Freenet.</string>
+    <string name="security_no_ssh">At the Extreme security level SSH access from the PC is off.</string>
 </resources>
