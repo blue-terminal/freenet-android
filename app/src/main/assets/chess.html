@@ -148,6 +148,8 @@ function undo() {
 
 function canMove() {
   if (!game || currentStatus().over) return false;
+  // Online si muove solo quando l'avversario è entrato: prima la mossa resterebbe sospesa.
+  if (game.mode === 'online' && !(game.white && game.black)) return false;
   return game.pos.turn === game.you;
 }
 function clickSquare(s) {
@@ -175,7 +177,16 @@ function askPromotion(options) {
   document.body.append(box);
 }
 function playMove(m) {
-  if (game.mode === 'online') sendOnlineMove(m);
+  if (game.mode === 'online') {
+    const g = game;
+    g.pendingSince = Date.now();
+    sendOnlineMove(m).catch(e => {
+      // Mossa non arrivata alla bacheca: la scacchiera torna com'è in rete, così si può riprovare.
+      toast('Mossa non inviata: ' + e.message);
+      g.pendingSince = 0;
+      syncOnline(true);
+    });
+  }
   applyLocal(m);
 }
 
@@ -279,6 +290,8 @@ async function findOpponent(button) {
       return;
     }
     await createOnline();
+  } catch (e) {
+    toast('Ricerca non riuscita: ' + e.message);
   } finally {
     button.disabled = false;
     button.textContent = '🔍 Cerca giocatore';
@@ -400,16 +413,20 @@ function rebuild(g, messages) {
   }
   return { white, black, pos, moves, history, last, result };
 }
-async function syncOnline() {
+const PENDING_MS = 60 * 1000;
+async function syncOnline(force) {
   const g = game;
   if (!g || g.mode !== 'online') return;
-  const messages = await FNet.read(gameTopic(g.id));
+  let messages;
+  try { messages = await FNet.read(gameTopic(g.id)); } catch { return; }
   if (game !== g) return;
   const next = rebuild(g, messages);
-  if (next.moves.length < g.moves.length && !next.result) return; // la mia mossa non è ancora arrivata alla bacheca
+  // La mia mossa non è ancora arrivata alla bacheca: si aspetta un po', poi vale quella in rete.
+  if (next.moves.length < g.moves.length && !next.result && !force && Date.now() - (g.pendingSince || 0) < PENDING_MS) return;
+  if (next.moves.length < g.moves.length) force = true;
   const changed = next.moves.length !== g.moves.length || !g.white !== !next.white || !g.black !== !next.black || !!next.result !== !!g.result;
   Object.assign(g, next);
-  if (changed) { selected = -1; draw(); }
+  if (changed || force) { selected = -1; draw(); }
 }
 async function sendOnlineMove(m) {
   const r = await FNet.post(gameTopic(game.id), 'mv', { n: game.moves.length, uci: Chess.toUci(m) });
