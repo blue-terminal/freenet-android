@@ -35,10 +35,13 @@
 <script>
 const { esc, timeAgo } = FNet;
 const SITES = 'dir:sites';
-const TABS = [['all', 'Tutto'], ['app', 'App'], ['site', 'Siti'], ['video', 'Video'], ['photo', 'Foto'], ['post', 'Post'], ['channel', 'Canali']];
+const TABS = [['all', 'Tutto'], ['app', 'App'], ['site', 'Siti'], ['video', 'Video'], ['photo', 'Foto'], ['post', 'Post'], ['wiki', 'Wiki'], ['forum', 'Forum'], ['channel', 'Canali']];
+const FORUMS = ['scienza', 'matematica', 'programmazione', 'storia', 'lingue', 'tecnologia', 'freenet'];
+let loading = 0;
 const APPS = [
   ['FreenetTV', 'Video educativi peer to peer', 'video.html'], ['FreenetGram', 'Foto e storie', 'photos.html'],
-  ['FreenetPosts', 'Post brevi senza algoritmi', 'posts.html'], ['Scacchi', 'Contro il computer o persone della rete', 'chess.html'],
+  ['FreenetPosts', 'Post brevi senza algoritmi', 'posts.html'], ['FreenetWiki', 'Enciclopedia libera scritta da tutti', 'wiki.html'],
+  ['FreenetForum', 'Comunità con discussioni e voti', 'forum.html'], ['Scacchi', 'Contro il computer o persone della rete', 'chess.html'],
   ['River', 'Chat di gruppo', 'index.html#open=river'], ['Freenet Mail', 'Posta peer to peer', 'index.html#open=mail'],
   ['Ghostkey', 'Identità crittografica', 'index.html#open=ghostkey'], ['Atlas', 'Scoperta di contenuti', 'index.html#open=atlas'],
   ['Delta', 'Costruttore di siti', 'index.html#open=delta'], ['freenet.org', 'Sito ufficiale sulla rete', 'index.html#open=freenetorg'],
@@ -47,18 +50,31 @@ let tab = 'all';
 let index = [];
 let online = true;
 
+// Ogni bacheca entra nei risultati appena arriva: non si aspetta la più lenta.
 async function buildIndex() {
-  const [videos, photos, posts, chans, sites] = await Promise.all(['feed:video', 'feed:photo', 'feed:post', 'feed:channels', SITES].map(FNet.readItems));
-  online = videos.online;
-  index = APPS.map(([title, text, href]) => ({ type: 'app', title, text, href }));
-  sites.filter(FNet.isVisible).forEach(s => {
-    if (FNet.SAFE_KEY.test(s.key || '')) index.push({ type: 'site', title: s.title, text: s.desc, href: 'index.html#open=' + s.key, time: s.created });
-  });
-  videos.filter(FNet.isVisible).forEach(v => index.push({ type: 'video', id: v.id, title: v.title, text: `${v.name} · ${v.cat || ''} · ${v.desc || ''}`, href: 'video.html#/watch/' + v.id, time: v.created }));
-  photos.filter(FNet.isVisible).forEach(p => index.push({ type: 'photo', id: p.id, title: p.caption || 'Foto di ' + p.name, text: p.name, href: 'photos.html#/p/' + p.id, time: p.created }));
-  posts.filter(FNet.isVisible).forEach(n => { if (n.text) index.push({ type: 'post', id: n.id, title: n.name, text: n.text, href: 'posts.html#/p/' + n.id, time: n.created }); });
-  const names = new Map(videos.concat(photos, posts).map(i => [i.tag, i.name]));
-  chans.forEach(c => index.push({ type: 'channel', title: names.get(c.tag) || c.name, text: c.bio, href: 'video.html#/channel/' + c.tag, time: c.created }));
+  const parts = new Map();
+  const apps = APPS.map(([title, text, href]) => ({ type: 'app', title, text, href }));
+  const names = new Map();
+  const merge = () => { index = apps.concat(...parts.values()); draw(); };
+  const add = (feed, make) => {
+    loading++;
+    return FNet.readItems(feed).then(list => {
+      if (list.online === false) online = false;
+      list.filter(FNet.isVisible).forEach(i => i.tag && i.name && names.set(i.tag, i.name));
+      parts.set(feed, list.filter(FNet.isVisible).map(make).filter(Boolean));
+    }).catch(() => { online = false; }).finally(() => { loading--; merge(); });
+  };
+  online = true;
+  merge();
+  await Promise.all([
+    add(SITES, s => FNet.SAFE_KEY.test(s.key || '') && { type: 'site', title: s.title, text: s.desc, href: 'index.html#open=' + s.key, time: s.created }),
+    add('feed:video', v => ({ type: 'video', id: v.id, title: v.title, text: `${v.name} · ${v.cat || ''} · ${v.desc || ''}`, href: 'video.html#/watch/' + v.id, time: v.created })),
+    add('feed:photo', p => ({ type: 'photo', id: p.id, title: p.caption || 'Foto di ' + p.name, text: p.name, href: 'photos.html#/p/' + p.id, time: p.created })),
+    add('feed:post', n => n.text && { type: 'post', id: n.id, title: n.name, text: n.text, href: 'posts.html#/p/' + n.id, time: n.created }),
+    add('wiki:index', a => a.title && { type: 'wiki', title: a.title, text: a.summary, href: 'wiki.html#/w/' + a.slug, time: a.created }),
+    ...FORUMS.map(f => add('forum:r:' + f, t => t.title && { type: 'forum', id: t.id, title: t.title, text: `f/${f} · ${t.name} · ${t.text || ''}`, href: `forum.html#/t/${f}/${t.id}`, time: t.created })),
+    add('feed:channels', c => ({ type: 'channel', title: names.get(c.tag) || c.name, text: c.bio, href: 'video.html#/channel/' + c.tag, time: c.created })),
+  ]);
 }
 function score(entry, words, phrase) {
   const title = String(entry.title || '').toLowerCase(), text = String(entry.text || '').toLowerCase();
@@ -71,10 +87,10 @@ function score(entry, words, phrase) {
   }
   return s + (title.includes(phrase) ? 3 : 0);
 }
-const LABEL = { app: 'App', site: 'Sito', video: 'Video', photo: 'Foto', post: 'Post', channel: 'Canale' };
+const LABEL = { app: 'App', site: 'Sito', video: 'Video', photo: 'Foto', post: 'Post', wiki: 'Wiki', forum: 'Forum', channel: 'Canale' };
 function draw() {
   document.getElementById('tabs').innerHTML = TABS.map(([k, l]) => `<button class="chip ${k === tab ? 'on' : ''}" onclick="tab='${k}';draw()">${l}</button>`).join('');
-  document.getElementById('notice').innerHTML = Social.offlineNotice(online);
+  document.getElementById('notice').innerHTML = Social.offlineNotice(online) + (loading ? `<p class="sub" style="margin-bottom:8px">🔄 Cerco nella rete Freenet… (${loading} ${loading === 1 ? 'fonte' : 'fonti'} ancora in arrivo)</p>` : '');
   const phrase = document.getElementById('q').value.trim();
   const low = phrase.toLowerCase();
   const words = low.split(/\s+/).filter(Boolean);
@@ -86,7 +102,7 @@ function draw() {
   if (keyBox) checkKey(phrase);
   document.getElementById('results').innerHTML = keyBox + (found.length
     ? found.slice(0, 100).map(e => `<a class="result" href="${esc(e.href)}"><div class="sub">${LABEL[e.type]}${e.time ? ' · ' + esc(timeAgo(e.time)) : ''}</div><h3>${esc(e.title)}</h3><p class="sub">${esc(e.text || '')}</p></a>`).join('')
-    : keyBox ? '' : '<div class="empty"><div>🔎</div><h2>Nessun risultato</h2><p>La ricerca copre ciò che è stato pubblicato su Web 7.0 e i siti aggiunti all\'indice.</p></div>');
+    : keyBox ? '' : loading ? '' : '<div class="empty"><div>🔎</div><h2>Nessun risultato</h2><p>La ricerca copre ciò che è stato pubblicato su Web 7.0 e i siti aggiunti all\'indice.</p></div>');
 }
 // Un link è pubblico se il nodo riesce a trovarne il contratto sulla rete Freenet.
 let keyCheckSeq = 0;
@@ -112,7 +128,8 @@ async function checkKey(key) {
 }
 async function runSearch() {
   const q = document.getElementById('q').value.trim();
-  history.replaceState(null, '', 'search.html?q=' + encodeURIComponent(q));
+  // Dentro Freenet la pagina non può cambiare il proprio indirizzo: la ricerca va avanti lo stesso.
+  try { history.replaceState(null, '', 'search.html?q=' + encodeURIComponent(q)); } catch {}
   draw();
 }
 async function addSite(form) {
@@ -123,13 +140,11 @@ async function addSite(form) {
     Social.toast('Sito aggiunto');
     form.reset();
     await buildIndex();
-    draw();
   } catch (e) { Social.toast(e.message); }
 }
 document.getElementById('q').value = new URLSearchParams(location.search).get('q') || '';
 document.getElementById('q').addEventListener('input', draw);
-draw();
-buildIndex().then(draw);
+buildIndex();
 </script>
 </body>
 </html>

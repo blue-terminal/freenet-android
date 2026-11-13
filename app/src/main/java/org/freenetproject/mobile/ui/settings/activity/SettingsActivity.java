@@ -475,7 +475,16 @@ public class SettingsActivity extends AppCompatActivity {
             int padding = Math.round(16 * getResources().getDisplayMetrics().density);
             shown.setPadding(padding, padding, padding, padding);
             shown.setTextIsSelectable(true);
-            shown.setText(body);
+            String text = getString(body);
+            if (body == R.string.news_text) {
+                // The version first, so it is clear which release the list describes.
+                try {
+                    text = "Versione " + requireContext().getPackageManager()
+                            .getPackageInfo(requireContext().getPackageName(), 0).versionName + "\n\n" + text;
+                } catch (android.content.pm.PackageManager.NameNotFoundException ignored) {
+                }
+            }
+            shown.setText(text);
             ScrollView scroll = new ScrollView(requireContext());
             scroll.addView(shown);
             new AlertDialog.Builder(requireContext())
