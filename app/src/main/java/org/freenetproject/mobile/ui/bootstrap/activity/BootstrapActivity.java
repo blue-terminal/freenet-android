@@ -143,6 +143,19 @@ public class BootstrapActivity extends AppCompatActivity {
         preferences = PreferenceManager.getDefaultSharedPreferences(this);
         findViewById(R.id.web_back).setOnClickListener(
                 v -> getOnBackPressedDispatcher().onBackPressed());
+        findViewById(R.id.web_forward).setOnClickListener(v -> { if (web.canGoForward()) web.goForward(); });
+        findViewById(R.id.web_reload).setOnClickListener(v -> web.reload());
+        // Back to the app's first screen, the one with the Start button.
+        findViewById(R.id.web_start).setOnClickListener(v -> {
+            startActivity(new Intent(this, org.freenetproject.mobile.ui.main.activity.MainActivity.class)
+                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP));
+            finish();
+        });
+        applyBarButtons();
+        address.setOnLongClickListener(v -> {
+            chooseBarButtons();
+            return true;
+        });
         // Home: goes where the user chose (long press to choose); until then it asks each time.
         View home = findViewById(R.id.web_home);
         home.setOnClickListener(v -> {
@@ -385,6 +398,41 @@ public class BootstrapActivity extends AppCompatActivity {
     }
 
     private static final String HOME_KEY = "home_target";
+    private static final int[] BAR_IDS = {R.id.web_back, R.id.web_home, R.id.web_forward, R.id.web_reload, R.id.web_start, R.id.web_edit_url};
+    private static final String[] BAR_NAMES = {"Indietro", "Home", "Avanti", "Ricarica", "Schermata iniziale (Avvia)", "Cambia indirizzo"};
+    private static final boolean[] BAR_DEFAULT = {true, true, false, true, false, true};
+
+    private boolean barShown(int i) {
+        return preferences.getBoolean("bar_" + i, BAR_DEFAULT[i]);
+    }
+
+    private void applyBarButtons() {
+        for (int i = 0; i < BAR_IDS.length; i++) {
+            findViewById(BAR_IDS[i]).setVisibility(barShown(i) ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    // Long press on the address: pick which buttons the bar shows.
+    private void chooseBarButtons() {
+        boolean[] shown = new boolean[BAR_IDS.length];
+        for (int i = 0; i < shown.length; i++) {
+            shown[i] = barShown(i);
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("Pulsanti della barra")
+                .setMultiChoiceItems(BAR_NAMES, shown, (d, which, on) -> shown[which] = on)
+                .setPositiveButton("Salva", (d, w) -> {
+                    SharedPreferences.Editor edit = preferences.edit();
+                    for (int i = 0; i < shown.length; i++) {
+                        edit.putBoolean("bar_" + i, shown[i]);
+                    }
+                    edit.apply();
+                    applyBarButtons();
+                })
+                .setNeutralButton("Tasto Home…", (d, w) -> chooseHome(webView))
+                .setNegativeButton("Annulla", null)
+                .show();
+    }
 
     private static String homeUrl(String target) {
         if ("web70".equals(target)) {

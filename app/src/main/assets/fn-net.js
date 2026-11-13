@@ -480,7 +480,7 @@ var l=document.getElementById('l');(f.items||[]).forEach(function(i){var a=docum
     const id = await identity();
     let key = store.get('channel_key', null);
     try { key = await updateChannel(); } catch {}
-    return saveItem('feed:channels', id.tag.replace(/[^A-Za-z0-9_-]/g, ''), { bio: String(p.bio || '').slice(0, 500), avatar: safeImage(p.avatar), key });
+    return saveItem('feed:channels', id.tag.replace(/[^A-Za-z0-9_-]/g, ''), { bio: String(p.bio || '').slice(0, 500), nick: String(p.nick || '').replace(/[^A-Za-z0-9_.]/g, '').slice(0, 24), avatar: safeImage(p.avatar), key });
   }
 
   async function ensureChannelListed() {
