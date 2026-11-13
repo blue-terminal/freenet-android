@@ -169,7 +169,14 @@ public class MainFragment extends Fragment {
                 startActivity(new Intent(getActivity(), SitesActivity.class)));
 
         Button videoCall = view.findViewById(R.id.video_call_button);
-        videoCall.setOnClickListener(v -> startActivity(new Intent(getContext(), VideoCallActivity.class)));
+        videoCall.setOnClickListener(v -> {
+            // The call goes through an outside server: not at the extreme level.
+            if (org.freenetproject.mobile.Security.extreme(requireContext())) {
+                android.widget.Toast.makeText(getContext(), R.string.security_no_call, android.widget.Toast.LENGTH_LONG).show();
+                return;
+            }
+            startActivity(new Intent(getContext(), VideoCallActivity.class));
+        });
         manager.getStatus().observe(getViewLifecycleOwner(), status ->
                 videoCall.setEnabled(status.equals(Manager.Status.STARTED)));
         updateControls(manager, view);

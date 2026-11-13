@@ -107,7 +107,7 @@ public class App extends Application {
             if (preferences.getBoolean(KEY_COLORBLIND, false)) {
                 activity.getTheme().applyStyle(R.style.Theme_Colorblind, true);
             }
-            applyScreenshotBlock(activity, preferences.getBoolean(KEY_BLOCK_SCREENSHOTS, false));
+            applyScreenshotBlock(activity, preferences.getBoolean(KEY_BLOCK_SCREENSHOTS, false) || Security.extreme(activity));
             if (!preferences.getBoolean("dev_animations", true)) {
                 activity.getWindow().setWindowAnimations(0);
             }
@@ -121,7 +121,7 @@ public class App extends Application {
         public void onActivityResumed(Activity activity) {
             // A screen left open while the option changed must follow it too.
             applyScreenshotBlock(activity, PreferenceManager.getDefaultSharedPreferences(activity)
-                    .getBoolean(KEY_BLOCK_SCREENSHOTS, false));
+                    .getBoolean(KEY_BLOCK_SCREENSHOTS, false) || Security.extreme(activity));
         }
 
         @Override
