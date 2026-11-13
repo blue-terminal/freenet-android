@@ -330,7 +330,7 @@
   // Video già scaricati in questa pagina: tornando indietro non si riscaricano, e i più vecchi
   // vengono liberati dalla memoria (un video può pesare decine di MB).
   const videoCache = new Map();
-  const VIDEO_KEEP = 3;
+  const VIDEO_KEEP = 4;
   async function videoUrl(item, onProgress) {
     const key = (item.parts || []).map(p => p && p.sha).join(',');
     if (videoCache.has(key)) {
