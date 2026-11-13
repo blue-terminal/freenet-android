@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FreenetForum — Web 7.0</title>
+<link rel="stylesheet" href="web7.css">
+<style>
+.column { max-width: 720px; margin: auto; }
+.thread { display: flex; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; margin-bottom: 10px; }
+.score { display: flex; flex-direction: column; align-items: center; min-width: 38px; font-weight: 700; font-size: 14px; }
+.score button { font-size: 20px; line-height: 1; padding: 2px 6px; color: var(--muted); }
+.score button.on.up { color: #ff6a2b; }
+.score button.on.down { color: #6b7cff; }
+.thread .body { min-width: 0; flex: 1; }
+.thread h3 { font-size: 16px; margin: 2px 0 4px; overflow-wrap: anywhere; }
+.thread .text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0; }
+.sorts { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.sorts a { padding: 6px 12px; border-radius: 16px; border: 1px solid var(--line); font-size: 14px; }
+.sorts a.on { background: var(--text); color: var(--bg); }
+.comm { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.comm .ic { width: 38px; height: 38px; border-radius: 50%; background: var(--panel2); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.field { display: block; margin-bottom: 12px; }
+.field span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.field input, .field textarea, .field select { width: 100%; padding: 10px 12px; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; color: var(--text); min-width: 0; }
+.field textarea { min-height: 140px; resize: vertical; }
+.banner { background: linear-gradient(120deg, var(--accent), var(--panel2)); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; color: #fff; }
+.banner h1 { font-size: 22px; overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="round" href="index.html" aria-label="Torna a Web 7.0">‹</a>
+  <a class="brand" href="#/home">◈ Freenet<b>Forum</b></a>
+  <span class="grow"></span>
+</header>
+<div class="shell">
+  <nav class="side" id="side"></nav>
+  <main class="content" id="app"></main>
+</div>
+<nav class="bottom" id="bottom"></nav>
+
+<script src="fn-ws.js"></script>
+<script src="fn-net.js"></script>
+<script src="social.js"></script>
+<script>
+// Comunità di discussione sulla rete Freenet: ogni comunità è una bacheca di discussioni firmate,
+// i voti su e giù e i commenti stanno nella bacheca di ogni discussione.
+const { store, esc, timeAgo } = FNet;
+const { toast, offlineNotice, drawComments } = Social;
+const COMMUNITIES = 'forum:subs';
+const BASE = [['scienza', '🔬', 'Fisica, chimica, biologia, astronomia'], ['matematica', '➗', 'Esercizi, dimostrazioni e curiosità'],
+  ['programmazione', '💻', 'Codice, linguaggi e progetti'], ['storia', '🏛️', 'Eventi, persone e fonti'],
+  ['lingue', '🗣️', 'Imparare e praticare le lingue'], ['tecnologia', '⚙️', 'Come funzionano le cose'], ['freenet', '◈', 'La rete Freenet e Web 7.0']];
+const NAV = [['#/home', '🏠', 'Home'], ['#/all', '🧭', 'Comunità'], ['#/new', '✏️', 'Scrivi'], ['#/joined', '⭐', 'Iscritto']];
+const app = document.getElementById('app');
+const feedOf = c => 'forum:r:' + c;
+const nameOk = n => /^[a-z0-9_]{3,24}$/.test(n);
+const joined = () => store.get('forum_joined', ['scienza', 'matematica', 'programmazione', 'freenet']);
+let me = null;
+
+async function communities() {
+  const extra = (await FNet.readItems(COMMUNITIES)).filter(FNet.isVisible);
+  const map = new Map(BASE.map(([name, icon, desc]) => [name, { name, icon, desc }]));
+  for (const c of extra) {
+    const name = String(c.name || '').toLowerCase();
+    if (nameOk(name) && !map.has(name)) map.set(name, { name, icon: String(c.icon || '💬').slice(0, 2), desc: String(c.desc || '').slice(0, 140), author: c.author });
+  }
+  const list = [...map.values()];
+  list.online = extra.online;
+  return list;
+}
+async function threadsOf(name) {
+  const list = (await FNet.readItems(feedOf(name))).filter(FNet.isVisible).map(t => ({ ...t, community: name }));
+  return list;
+}
+async function withScores(list) {
+  me = me || await FNet.identity();
+  await Promise.all(list.map(async t => {
+    const a = FNet.foldActivity(await FNet.read('c:' + t.id));
+    t.score = a.likes - a.dislikes;
+    t.mine = a.votes.get(me.pub) || 0;
+    t.comments = a.comments.length;
+  }));
+  return list;
+}
+// Come i forum più usati: "Popolari" pesa i voti con l'età, "Nuovi" per data, "Migliori" per voti.
+function sortThreads(list, how) {
+  const hot = t => (Math.sign(t.score) * Math.log10(Math.max(1, Math.abs(t.score) + 1))) + t.created / 45000000;
+  if (how === 'new') return list.sort((a, b) => b.created - a.created);
+  if (how === 'top') return list.sort((a, b) => b.score - a.score || b.created - a.created);
+  return list.sort((a, b) => hot(b) - hot(a));
+}
+function threadHtml(t, full) {
+  return `<div class="thread" id="t-${esc(t.id)}"><div class="score">
+      <button class="up ${t.mine === 1 ? 'on' : ''}" onclick="vote('${esc(t.id)}',1)" aria-label="Voto su">▲</button><span>${t.score}</span>
+      <button class="down ${t.mine === -1 ? 'on' : ''}" onclick="vote('${esc(t.id)}',-1)" aria-label="Voto giù">▼</button></div>
+    <div class="body"><div class="sub"><a href="#/r/${esc(t.community)}"><b>f/${esc(t.community)}</b></a> · ${esc(t.name)} · ${esc(timeAgo(t.created))}</div>
+      <a href="#/t/${esc(t.community)}/${esc(t.id)}"><h3>${esc(t.title)}</h3></a>
+      ${full || (t.text && t.text.length < 280) ? `<div class="text">${esc(t.text || '')}</div>` : t.text ? `<div class="text">${esc(t.text.slice(0, 260))}…</div>` : ''}
+      <div class="row wrap" style="gap:4px"><a class="btn" href="#/t/${esc(t.community)}/${esc(t.id)}">💬 ${t.comments}</a>
+      <button class="btn" onclick="share('${esc(t.community)}','${esc(t.id)}')">↗ Condividi</button>
+      ${t.author === (me && me.pub) ? `<button class="btn danger" onclick="removeThread('${esc(t.community)}','${esc(t.id)}')">Elimina</button>` : `<button class="btn" onclick="report('${esc(t.community)}','${esc(t.id)}')">Segnala</button>`}</div></div></div>`;
+}
+const sortsHtml = (base, how) => `<div class="sorts">${[['hot', '🔥 Popolari'], ['new', '🆕 Nuovi'], ['top', '🏆 Migliori']].map(([k, l]) => `<a class="${k === how ? 'on' : ''}" href="${base}?s=${k}">${l}</a>`).join('')}</div>`;
+
+async function viewHome(how) {
+  app.innerHTML = '<div class="column"><p class="sub">Leggo le comunità dalla rete…</p></div>';
+  const names = joined();
+  const all = (await Promise.all(names.map(threadsOf))).flat();
+  sortThreads(await withScores(all), how);
+  app.innerHTML = `<div class="column">${offlineNotice(all.online !== false)}${sortsHtml('#/home', how)}
+    ${all.length ? all.slice(0, 60).map(t => threadHtml(t)).join('') : '<div class="empty"><div>💬</div><h2>Ancora nessuna discussione</h2><p>Apri la prima in una delle tue comunità.</p><a class="btn main" href="#/new">Scrivi</a></div>'}</div>`;
+}
+async function viewAll() {
+  const list = await communities();
+  const mine = new Set(joined());
+  app.innerHTML = `<div class="column">${offlineNotice(list.online)}<div class="row" style="margin-bottom:8px"><h2 class="grow">Comunità</h2><button class="btn main" onclick="newCommunity()">＋ Crea</button></div>
+    ${list.map(c => `<div class="comm"><span class="ic">${esc(c.icon)}</span><a class="grow" href="#/r/${esc(c.name)}" style="min-width:0"><b>f/${esc(c.name)}</b><div class="sub">${esc(c.desc)}</div></a>
+      <button class="btn ${mine.has(c.name) ? '' : 'main'}" onclick="toggleJoin('${esc(c.name)}')">${mine.has(c.name) ? 'Iscritto' : 'Iscriviti'}</button></div>`).join('')}</div>`;
+}
+async function viewJoined() {
+  const list = (await communities()).filter(c => joined().includes(c.name));
+  app.innerHTML = `<div class="column"><h2 style="margin-bottom:8px">Le tue comunità</h2>${list.length ? list.map(c => `<div class="comm"><span class="ic">${esc(c.icon)}</span><a class="grow" href="#/r/${esc(c.name)}"><b>f/${esc(c.name)}</b><div class="sub">${esc(c.desc)}</div></a></div>`).join('') : '<p class="sub">Non sei iscritto a nessuna comunità.</p>'}</div>`;
+}
+async function viewCommunity(name, how) {
+  const c = (await communities()).find(x => x.name === name);
+  if (!c) { app.innerHTML = '<div class="empty"><div>🔎</div><h2>Comunità non trovata</h2></div>'; return; }
+  const list = sortThreads(await withScores(await threadsOf(name)), how);
+  const isIn = joined().includes(name);
+  app.innerHTML = `<div class="column"><div class="banner"><h1>${esc(c.icon)} f/${esc(name)}</h1><p>${esc(c.desc)}</p>
+    <div class="row" style="margin-top:10px"><button class="btn" onclick="toggleJoin('${esc(name)}')">${isIn ? 'Iscritto ✓' : 'Iscriviti'}</button><a class="btn main" href="#/new/${esc(name)}">✏️ Nuova discussione</a></div></div>
+    ${sortsHtml('#/r/' + name, how)}${list.length ? list.map(t => threadHtml(t)).join('') : '<p class="sub">Ancora nessuna discussione qui.</p>'}</div>`;
+}
+async function viewThread(name, id) {
+  const t = (await threadsOf(name)).find(x => x.id === id);
+  if (!t) { app.innerHTML = '<div class="empty"><div>🔎</div><h2>Discussione non trovata</h2></div>'; return; }
+  await withScores([t]);
+  app.innerHTML = `<div class="column">${threadHtml(t, true)}<div class="panel" data-comments id="comments"></div></div>`;
+  drawComments(document.getElementById('comments'), id);
+}
+async function viewNew(name) {
+  const list = await communities();
+  app.innerHTML = `<div class="column"><h2 style="margin-bottom:10px">Nuova discussione</h2><form class="panel" onsubmit="event.preventDefault();sendThread(this)">
+    <label class="field"><span>Comunità</span><select name="community">${list.map(c => `<option value="${esc(c.name)}" ${c.name === name ? 'selected' : ''}>f/${esc(c.name)}</option>`).join('')}</select></label>
+    <label class="field"><span>Titolo</span><input name="title" maxlength="200" required></label>
+    <label class="field"><span>Testo</span><textarea name="text" maxlength="8000"></textarea></label>
+    <div class="row"><span class="grow sub" id="state"></span><button class="btn main">Pubblica</button></div></form></div>`;
+}
+async function sendThread(form) {
+  const state = document.getElementById('state');
+  const button = form.querySelector('button');
+  button.disabled = true;
+  try {
+    const id = FNet.newId('f');
+    const community = form.community.value;
+    const r = await FNet.saveItem(feedOf(community), id, { title: form.title.value.trim(), text: form.text.value.trim(), vis: 'public' });
+    toast(r.queued ? 'Salvata: partirà quando il nodo risponde' : 'Discussione pubblicata');
+    location.hash = `#/t/${community}/${id}`;
+  } catch (e) {
+    state.textContent = 'Non pubblicata: ' + e.message;
+    button.disabled = false;
+  }
+}
+async function newCommunity() {
+  const name = (prompt('Nome della comunità (3-24 lettere minuscole, numeri o _)') || '').trim().toLowerCase();
+  if (!name) return;
+  if (!nameOk(name)) { toast('Nome non valido'); return; }
+  if ((await communities()).some(c => c.name === name)) { location.hash = '#/r/' + name; return; }
+  const desc = (prompt('Di cosa si parla?') || '').trim().slice(0, 140);
+  await FNet.saveItem(COMMUNITIES, 'r' + name, { name, desc, icon: '💬', vis: 'public' });
+  toggleJoin(name, true);
+  toast('Comunità creata');
+  location.hash = '#/r/' + name;
+}
+function toggleJoin(name, on) {
+  const list = joined().filter(n => n !== name);
+  if (on === true || !joined().includes(name)) list.push(name);
+  store.set('forum_joined', list);
+  if (on !== true) route();
+}
+async function vote(id, value) {
+  const el = document.getElementById('t-' + id);
+  const up = el.querySelector('.up'), down = el.querySelector('.down'), count = el.querySelector('.score span');
+  const old = up.classList.contains('on') ? 1 : down.classList.contains('on') ? -1 : 0;
+  const next = old === value ? 0 : value;
+  // Si vede subito; la bacheca lo riceve poco dopo.
+  up.classList.toggle('on', next === 1);
+  down.classList.toggle('on', next === -1);
+  count.textContent = Number(count.textContent) - old + next;
+  try {
+    const r = await FNet.post('c:' + id, 'vote', { value: next });
+    if (r.queued) toast('Voto salvato: partirà quando il nodo risponde');
+  } catch (e) { toast('Voto non inviato: ' + e.message); }
+}
+async function removeThread(community, id) {
+  if (!confirm('Eliminare questa discussione?')) return;
+  await FNet.deleteItem(feedOf(community), id);
+  toast('Discussione eliminata');
+  location.hash = '#/r/' + community;
+}
+async function report(community, id) {
+  if (!confirm('Segnalare questa discussione?')) return;
+  await FNet.reportItem(feedOf(community), id);
+  toast('Segnalazione inviata');
+}
+function share(community, id) {
+  const text = `freenet://forum f/${community} ${id}`;
+  (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => toast('Codice copiato'), () => prompt('Codice della discussione', text));
+}
+
+function drawChrome() {
+  const route = location.hash || '#/home';
+  const entry = ([hash, icon, label]) => `<a class="nav-item ${route.startsWith(hash) ? 'on' : ''}" href="${hash}"><span>${icon}</span><span>${label}</span></a>`;
+  document.getElementById('side').innerHTML = NAV.map(entry).join('');
+  document.getElementById('bottom').innerHTML = NAV.map(entry).join('');
+}
+async function route() {
+  const [path, query = ''] = (location.hash || '#/home').split('?');
+  const [, page = 'home', a = '', b = ''] = path.match(/^#\/([a-z]+)\/?([a-z0-9_]*)\/?([A-Za-z0-9_-]*)$/) || [];
+  const how = new URLSearchParams(query).get('s') || 'hot';
+  drawChrome();
+  try {
+    if (page === 'all') await viewAll();
+    else if (page === 'joined') await viewJoined();
+    else if (page === 'new') await viewNew(a);
+    else if (page === 'r' && a) await viewCommunity(a, how);
+    else if (page === 't' && a && b) await viewThread(a, b);
+    else await viewHome(how);
+  } catch (e) {
+    app.innerHTML = `<div class="empty"><div>⚠️</div><h2>Qualcosa non ha funzionato</h2><p>${esc(e.message)}</p></div>`;
+  }
+}
+addEventListener('hashchange', route);
+route();
+</script>
+</body>
+</html>

@@ -184,6 +184,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
   <button class="nav-btn" id="btn-back" onclick="goBack()" title="Indietro" disabled>‹</button>
   <button class="nav-btn" id="btn-fwd" onclick="goForward()" title="Avanti" disabled>›</button>
   <button class="nav-btn" id="btn-reload" onclick="reload()" title="Ricarica">↺</button>
+  <button class="nav-btn" onclick="goHome()" title="Home" aria-label="Home">🏠</button>
 
   <div class="addr-wrap">
     <span class="addr-lock" id="addr-lock">🌍</span>
@@ -250,6 +251,16 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
         <span class="ql-icon">✉️</span>
         <span class="ql-name">Freenet Mail</span>
         <span class="ql-desc">Email P2P · nessun provider</span>
+      </a>
+      <a class="ql" onclick="navigate('freenet://wiki')">
+        <span class="ql-icon">📖</span>
+        <span class="ql-name">FreenetWiki</span>
+        <span class="ql-desc">Enciclopedia libera scritta da tutti</span>
+      </a>
+      <a class="ql" onclick="navigate('freenet://forum')">
+        <span class="ql-icon">🗨️</span>
+        <span class="ql-name">FreenetForum</span>
+        <span class="ql-desc">Comunità con discussioni e voti</span>
       </a>
       <a class="ql" onclick="navigate('freenet://chess')">
         <span class="ql-icon">♞</span>
@@ -515,12 +526,24 @@ function navigate(url) {
   url = url || document.getElementById('addr').value.trim();
   if (!url) return;
   histIdx++; history_.splice(histIdx); history_.push(url);
+  history.pushState({ w70: histIdx }, '');
   archiveSite(url, url);
   updateNavUI(url);
   loadUrl(url);
 }
-function goBack()    { if (histIdx > 0) { const url = history_[--histIdx]; updateNavUI(url); loadUrl(url); } }
-function goForward() { if (histIdx < history_.length-1) { const url = history_[++histIdx]; updateNavUI(url); loadUrl(url); } }
+// Ogni pagina aperta è anche un passo della cronologia del browser: il gesto indietro
+// del telefono (anche quello dei Samsung) torna alla pagina prima, come il pulsante ‹.
+function goBack()    { if (histIdx > 0) history.back(); }
+function goHome()    { navigate('freenet://home'); }
+addEventListener('popstate', e => {
+  const i = e.state && typeof e.state.w70 === 'number' ? e.state.w70 : 0;
+  if (i === histIdx || !history_[i]) return;
+  histIdx = i;
+  updateNavUI(history_[i]);
+  loadUrl(history_[i]);
+});
+history.replaceState({ w70: 0 }, '');
+function goForward() { if (histIdx < history_.length-1) history.forward(); }
 function reload()    { loadUrl(history_[histIdx]); }
 
 const LOCAL_APPS = {
@@ -529,6 +552,8 @@ const LOCAL_APPS = {
   'freenet://posts':  'posts.html',
   'freenet://chess':  'chess.html',
   'freenet://search': 'search.html',
+  'freenet://wiki':   'wiki.html',
+  'freenet://forum':  'forum.html',
 };
 const NAMED_APPS = ['atlas', 'river', 'mail', 'editor', 'delta', 'ghostkey', 'freenetorg', 'impostazioni'];
 const KEY_RE = /^[1-9A-HJ-NP-Za-km-z]{32,50}$/;

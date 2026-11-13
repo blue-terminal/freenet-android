@@ -157,7 +157,7 @@ public final class Web70Net {
 
     private static final String PAGES_SITE = "w70-pagine";
     private static final String[] PAGE_FILES = {
-        "index.html", "video.html", "photos.html", "posts.html", "chess.html", "search.html",
+        "index.html", "video.html", "photos.html", "posts.html", "chess.html", "search.html", "wiki.html", "forum.html",
         "fn-api.js", "fn-ws.js", "fn-net.js", "social.js", "chess-engine.js", "web7.css", "fn-theme.css",
         "web70_hub.contract", "web70_client.wasm",
     };

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FreenetWiki — Web 7.0</title>
+<link rel="stylesheet" href="web7.css">
+<style>
+.column { max-width: 760px; margin: auto; }
+.search { display: flex; gap: 8px; margin-bottom: 14px; }
+.search input, .field input, .field textarea { width: 100%; padding: 10px 12px; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; color: var(--text); min-width: 0; }
+.field textarea { min-height: 320px; font-family: ui-monospace, monospace; font-size: 14px; resize: vertical; }
+.field { display: block; margin-bottom: 12px; }
+.field span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.art-list a { display: block; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.art-list a b { display: block; }
+.article h1 { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; font-size: 30px; border-bottom: 1px solid var(--line); padding-bottom: 6px; margin-bottom: 6px; overflow-wrap: anywhere; }
+.article h2 { font-family: Georgia, serif; font-weight: 400; font-size: 22px; border-bottom: 1px solid var(--line); margin: 20px 0 8px; padding-bottom: 3px; }
+.article h3 { font-size: 17px; margin: 14px 0 6px; }
+.article p { margin: 0 0 10px; line-height: 1.6; overflow-wrap: anywhere; }
+.article ul { margin: 0 0 10px 22px; line-height: 1.6; }
+.article a.wl { color: var(--accent); }
+.article a.wl.new { color: var(--danger); }
+.toc { display: inline-block; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; margin: 6px 0 12px; font-size: 14px; }
+.toc b { display: block; margin-bottom: 4px; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 12px; overflow-x: auto; }
+.tabs a { padding: 8px 12px; color: var(--muted); white-space: nowrap; border-bottom: 2px solid transparent; }
+.tabs a.on { color: var(--text); border-bottom-color: var(--accent); }
+.rev { padding: 9px 0; border-bottom: 1px solid var(--line); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.help { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.help code { background: var(--panel2); padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="round" href="index.html" aria-label="Torna a Web 7.0">‹</a>
+  <a class="brand" href="#/home">◈ Freenet<b>Wiki</b></a>
+  <span class="grow"></span>
+</header>
+<div class="shell">
+  <nav class="side" id="side"></nav>
+  <main class="content" id="app"></main>
+</div>
+<nav class="bottom" id="bottom"></nav>
+
+<script src="fn-ws.js"></script>
+<script src="fn-net.js"></script>
+<script src="social.js"></script>
+<script>
+// Enciclopedia libera sulla rete Freenet: ogni voce è una bacheca di revisioni firmate,
+// chiunque può migliorarla e vale l'ultima versione. La cronologia resta visibile a tutti.
+const { esc, timeAgo } = FNet;
+const { toast, offlineNotice, drawComments } = Social;
+const INDEX = 'wiki:index';
+const MAX_TEXT = 12000;
+const NAV = [['#/home', '🏠', 'Pagina principale'], ['#/all', '📚', 'Tutte le voci'], ['#/recent', '🕘', 'Ultime modifiche'], ['#/random', '🎲', 'Voce a caso'], ['#/new', '✏️', 'Nuova voce']];
+const app = document.getElementById('app');
+const slugOf = t => String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
+const topicOf = slug => 'wiki:a:' + slug;
+let index = [];
+
+async function loadIndex() {
+  const list = await FNet.readItems(INDEX);
+  // Una riga per voce: se due persone la creano insieme vale la prima.
+  const bySlug = new Map();
+  for (const it of list.filter(FNet.isVisible)) {
+    const slug = slugOf(it.slug || it.title || '');
+    if (slug && (!bySlug.has(slug) || it.created < bySlug.get(slug).created)) bySlug.set(slug, { ...it, slug });
+  }
+  index = [...bySlug.values()].sort((a, b) => String(a.title).localeCompare(String(b.title), 'it'));
+  index.online = list.online;
+  return index;
+}
+async function revisions(slug) {
+  const msgs = await FNet.read(topicOf(slug));
+  const revs = msgs.filter(m => m.k === 'rev' && typeof m.text === 'string').map(m => ({ ...m, text: m.text.slice(0, MAX_TEXT) }));
+  revs.online = msgs.online;
+  return revs;
+}
+
+// Testo della voce: == Titolo ==, === Sottotitolo ===, * elenco, '''grassetto''', ''corsivo'', [[Altra voce]].
+function inline(text) {
+  const known = new Set(index.map(a => a.slug));
+  return esc(text)
+    .replace(/'''(.+?)'''/g, '<b>$1</b>')
+    .replace(/''(.+?)''/g, '<i>$1</i>')
+    .replace(/\[\[([^\]|]{1,80})(?:\|([^\]]{1,80}))?\]\]/g, (_, target, label) => {
+      const slug = slugOf(target);
+      return `<a class="wl ${known.has(slug) ? '' : 'new'}" href="#/w/${slug}">${label || target}</a>`;
+    });
+}
+function render(text) {
+  const out = [], toc = [];
+  let list = null, para = [];
+  const flush = () => {
+    if (para.length) { out.push(`<p>${inline(para.join(' '))}</p>`); para = []; }
+    if (list) { out.push(`<ul>${list.map(li => `<li>${inline(li)}</li>`).join('')}</ul>`); list = null; }
+  };
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+    let m;
+    if ((m = line.match(/^(={2,3})\s*(.+?)\s*\1$/))) {
+      flush();
+      const level = m[1].length;
+      const id = 'h-' + slugOf(m[2]);
+      if (level === 2) toc.push([id, m[2]]);
+      out.push(`<h${level} id="${id}">${inline(m[2])}</h${level}>`);
+    } else if (line.startsWith('* ')) {
+      if (para.length) { out.push(`<p>${inline(para.join(' '))}</p>`); para = []; }
+      (list = list || []).push(line.slice(2));
+    } else if (!line) flush();
+    else { if (list) flush(); para.push(line); }
+  }
+  flush();
+  const tocHtml = toc.length > 2 ? `<div class="toc"><b>Indice</b>${toc.map(([id, t], i) => `<div>${i + 1}. <a href="javascript:void(0)" onclick="document.getElementById('${id}').scrollIntoView()">${esc(t)}</a></div>`).join('')}</div>` : '';
+  const first = out.findIndex(h => h.startsWith('<h'));
+  if (first > 0) out.splice(first, 0, tocHtml); else if (tocHtml) out.unshift(tocHtml);
+  return out.join('');
+}
+
+function searchBox(value) {
+  return `<form class="search" onsubmit="event.preventDefault();location.hash='#/search/'+encodeURIComponent(this.q.value.trim())">
+    <input name="q" placeholder="Cerca nella wiki" value="${esc(value || '')}" aria-label="Cerca"><button class="btn main">Cerca</button></form>`;
+}
+function listHtml(list, empty) {
+  return list.length ? `<div class="art-list">${list.map(a => `<a href="#/w/${esc(a.slug)}"><b>${esc(a.title)}</b><span class="sub">${esc(a.summary || '')}</span></a>`).join('')}</div>` : `<p class="sub">${empty}</p>`;
+}
+
+async function viewHome() {
+  await loadIndex();
+  const latest = [...index].sort((a, b) => b.created - a.created).slice(0, 8);
+  app.innerHTML = `<div class="column">${offlineNotice(index.online)}${searchBox()}
+    <div class="panel" style="text-align:center;margin-bottom:14px"><h1 style="font-family:Georgia,serif;font-weight:400">Benvenuto su FreenetWiki</h1>
+    <p class="sub">L'enciclopedia libera che vive sulla rete Freenet: niente server, chiunque può scrivere e migliorare le voci.</p>
+    <p class="sub" style="margin-top:6px"><b>${index.length}</b> voci · <a href="#/new">scrivi una voce</a></p></div>
+    <div class="panel"><h2 style="margin-bottom:6px">Voci nuove</h2>${listHtml(latest, 'Ancora nessuna voce: scrivi la prima.')}</div></div>`;
+}
+async function viewAll() {
+  await loadIndex();
+  app.innerHTML = `<div class="column">${offlineNotice(index.online)}${searchBox()}<h2 style="margin-bottom:6px">Tutte le voci (${index.length})</h2>${listHtml(index, 'Ancora nessuna voce.')}</div>`;
+}
+async function viewSearch(q) {
+  await loadIndex();
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  const exact = index.find(a => a.slug === slugOf(q));
+  const found = index.filter(a => words.every(w => (a.title + ' ' + (a.summary || '')).toLowerCase().includes(w)));
+  app.innerHTML = `<div class="column">${searchBox(q)}
+    ${exact ? '' : `<p style="margin-bottom:10px">La voce <b>${esc(q)}</b> non esiste. <a class="wl" href="#/edit/${esc(slugOf(q))}?t=${encodeURIComponent(q)}">Creala</a></p>`}
+    ${listHtml(found, 'Nessun risultato.')}</div>`;
+}
+async function viewRecent() {
+  await loadIndex();
+  app.innerHTML = `<div class="column"><h2 style="margin-bottom:6px">Ultime modifiche</h2><div id="recent"><p class="sub">Leggo dalla rete…</p></div></div>`;
+  const rows = [];
+  for (const a of [...index].sort((x, y) => (y.updated || y.created) - (x.updated || x.created)).slice(0, 15)) {
+    const revs = await revisions(a.slug);
+    for (const r of revs.slice(-3)) rows.push({ a, r });
+  }
+  rows.sort((x, y) => y.r.time - x.r.time);
+  const box = document.getElementById('recent');
+  if (box) box.innerHTML = rows.length ? rows.slice(0, 40).map(({ a, r }) => `<div class="rev"><a href="#/w/${esc(a.slug)}"><b>${esc(a.title)}</b></a><span class="sub">${esc(r.name)} · ${esc(timeAgo(r.time))}${r.note ? ' · ' + esc(r.note) : ''}</span></div>`).join('') : '<p class="sub">Nessuna modifica.</p>';
+}
+function tabs(slug, on) {
+  const t = [['w', 'Voce'], ['talk', 'Discussione'], ['edit', 'Modifica'], ['history', 'Cronologia']];
+  return `<div class="tabs">${t.map(([k, l]) => `<a class="${k === on ? 'on' : ''}" href="#/${k}/${esc(slug)}">${l}</a>`).join('')}</div>`;
+}
+async function viewArticle(slug, revId) {
+  await loadIndex();
+  const meta = index.find(a => a.slug === slug);
+  const revs = await revisions(slug);
+  const rev = revId ? revs.find(r => r.id === revId) : revs[revs.length - 1];
+  if (!rev) {
+    app.innerHTML = `<div class="column">${searchBox()}<div class="empty"><div>📖</div><h2>Questa voce non esiste ancora</h2><p>Puoi essere il primo a scriverla.</p><a class="btn main" href="#/edit/${esc(slug)}">Crea la voce</a></div></div>`;
+    return;
+  }
+  const title = rev.title || (meta && meta.title) || slug;
+  app.innerHTML = `<div class="column">${offlineNotice(revs.online)}${tabs(slug, 'w')}<article class="article"><h1>${esc(title)}</h1>
+    <p class="sub" style="margin-bottom:12px">${revId ? `Versione vecchia del ${esc(new Date(rev.time).toLocaleString('it-IT'))} · <a href="#/w/${esc(slug)}">vai all'ultima</a>` : `Ultima modifica di ${esc(rev.name)}, ${esc(timeAgo(rev.time))}`}</p>
+    ${render(rev.text)}</article></div>`;
+}
+async function viewEdit(slug, suggested) {
+  await loadIndex();
+  const revs = await revisions(slug);
+  const last = revs[revs.length - 1];
+  const meta = index.find(a => a.slug === slug);
+  const title = (last && last.title) || (meta && meta.title) || suggested || '';
+  app.innerHTML = `<div class="column">${slug ? tabs(slug, 'edit') : '<h2 style="margin-bottom:10px">Nuova voce</h2>'}
+    <form class="panel" onsubmit="event.preventDefault();saveArticle(this,'${esc(slug)}')">
+    <label class="field"><span>Titolo</span><input name="title" maxlength="80" required value="${esc(title)}" ${last ? 'readonly' : ''}></label>
+    <label class="field"><span>Testo</span><textarea name="text" maxlength="${MAX_TEXT}" required>${esc(last ? last.text : '')}</textarea></label>
+    <label class="field"><span>Oggetto della modifica</span><input name="note" maxlength="120" placeholder="Per esempio: aggiunta la sezione Storia"></label>
+    <p class="help">Formattazione: <code>== Sezione ==</code>, <code>=== Sottosezione ===</code>, <code>* elenco</code>, <code>'''grassetto'''</code>, <code>''corsivo''</code>, <code>[[Altra voce]]</code>. Scrivi solo contenuti educativi e verificabili.</p>
+    <div class="row" style="margin-top:10px"><span class="grow sub" id="state"></span><button class="btn main">Salva sulla rete</button></div></form></div>`;
+}
+async function saveArticle(form, slug) {
+  const state = document.getElementById('state');
+  const button = form.querySelector('button');
+  const title = form.title.value.trim();
+  const text = form.text.value.trim();
+  slug = slug || slugOf(title);
+  if (!slug) { state.textContent = 'Scrivi un titolo'; return; }
+  button.disabled = true;
+  state.textContent = 'Salvo la voce…';
+  try {
+    const summary = text.replace(/^=.*$/gm, '').replace(/\[\[([^\]|]*)(?:\|([^\]]*))?\]\]/g, (_, a, b) => b || a).replace(/'{2,3}/g, '').replace(/\s+/g, ' ').trim().slice(0, 140);
+    const r = await FNet.post(topicOf(slug), 'rev', { title, text, note: form.note.value.trim() });
+    if (!index.some(a => a.slug === slug)) await FNet.saveItem(INDEX, 'w' + slug.replace(/-/g, '_').slice(0, 40), { title, slug, summary, vis: 'public' });
+    toast(r.queued ? 'Salvata: partirà quando il nodo risponde' : 'Voce salvata');
+    location.hash = '#/w/' + slug;
+  } catch (e) {
+    state.textContent = 'Non salvata: ' + e.message;
+    button.disabled = false;
+  }
+}
+async function viewHistory(slug) {
+  const revs = await revisions(slug);
+  app.innerHTML = `<div class="column">${tabs(slug, 'history')}<h2 style="margin-bottom:6px">Cronologia</h2>
+    ${revs.length ? [...revs].reverse().map((r, i) => `<div class="rev"><a href="#/w/${esc(slug)}/${esc(r.id)}">${esc(new Date(r.time).toLocaleString('it-IT'))}</a>
+      <span class="sub"><b>${esc(r.name)}</b> · ${r.text.length} caratteri${r.note ? ' · ' + esc(r.note) : ''}${i === 0 ? ' · attuale' : ''}</span></div>`).join('') : '<p class="sub">Nessuna versione.</p>'}</div>`;
+}
+async function viewTalk(slug) {
+  app.innerHTML = `<div class="column">${tabs(slug, 'talk')}<h2 style="margin-bottom:6px">Discussione</h2><p class="sub">Proponi correzioni e fonti prima di cambiare la voce.</p><div class="panel" data-comments id="talk"></div></div>`;
+  drawComments(document.getElementById('talk'), 'wiki_' + slug.replace(/-/g, '_'));
+}
+async function viewRandom() {
+  await loadIndex();
+  if (!index.length) { location.hash = '#/home'; return; }
+  location.replace('#/w/' + index[Math.floor(Math.random() * index.length)].slug);
+}
+
+function drawChrome() {
+  const route = location.hash || '#/home';
+  const entry = ([hash, icon, label]) => `<a class="nav-item ${route.startsWith(hash) ? 'on' : ''}" href="${hash}"><span>${icon}</span><span>${label}</span></a>`;
+  document.getElementById('side').innerHTML = NAV.map(entry).join('');
+  document.getElementById('bottom').innerHTML = NAV.map(entry).join('');
+}
+async function route() {
+  const [, page, a = '', b = ''] = (location.hash || '#/home').split('?')[0].match(/^#\/([a-z]+)\/?([^/]*)\/?(.*)$/) || [null, 'home'];
+  const q = new URLSearchParams((location.hash.split('?')[1]) || '');
+  const slug = slugOf(decodeURIComponent(a));
+  drawChrome();
+  try {
+    if (page === 'all') await viewAll();
+    else if (page === 'recent') await viewRecent();
+    else if (page === 'random') await viewRandom();
+    else if (page === 'search') await viewSearch(decodeURIComponent(a));
+    else if (page === 'new') await viewEdit('', '');
+    else if (page === 'edit') await viewEdit(slug, q.get('t') || '');
+    else if (page === 'history') await viewHistory(slug);
+    else if (page === 'talk') await viewTalk(slug);
+    else if (page === 'w' && slug) await viewArticle(slug, b);
+    else await viewHome();
+  } catch (e) {
+    app.innerHTML = `<div class="empty"><div>⚠️</div><h2>Qualcosa non ha funzionato</h2><p>${esc(e.message)}</p></div>`;
+  }
+}
+addEventListener('hashchange', route);
+route();
+</script>
+</body>
+</html>
