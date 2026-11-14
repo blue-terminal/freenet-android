@@ -215,6 +215,7 @@ public class BootstrapActivity extends AppCompatActivity {
             // The bridge object is visible to every frame, the token only to the app's own top page.
             @Override
             public void onPageFinished(WebView view, String url) {
+                topUrl = url;
                 if (url != null && url.startsWith(ASSET_PREFIX)) {
                     view.evaluateJavascript("window.__fnToken=" + JSONObject.quote(netToken), null);
                 }
@@ -222,6 +223,7 @@ public class BootstrapActivity extends AppCompatActivity {
 
             @Override
             public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
+                topUrl = url;
                 // Only the address: the query can hold the node's access token.
                 address.setText(Uri.parse(url).buildUpon().clearQuery().build().toString());
             }
@@ -398,6 +400,24 @@ public class BootstrapActivity extends AppCompatActivity {
     }
 
     private static final String HOME_KEY = "home_target";
+    // Address of the page shown, kept for the bridge (which runs off the UI thread).
+    private volatile String topUrl = "";
+    private static final java.util.Set<String> VAULT_NAMES = new java.util.HashSet<>(
+            java.util.Arrays.asList("identity", "profile"));
+
+    // The Web Open Source⁠ identity lives in the app, so it stays the same in the app's pages and in the
+    // Web Open Source⁠ site published by this app. Any other Freenet site open in the app gets nothing.
+    private boolean vaultAllowed() {
+        String url = topUrl;
+        if (url == null) {
+            return false;
+        }
+        if (url.startsWith(ASSET_PREFIX)) {
+            return true;
+        }
+        String key = getSharedPreferences("web70", MODE_PRIVATE).getString("pages_key", null);
+        return key != null && url.startsWith(Manager.WEB_URL + "v1/contract/web/" + key + "/");
+    }
     private static final int[] BAR_IDS = {R.id.web_back, R.id.web_home, R.id.web_forward, R.id.web_reload, R.id.web_start, R.id.web_edit_url};
     private static final String[] BAR_NAMES = {"Indietro", "Home", "Avanti", "Ricarica", "Schermata iniziale (Avvia)", "Cambia indirizzo"};
     private static final boolean[] BAR_DEFAULT = {true, true, false, true, false, true};
@@ -569,6 +589,23 @@ public class BootstrapActivity extends AppCompatActivity {
         }
 
         /** Network requests of the app's own pages; the answer comes back through window.__fnReply. */
+        @JavascriptInterface
+        public String vaultGet(String name) {
+            if (!VAULT_NAMES.contains(name) || !vaultAllowed()) {
+                return "";
+            }
+            return getSharedPreferences("w70_vault", MODE_PRIVATE).getString(name, "");
+        }
+
+        @JavascriptInterface
+        public boolean vaultSet(String name, String value) {
+            if (!VAULT_NAMES.contains(name) || !vaultAllowed() || value == null || value.length() > 200_000) {
+                return false;
+            }
+            getSharedPreferences("w70_vault", MODE_PRIVATE).edit().putString(name, value).apply();
+            return true;
+        }
+
         @JavascriptInterface
         public void screenStart(String token) {
             if (!netToken.equals(token)) {

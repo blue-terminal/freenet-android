@@ -73,7 +73,16 @@
   const SIGN = { name: 'ECDSA', hash: 'SHA-256' };
   let identityPromise = null;
 
+  // Nell'app l'identità e il profilo li custodisce l'app: restano gli stessi a ogni apertura,
+  // sia nelle pagine dell'app sia nel sito Web Open Source⁠ su Freenet. Gli altri siti non li ricevono.
+  const vault = {
+    ok: typeof Android !== 'undefined' && typeof Android.vaultGet === 'function',
+    get(name) { try { const v = this.ok ? Android.vaultGet(name) : ''; return v ? JSON.parse(v) : null; } catch { return null; } },
+    set(name, value) { try { if (this.ok) Android.vaultSet(name, value === null ? '' : JSON.stringify(value)); } catch {} },
+  };
+
   function logout() {
+    vault.set('identity', null);
     for (const k of Object.keys(session)) delete session[k];
     saveSession();
     store.del('identity');
@@ -84,12 +93,14 @@
     if (identityPromise) return identityPromise;
     identityPromise = (async () => {
       // Nessuna password: se non c'è un'identità se ne crea una nuova, anonima.
-      let saved = store.get('identity');
+      let saved = vault.get('identity') || store.get('identity');
+      if (saved) { vault.set('identity', saved); store.set('identity', saved); }
       if (!saved) {
         const pair = await crypto.subtle.generateKey(ECDSA, true, ['sign', 'verify']);
         const jwk = await crypto.subtle.exportKey('jwk', pair.privateKey);
         saved = { jwk, pub: jwk.x + '.' + jwk.y };
         store.set('identity', saved);
+        vault.set('identity', saved);
       }
       const key = await crypto.subtle.importKey('jwk', saved.jwk, ECDSA, false, ['sign']);
       return { key, pub: saved.pub, tag: saved.pub.slice(0, 40) };
@@ -102,11 +113,12 @@
     const parsed = JSON.parse(text);
     if (!parsed || !parsed.jwk || !parsed.jwk.d || parsed.pub !== parsed.jwk.x + '.' + parsed.jwk.y) throw new Error('File identità non valido');
     store.set('identity', parsed);
+    vault.set('identity', parsed);
     identityPromise = null;
   }
 
-  const profile = () => store.get('profile', { name: '', bio: '', avatar: '' });
-  const setProfileLocal = p => store.set('profile', p);
+  const profile = () => vault.get('profile') || store.get('profile', { name: '', bio: '', avatar: '' });
+  const setProfileLocal = p => { store.set('profile', p); vault.set('profile', p); };
   async function displayName() {
     const id = await identity();
     return profile().name || 'utente-' + id.tag.slice(0, 5);
