@@ -251,6 +251,10 @@ public class MainFragment extends Fragment {
                 .getBoolean("host_mode", false)) {
             return null;
         }
+        // At the extreme security level SSH is off: no command to show.
+        if (org.freenetproject.mobile.Security.extreme(requireContext())) {
+            return null;
+        }
         String found = Manager.localAddress();
         return found == null ? null : "ssh -N -L " + Manager.WEB_PORT + ":127.0.0.1:" + Manager.WEB_PORT
                 + " -p " + org.freenetproject.mobile.net.SshTunnel.PORT + " "
