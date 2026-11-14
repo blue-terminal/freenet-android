@@ -87,3 +87,33 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
 }
+
+// The app's own name lives outside the repository, next to the signing key: the pages and texts in
+// the repository call it "Web Open Source" followed by an invisible WORD JOINER, and the build puts
+// the name from ~/.config/freenet-android/nome.properties (nome=...) in its place. Without the
+// file the app is called "Web Open Source".
+def brandFile = new File(System.getProperty('user.home'), '.config/freenet-android/nome.properties')
+def brandName = 'Web Open Source'
+if (brandFile.exists()) {
+    def brandProps = new Properties()
+    brandFile.withReader('UTF-8') { brandProps.load(it) }
+    brandName = brandProps.getProperty('nome', brandName).trim()
+}
+def brandMark = '\u2060'
+def brandOut = layout.buildDirectory.dir('brand')
+def brandTask = tasks.register('brandSources', Sync) {
+    from('src/main') {
+        include 'assets/**'
+        include 'res/**'
+    }
+    into brandOut
+    inputs.property('brandName', brandName)
+    filteringCharset = 'UTF-8'
+    filesMatching(['**/*.html', '**/*.js', '**/*.css', '**/*.xml']) {
+        filter { String line -> line.replace('Web Open Source' + brandMark, brandName).replace('WEB OPEN SOURCE' + brandMark, brandName.toUpperCase()) }
+    }
+}
+android.sourceSets.main.assets.srcDirs = [brandOut.get().dir('assets').asFile]
+android.sourceSets.main.res.srcDirs = [brandOut.get().dir('res').asFile]
+tasks.named('preBuild').configure { dependsOn brandTask }
+

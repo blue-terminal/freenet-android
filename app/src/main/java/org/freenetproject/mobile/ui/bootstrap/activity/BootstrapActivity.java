@@ -468,7 +468,7 @@ public class BootstrapActivity extends AppCompatActivity {
     private void askHome(WebView web) {
         new AlertDialog.Builder(this)
                 .setTitle("Vai alla home")
-                .setItems(new String[]{"🏠 Home Web Open Source⁠", "🌐 Home Freenet", "⚙️ Scegli la home predefinita…"}, (d, which) -> {
+                .setItems(new String[]{"🏠 Home " + getString(R.string.web70_title), "🌐 Home Freenet", "⚙️ Scegli la home predefinita…"}, (d, which) -> {
                     if (which == 2) {
                         chooseHome(web);
                     } else {
@@ -482,8 +482,8 @@ public class BootstrapActivity extends AppCompatActivity {
         String current = web.getUrl();
         boolean canSaveCurrent = current != null && current.startsWith(Manager.WEB_URL);
         String[] labels = canSaveCurrent
-                ? new String[]{"Home Web Open Source⁠", "Home Freenet", "Questa pagina", "Chiedi ogni volta"}
-                : new String[]{"Home Web Open Source⁠", "Home Freenet", "Chiedi ogni volta"};
+                ? new String[]{"Home " + getString(R.string.web70_title), "Home Freenet", "Questa pagina", "Chiedi ogni volta"}
+                : new String[]{"Home " + getString(R.string.web70_title), "Home Freenet", "Chiedi ogni volta"};
         new AlertDialog.Builder(this)
                 .setTitle("Il tasto Home porta a")
                 .setItems(labels, (d, which) -> {
